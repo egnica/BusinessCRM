@@ -1,142 +1,118 @@
-.page {
-  --background: #fafafa;
-  --foreground: #fff;
+/* Main Page */
 
-  --text-primary: #000;
-  --text-secondary: #666;
-
-  --button-primary-hover: #383838;
-  --button-secondary-hover: #f2f2f2;
-  --button-secondary-border: #ebebeb;
-
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-geist-sans);
-  background-color: var(--background);
-}
-
-.main {
-  display: flex;
-  flex: 1;
-  width: 100%;
-  max-width: 800px;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
-  background-color: var(--foreground);
-  padding: 120px 60px;
-}
-
-.intro {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-  gap: 24px;
-}
-
-.intro h1 {
-  max-width: 320px;
-  font-size: 40px;
-  font-weight: 600;
-  line-height: 48px;
-  letter-spacing: -2.4px;
-  text-wrap: balance;
-  color: var(--text-primary);
-}
-
-.intro p {
-  max-width: 440px;
-  font-size: 18px;
-  line-height: 32px;
-  text-wrap: balance;
-  color: var(--text-secondary);
-}
-
-.intro a {
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.ctas {
-  display: flex;
-  flex-direction: row;
-  width: 100%;
-  max-width: 440px;
-  gap: 16px;
-  font-size: 14px;
-}
-
-.ctas a {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 40px;
-  padding: 0 16px;
-  border-radius: 128px;
-  border: 1px solid transparent;
-  transition: 0.2s;
+.addContactBtn {
+  border: 4px solid black;
+  max-width: 200px;
+  text-align: center;
   cursor: pointer;
-  width: fit-content;
-  font-weight: 500;
+}
+.customerContain {
+  display: block;
+}
+.customerContain > *:nth-child(even) {
+  background-color: #f5f5f5; /* light gray */
 }
 
-a.primary {
-  background: var(--text-primary);
-  color: var(--background);
-  gap: 8px;
+.customerContain > *:nth-child(odd) {
+  background-color: #ffffff; /* white */
+}
+.customerListItem {
+  display: flex;
+  gap: 10px;
+  height: auto;
+  padding: 10px;
 }
 
-a.secondary {
-  border-color: var(--button-secondary-border);
+.customerPanelContain {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 900px;
+  max-width: 100%;
+  height: 100vh;
+  background: #ffffff;
+  border-left: 1px solid #d9d9d9;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.08);
+  z-index: 1000;
+  padding: 20px;
+  overflow-y: auto;
 }
 
-/* Enable hover only on non-touch devices */
-@media (hover: hover) and (pointer: fine) {
-  a.primary:hover {
-    background: var(--button-primary-hover);
-    border-color: transparent;
-  }
-
-  a.secondary:hover {
-    background: var(--button-secondary-hover);
-    border-color: transparent;
-  }
+.customerPanelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
 }
 
-@media (max-width: 600px) {
-  .main {
-    padding: 48px 24px;
-  }
-
-  .intro {
-    gap: 16px;
-  }
-
-  .intro h1 {
-    font-size: 32px;
-    line-height: 40px;
-    letter-spacing: -1.92px;
-  }
+.customerPanelHeader h3 {
+  margin: 0;
+  font-size: 20px;
 }
 
-@media (prefers-color-scheme: dark) {
-  .logo {
-    filter: invert();
+.customerPanelClose {
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.customerPanelGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 18px;
+  margin-bottom: 20px;
+}
+
+.customerPanelField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.customerPanelFull {
+  grid-column: 1 / -1;
+}
+
+.customerPanelField span {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.customerPanelField input,
+.customerPanelField textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #cfcfcf;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.customerPanelFooter {
+  padding: 16px 20px;
+  border-top: 1px solid #e5e5e5;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.customerPanelSave {
+  border: none;
+  background: #111;
+  color: white;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .customerPanelContain {
+    width: 100%;
   }
 
-  .page {
-    --background: #000;
-    --foreground: #000;
+  .customerPanelGrid {
+    grid-template-columns: 1fr;
+  }
 
-    --text-primary: #ededed;
-    --text-secondary: #999;
-
-    --button-primary-hover: #ccc;
-    --button-secondary-hover: #1a1a1a;
-    --button-secondary-border: #1a1a1a;
+  .customerPanelFull {
+    grid-column: auto;
   }
 }
