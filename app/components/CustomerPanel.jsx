@@ -143,8 +143,8 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
 
           <label className={styles.customerPanelField}>
             <span>Rank</span>
-            <input
-              type="text"
+            <select
+              style={{ width: "30px" }}
               value={customerSelected.rank || ""}
               onChange={(e) =>
                 setContacts((prev) =>
@@ -155,7 +155,13 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
                   ),
                 )
               }
-            />
+            >
+              <option value="">Select rank</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+              <option value="D">D</option>
+            </select>
           </label>
 
           <label className={styles.customerPanelField}>
@@ -493,7 +499,7 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
           <label className={styles.customerPanelField}>
             <span>Last Contact Date</span>
             <input
-              type="text"
+              type="date"
               value={customerSelected.lastContact?.date || ""}
               onChange={(e) =>
                 setContacts((prev) =>
@@ -564,7 +570,7 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
           <label className={styles.customerPanelField}>
             <span>Next Follow Up</span>
             <input
-              type="text"
+              type="date"
               value={customerSelected.nextFollowUp || ""}
               onChange={(e) =>
                 setContacts((prev) =>

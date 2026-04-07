@@ -7,7 +7,23 @@
   cursor: pointer;
 }
 .customerContain {
-  display: block;
+  display: grid;
+  width: 100%;
+  padding: 1%;
+}
+.customerContain div {
+  display: flex;
+  align-items: center;
+}
+.contactName {
+  cursor: pointer;
+  color: #5d5d5d;
+  font-weight: 700;
+  transition: 0.1s ease-in-out;
+}
+
+.contactName:hover {
+  color: #1e006a;
 }
 .customerContain > *:nth-child(even) {
   background-color: #f5f5f5; /* light gray */
@@ -22,6 +38,11 @@
   height: auto;
   padding: 10px;
 }
+.socials {
+  display: flex;
+}
+
+/* POP-UP Display */
 
 .customerPanelContain {
   position: fixed;
@@ -68,8 +89,12 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  height: 100%;
+  
 }
-
+.customerPanelFieldRank{
+  display: grid;
+}
 .customerPanelFull {
   grid-column: 1 / -1;
 }

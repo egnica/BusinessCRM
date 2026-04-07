@@ -1,6 +1,6 @@
 "use client";
 import styles from "./page.module.css";
-
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import CustomerPanel from "./components/CustomerPanel";
 
@@ -120,7 +120,7 @@ export default function Home() {
   }
 
   return (
-    <main style={{ padding: "2rem" }}>
+    <main>
       <h1>Business CRM</h1>
       <div
         className={styles.addContactBtn}
@@ -128,7 +128,7 @@ export default function Home() {
       >
         <h2>Add Contact</h2>
       </div>
-
+      <br />
       {newUserToggle && (
         <>
           <form onSubmit={handleSubmit} style={{ marginBottom: "2rem" }}>
@@ -201,10 +201,11 @@ export default function Home() {
       <div className={styles.customerContain}>
         {contacts.map((contact) => (
           <div className={styles.customerListItem} key={contact._id}>
-            <div onClick={() => setCustomerToggle(contact._id)}>
-              <strong>
-                {contact.firstName} {contact.lastName}
-              </strong>
+            <div
+              className={styles.contactName}
+              onClick={() => setCustomerToggle(contact._id)}
+            >
+              {contact.firstName} {contact.lastName}
             </div>
             <div
               style={
@@ -219,10 +220,51 @@ export default function Home() {
             >
               Rank: {contact.rank}
             </div>
+
             <div>
-              {contact.jobTitle} :{contact.company?.name}
+              {contact.jobTitle} :{" "}
+              {contact.company?.website ? (
+                <a
+                  href={contact.company.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {contact.company?.name}
+                </a>
+              ) : (
+                contact.company?.name
+              )}
             </div>
-            <div>{contact.email}</div>
+
+            <a href={`mailto:${contact.email}`}>
+              <div>{contact.email}</div>
+            </a>
+            <div>
+              Last: {contact.lastContact.date ? contact.lastContact.date : "--"}
+            </div>
+
+            <div className={styles.socials}>
+              {contact.facebook && (
+                <a href={contact.facebook} target="_blank">
+                  <Image
+                    width={40}
+                    height={40}
+                    alt="facebook"
+                    src="/icons/facebook.svg"
+                  />
+                </a>
+              )}
+              {contact.linkedin && (
+                <a href={contact.linkedin} target="_blank">
+                  <Image
+                    width={40}
+                    height={40}
+                    alt="facebook"
+                    src="/icons/linkedin.svg"
+                  />
+                </a>
+              )}
+            </div>
           </div>
         ))}
       </div>
