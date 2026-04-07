@@ -182,13 +182,17 @@ export default function Home() {
             <br />
             <br />
 
-            <input
+            <select
               name="rank"
-              placeholder="Rank"
-              value={formData.rank}
+              value={formData.rank || ""}
               onChange={handleChange}
-              autoComplete="rank"
-            />
+            >
+              <option value="">Select rank</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+              <option value="D">D</option>
+            </select>
             <br />
             <br />
 
