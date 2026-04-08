@@ -130,86 +130,82 @@ export default function Home() {
         <h2>New Contact</h2>
       </div>
       <br />
-      {newUserToggle && (
-        <>
-          <form onSubmit={handleSubmit} style={{ marginBottom: "2rem" }}>
-            <input
-              name="firstName"
-              placeholder="First Name"
-              value={formData.firstName}
-              onChange={handleChange}
-              autoComplete="given-name"
-            />
-            <br />
-            <br />
+{newUserToggle && (
+  <form
+    className={styles.mainRecordFormContain}
+    onSubmit={handleSubmit}
+  >
+    <div className={styles.formHeader}>
+      <h2>Add New Contact</h2>
+      <p>Enter the basic contact details below.</p>
+    </div>
 
-            <input
-              name="lastName"
-              placeholder="Last Name"
-              value={formData.lastName}
-              onChange={handleChange}
-              autoComplete="family-name"
-            />
-            <br />
-            <br />
+    <div className={styles.formGrid}>
+      <input
+        name="firstName"
+        placeholder="First Name"
+        value={formData.firstName}
+        onChange={handleChange}
+        autoComplete="given-name"
+      />
 
-            <input
-              name="jobTitle"
-              placeholder="Job Title"
-              value={formData.jobTitle}
-              onChange={handleChange}
-            />
-            <br />
-            <br />
+      <input
+        name="lastName"
+        placeholder="Last Name"
+        value={formData.lastName}
+        onChange={handleChange}
+        autoComplete="family-name"
+      />
 
-            <input
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={formData.email}
-              onChange={handleChange}
-              autoComplete="email"
-            />
-            <br />
-            <br />
+      <input
+        name="jobTitle"
+        placeholder="Job Title"
+        value={formData.jobTitle}
+        onChange={handleChange}
+      />
 
-            <input
-              name="companyName"
-              placeholder="Company Name"
-              value={formData.companyName}
-              onChange={handleChange}
-              autoComplete="company-name"
-            />
-            <br />
-            <br />
-            <input
-              name="linkedin"
-              placeholder="linkedin url"
-              value={formData.linkedin}
-              onChange={handleChange}
-              autoComplete="linkedin"
-            />
-            <br />
-            <br />
+      <input
+        type="email"
+        name="email"
+        placeholder="Email"
+        value={formData.email}
+        onChange={handleChange}
+        autoComplete="email"
+      />
 
-            <select
-              name="rank"
-              value={formData.rank || ""}
-              onChange={handleChange}
-            >
-              <option value="">Select rank</option>
-              <option value="A">A</option>
-              <option value="B">B</option>
-              <option value="C">C</option>
-              <option value="D">D</option>
-            </select>
-            <br />
-            <br />
+      <input
+        name="companyName"
+        placeholder="Company Name"
+        value={formData.companyName}
+        onChange={handleChange}
+        autoComplete="organization"
+      />
 
-            <button type="submit">Add Contact</button>
-          </form>
-        </>
-      )}
+      <input
+        name="linkedin"
+        placeholder="LinkedIn URL"
+        value={formData.linkedin}
+        onChange={handleChange}
+      />
+
+      <select
+        name="rank"
+        value={formData.rank || ""}
+        onChange={handleChange}
+      >
+        <option value="">Select rank</option>
+        <option value="A">A</option>
+        <option value="B">B</option>
+        <option value="C">C</option>
+        <option value="D">D</option>
+      </select>
+    </div>
+
+    <div className={styles.formActions}>
+      <button type="submit">Add Contact</button>
+    </div>
+  </form>
+)}
 
       <h2>Contacts</h2>
       <div className={styles.customerContain}>

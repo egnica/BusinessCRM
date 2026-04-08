@@ -6,6 +6,106 @@
   text-align: center;
   cursor: pointer;
 }
+/* TOP FORM */
+.mainRecordFormContain {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto 2rem;
+  padding: 1.5rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.formHeader {
+  margin-bottom: 1.25rem;
+}
+
+.formHeader h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.formHeader p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #6b7280;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.mainRecordFormContain input,
+.mainRecordFormContain select {
+  padding: 0.9rem 1rem;
+  font-size: 0.95rem;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.mainRecordFormContain input:focus,
+.mainRecordFormContain select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.mainRecordFormContain input::placeholder {
+  color: #9ca3af;
+}
+
+.formActions {
+  margin-top: 1.25rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.formActions button {
+  padding: 0.85rem 1.25rem;
+  border: none;
+  border-radius: 10px;
+  background: #111827;
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.formActions button:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 700px) {
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .mainRecordFormContain {
+    padding: 1rem;
+  }
+
+  .formActions {
+    justify-content: stretch;
+  }
+
+  .formActions button {
+    width: 100%;
+  }
+}
+
 .customerContain {
   display: grid;
   width: 100%;
@@ -90,9 +190,8 @@
   flex-direction: column;
   gap: 6px;
   height: 100%;
-  
 }
-.customerPanelFieldRank{
+.customerPanelFieldRank {
   display: grid;
 }
 .customerPanelFull {
