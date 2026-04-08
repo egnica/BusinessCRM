@@ -4,6 +4,34 @@ import React from "react";
 import styles from "../page.module.css";
 
 function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
+  const handleDelete = async () => {
+    if (!customerSelected?._id) return;
+
+    const confirmed = window.confirm(
+      `Delete ${customerSelected.name}? This cannot be undone.`,
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`/api/contacts/${customerSelected._id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to delete contact");
+      }
+
+      setContacts((prev) =>
+        prev.filter((contact) => contact._id !== customerSelected._id),
+      );
+
+      setCustomerToggle("");
+    } catch (error) {
+      console.error("Delete error:", error);
+    }
+  };
+
   async function handleSaveCustomer() {
     if (!customerSelected) return;
 
@@ -53,6 +81,7 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
         >
           Close
         </button>
+        <button onClick={handleDelete}>Delete Contact</button>
       </div>
       <div className={styles.customerPanelScroll}>
         <div className={styles.customerPanelGrid}>
@@ -144,7 +173,7 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
           <label className={styles.customerPanelField}>
             <span>Rank</span>
             <select
-              style={{ width: "30px" }}
+              style={{ width: "45px", height: "44px", textAlign: "center" }}
               value={customerSelected.rank || ""}
               onChange={(e) =>
                 setContacts((prev) =>

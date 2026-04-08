@@ -67,7 +67,7 @@ export default function Home() {
       rank: formData.rank,
       relationshipType: "",
       facebook: "",
-      linkedin: "",
+      linkedin: formData.linkedin,
       website: "",
       serviceInterest: [],
       birthday: null,
@@ -108,6 +108,7 @@ export default function Home() {
         jobTitle: "",
         email: "",
         companyName: "",
+        linkedin: "",
         rank: "",
       });
 
@@ -126,7 +127,7 @@ export default function Home() {
         className={styles.addContactBtn}
         onClick={() => setNewUserToggle(!newUserToggle)}
       >
-        <h2>Add Contact</h2>
+        <h2>New Contact</h2>
       </div>
       <br />
       {newUserToggle && (
@@ -181,6 +182,15 @@ export default function Home() {
             />
             <br />
             <br />
+            <input
+              name="linkedin"
+              placeholder="linkedin url"
+              value={formData.linkedin}
+              onChange={handleChange}
+              autoComplete="linkedin"
+            />
+            <br />
+            <br />
 
             <select
               name="rank"
@@ -209,6 +219,11 @@ export default function Home() {
               className={styles.contactName}
               onClick={() => setCustomerToggle(contact._id)}
             >
+              {contact.nextFollowUp &&
+              new Date(contact.nextFollowUp).setHours(0, 0, 0, 0) >=
+                new Date().setHours(0, 0, 0, 0) ? (
+                <span>**</span>
+              ) : null}
               {contact.firstName} {contact.lastName}
             </div>
             <div
@@ -245,6 +260,9 @@ export default function Home() {
             </a>
             <div>
               Last: {contact.lastContact.date ? contact.lastContact.date : "--"}
+            </div>
+            <div>
+              Follow: {contact.nextFollowUp ? contact.nextFollowUp : "--"}
             </div>
 
             <div className={styles.socials}>

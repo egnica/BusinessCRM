@@ -34,3 +34,31 @@ export async function PUT(req, { params }) {
     );
   }
 }
+
+export async function DELETE(req, { params }) {
+  try {
+    const { id } = await params;
+
+    const client = await clientPromise;
+    const db = client.db("crm");
+
+    const result = await db.collection("contacts").deleteOne({
+      _id: new ObjectId(id),
+    });
+
+    if (result.deletedCount === 0) {
+      return Response.json({ error: "Contact not found" }, { status: 404 });
+    }
+
+    return Response.json({
+      message: "Contact deleted successfully",
+      deletedCount: result.deletedCount,
+    });
+  } catch (error) {
+    console.error("DELETE route error:", error);
+    return Response.json(
+      { error: "Failed to delete contact" },
+      { status: 500 },
+    );
+  }
+}
