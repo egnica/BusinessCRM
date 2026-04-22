@@ -8,6 +8,13 @@ export default function Home() {
   const [contacts, setContacts] = useState([]);
   const [newUserToggle, setNewUserToggle] = useState(false);
   const [customerToggle, setCustomerToggle] = useState("");
+  const [searchName, setSearchName] = useState("");
+
+  const filteredContacts = contacts.filter((contact) => {
+    const fullName =
+      `${contact.firstName || ""} ${contact.lastName || ""}`.toLowerCase();
+    return fullName.includes(searchName.toLowerCase());
+  });
 
   const customerSelected = contacts.find((item) => item._id == customerToggle);
 
@@ -216,10 +223,18 @@ export default function Home() {
           </div>
         </form>
       )}
+      <div>
+        <label>Find: </label>
+        <input
+          type="text"
+          value={searchName}
+          onChange={(e) => setSearchName(e.target.value)}
+        />
+      </div>
 
       <h2>Contacts</h2>
       <div className={styles.customerContain}>
-        {contacts.map((contact) => (
+        {filteredContacts.map((contact) => (
           <div
             className={styles.customerListItem}
             style={contactDate(contact.nextFollowUp)}
