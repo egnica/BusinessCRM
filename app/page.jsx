@@ -120,6 +120,19 @@ export default function Home() {
     }
   }
 
+  const contactDate = (date) => {
+    if (!date) return {};
+
+    const today = new Date().setHours(0, 0, 0, 0);
+    const compareDate = new Date(date).setHours(0, 0, 0, 0);
+
+    return today > compareDate
+      ? { backgroundColor: "#fba2a2" }
+      : today < compareDate
+        ? { backgroundColor: "#afc0ff" }
+        : {};
+  };
+
   return (
     <main>
       <h1>Business CRM</h1>
@@ -130,87 +143,88 @@ export default function Home() {
         <h2>New Contact</h2>
       </div>
       <br />
-{newUserToggle && (
-  <form
-    className={styles.mainRecordFormContain}
-    onSubmit={handleSubmit}
-  >
-    <div className={styles.formHeader}>
-      <h2>Add New Contact</h2>
-      <p>Enter the basic contact details below.</p>
-    </div>
+      {newUserToggle && (
+        <form className={styles.mainRecordFormContain} onSubmit={handleSubmit}>
+          <div className={styles.formHeader}>
+            <h2>Add New Contact</h2>
+            <p>Enter the basic contact details below.</p>
+          </div>
 
-    <div className={styles.formGrid}>
-      <input
-        name="firstName"
-        placeholder="First Name"
-        value={formData.firstName}
-        onChange={handleChange}
-        autoComplete="given-name"
-      />
+          <div className={styles.formGrid}>
+            <input
+              name="firstName"
+              placeholder="First Name"
+              value={formData.firstName}
+              onChange={handleChange}
+              autoComplete="given-name"
+            />
 
-      <input
-        name="lastName"
-        placeholder="Last Name"
-        value={formData.lastName}
-        onChange={handleChange}
-        autoComplete="family-name"
-      />
+            <input
+              name="lastName"
+              placeholder="Last Name"
+              value={formData.lastName}
+              onChange={handleChange}
+              autoComplete="family-name"
+            />
 
-      <input
-        name="jobTitle"
-        placeholder="Job Title"
-        value={formData.jobTitle}
-        onChange={handleChange}
-      />
+            <input
+              name="jobTitle"
+              placeholder="Job Title"
+              value={formData.jobTitle}
+              onChange={handleChange}
+            />
 
-      <input
-        type="email"
-        name="email"
-        placeholder="Email"
-        value={formData.email}
-        onChange={handleChange}
-        autoComplete="email"
-      />
+            <input
+              type="email"
+              name="email"
+              placeholder="Email"
+              value={formData.email}
+              onChange={handleChange}
+              autoComplete="email"
+            />
 
-      <input
-        name="companyName"
-        placeholder="Company Name"
-        value={formData.companyName}
-        onChange={handleChange}
-        autoComplete="organization"
-      />
+            <input
+              name="companyName"
+              placeholder="Company Name"
+              value={formData.companyName}
+              onChange={handleChange}
+              autoComplete="organization"
+            />
 
-      <input
-        name="linkedin"
-        placeholder="LinkedIn URL"
-        value={formData.linkedin}
-        onChange={handleChange}
-      />
+            <input
+              name="linkedin"
+              placeholder="LinkedIn URL"
+              value={formData.linkedin}
+              onChange={handleChange}
+            />
 
-      <select
-        name="rank"
-        value={formData.rank || ""}
-        onChange={handleChange}
-      >
-        <option value="">Select rank</option>
-        <option value="A">A</option>
-        <option value="B">B</option>
-        <option value="C">C</option>
-        <option value="D">D</option>
-      </select>
-    </div>
+            <select
+              name="rank"
+              value={formData.rank || ""}
+              onChange={handleChange}
+            >
+              <option value="">Select rank</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+              <option value="D">D</option>
+            </select>
+          </div>
 
-    <div className={styles.formActions}>
-      <button type="submit">Add Contact</button>
-    </div>
-  </form>
-)}
+          <div className={styles.formActions}>
+            <button type="submit">Add Contact</button>
+          </div>
+        </form>
+      )}
 
       <h2>Contacts</h2>
       <div className={styles.customerContain}>
         {contacts.map((contact) => (
-          <div className={styles.customerListItem} key={contact._id}>
+          <div
+            className={styles.customerListItem}
+            style={contactDate(contact.nextFollowUp)}
+            key={contact._id}
+          >
             <div
               className={styles.contactName}
               onClick={() => setCustomerToggle(contact._id)}
