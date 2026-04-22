@@ -2,8 +2,11 @@
 
 import React from "react";
 import styles from "../page.module.css";
+import { useState } from "react";
 
 function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
+  const [calendarFormOpen, setCalendarFormOpen] = useState(false);
+
   const handleDelete = async () => {
     if (!customerSelected?._id) return;
 
@@ -67,6 +70,53 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
       console.error("Failed to save contact:", error);
     }
   }
+
+  const buildGoogleCalendarLink = () => {
+    if (!customerSelected?.nextFollowUp) return "#";
+
+    const title =
+      `Follow up with ${customerSelected.firstName || ""} ${customerSelected.lastName || ""}`.trim();
+
+    const baseDate = new Date(customerSelected.nextFollowUp);
+
+    // force 9:00 AM local time
+    baseDate.setHours(9, 0, 0, 0);
+
+    const endDate = new Date(baseDate);
+    endDate.setMinutes(endDate.getMinutes() + 15);
+
+    const formatGoogleDate = (date) => {
+      const year = date.getUTCFullYear();
+      const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+      const day = String(date.getUTCDate()).padStart(2, "0");
+      const hours = String(date.getUTCHours()).padStart(2, "0");
+      const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+      const seconds = String(date.getUTCSeconds()).padStart(2, "0");
+
+      return `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
+    };
+
+    const start = formatGoogleDate(baseDate);
+    const end = formatGoogleDate(endDate);
+
+    const details = [
+      customerSelected.email ? `Email: ${customerSelected.email}` : "",
+      customerSelected.company?.name
+        ? `Company: ${customerSelected.company.name}`
+        : "",
+      customerSelected.notes ? `Notes: ${customerSelected.notes}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const url =
+      "https://calendar.google.com/calendar/render?action=TEMPLATE" +
+      `&text=${encodeURIComponent(title)}` +
+      `&dates=${start}/${end}` +
+      `&details=${encodeURIComponent(details)}`;
+
+    return url;
+  };
 
   return (
     <div className={styles.customerPanelContain}>
@@ -612,6 +662,61 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
               }
             />
           </label>
+          <button onClick={() => setCalendarFormOpen((prev) => !prev)}>
+            Add To Calendar
+          </button>
+          <div></div>
+          {calendarFormOpen && (
+            <div
+              style={{
+                marginTop: "10px",
+                border: "1px solid #ccc",
+                padding: "10px",
+              }}
+            >
+              <div>
+                <label>Event Title</label>
+                <input
+                  type="text"
+                  defaultValue={`Follow up with ${customerSelected.firstName} ${customerSelected.lastName}`}
+                />
+              </div>
+
+              <div>
+                <label>Date</label>
+                <input
+                  type="date"
+                  defaultValue={
+                    customerSelected.nextFollowUp
+                      ? customerSelected.nextFollowUp.split("T")[0]
+                      : ""
+                  }
+                />
+              </div>
+
+              <div>
+                <label>Time</label>
+                <input type="time" defaultValue="09:00" />
+              </div>
+
+              <div>
+                <label>Duration (minutes)</label>
+                <select defaultValue="15">
+                  <option value="15">15</option>
+                  <option value="30">30</option>
+                  <option value="60">60</option>
+                </select>
+              </div>
+
+              <a
+                href={buildGoogleCalendarLink()}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <button>Create Event</button>
+              </a>
+            </div>
+          )}
 
           <label
             className={`${styles.customerPanelField} ${styles.customerPanelFull}`}
