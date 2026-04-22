@@ -10,12 +10,52 @@ export default function Home() {
   const [customerToggle, setCustomerToggle] = useState("");
   const [searchName, setSearchName] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [dateFilter, setDateFilter] = useState("all");
 
-  const filteredContacts = contacts.filter((contact) => {
-    const fullName =
-      `${contact.firstName || ""} ${contact.lastName || ""}`.toLowerCase();
-    return fullName.includes(searchName.toLowerCase());
-  });
+  const parseLocalDate = (dateStr) => {
+    if (!dateStr) return null;
+
+    const [year, month, day] = dateStr.split("-").map(Number);
+    return new Date(year, month - 1, day);
+  };
+
+  const filteredContacts = contacts
+    .filter((contact) => {
+      const fullName =
+        `${contact.firstName || ""} ${contact.lastName || ""}`.toLowerCase();
+      const matchesName = fullName.includes(searchName.toLowerCase());
+
+      if (!contact.nextFollowUp) {
+        return dateFilter === "all" ? matchesName : false;
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const followUp = parseLocalDate(contact.nextFollowUp);
+
+      let matchesDate = true;
+
+      if (dateFilter === "future") {
+        matchesDate = followUp >= today;
+      }
+
+      if (dateFilter === "overdue") {
+        matchesDate = followUp < today;
+      }
+
+      return matchesName && matchesDate;
+    })
+    .sort((a, b) => {
+      const dateA = a.nextFollowUp ? parseLocalDate(a.nextFollowUp) : null;
+      const dateB = b.nextFollowUp ? parseLocalDate(b.nextFollowUp) : null;
+
+      if (!dateA && !dateB) return 0;
+      if (!dateA) return 1;
+      if (!dateB) return -1;
+
+      return dateFilter === "overdue" ? dateB - dateA : dateA - dateB;
+    });
 
   const handleKeyDown = (e) => {
     if (e.key === "ArrowDown") {
@@ -272,6 +312,13 @@ export default function Home() {
           onKeyDown={handleKeyDown}
           placeholder="Search contacts..."
         />
+      </div>
+      <br />
+      <div>
+        <p>Contact Dates</p>
+        <button onClick={() => setDateFilter("all")}>All</button>
+        <button onClick={() => setDateFilter("future")}>Future</button>
+        <button onClick={() => setDateFilter("overdue")}>Overdue</button>
       </div>
 
       <h2>Contacts</h2>
