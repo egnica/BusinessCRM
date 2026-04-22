@@ -9,12 +9,34 @@ export default function Home() {
   const [newUserToggle, setNewUserToggle] = useState(false);
   const [customerToggle, setCustomerToggle] = useState("");
   const [searchName, setSearchName] = useState("");
+  const [selectedIndex, setSelectedIndex] = useState(-1);
 
   const filteredContacts = contacts.filter((contact) => {
     const fullName =
       `${contact.firstName || ""} ${contact.lastName || ""}`.toLowerCase();
     return fullName.includes(searchName.toLowerCase());
   });
+
+  const handleKeyDown = (e) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedIndex((prev) =>
+        prev < filteredContacts.length - 1 ? prev + 1 : prev,
+      );
+    }
+
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : prev));
+    }
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (selectedIndex >= 0 && filteredContacts[selectedIndex]) {
+        setCustomerToggle(filteredContacts[selectedIndex]._id);
+      }
+    }
+  };
 
   const customerSelected = contacts.find((item) => item._id == customerToggle);
 
@@ -140,6 +162,21 @@ export default function Home() {
         : {};
   };
 
+  useEffect(() => {
+    if (customerToggle === "") return;
+
+    const handleEscape = (e) => {
+      if (e.key === "Escape") {
+        setCustomerToggle("");
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [customerToggle]);
   return (
     <main>
       <h1>Business CRM</h1>
@@ -228,27 +265,32 @@ export default function Home() {
         <input
           type="text"
           value={searchName}
-          onChange={(e) => setSearchName(e.target.value)}
+          onChange={(e) => {
+            setSearchName(e.target.value);
+            setSelectedIndex(-1);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder="Search contacts..."
         />
       </div>
 
       <h2>Contacts</h2>
       <div className={styles.customerContain}>
-        {filteredContacts.map((contact) => (
+        {filteredContacts.map((contact, index) => (
           <div
             className={styles.customerListItem}
-            style={contactDate(contact.nextFollowUp)}
+            style={{
+              ...contactDate(contact.nextFollowUp),
+              ...(selectedIndex === index
+                ? { outline: "2px solid black" }
+                : {}),
+            }}
             key={contact._id}
           >
             <div
               className={styles.contactName}
               onClick={() => setCustomerToggle(contact._id)}
             >
-              {contact.nextFollowUp &&
-              new Date(contact.nextFollowUp).setHours(0, 0, 0, 0) >=
-                new Date().setHours(0, 0, 0, 0) ? (
-                <span>**</span>
-              ) : null}
               {contact.firstName} {contact.lastName}
             </div>
             <div
