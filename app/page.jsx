@@ -824,7 +824,7 @@ export default function Home() {
                 setSelectedIndex(-1);
               }}
               onKeyDown={handleKeyDown}
-              placeholder="Search name, company, title, email..."
+              placeholder="Search name, company, address, project..."
             />
           </label>
 
@@ -920,6 +920,9 @@ export default function Home() {
                   <div className={styles.companyCell}>
                     <strong>{contact.company?.name || "—"}</strong>
                     <span>{contact.jobTitle || contact.relationshipType || "—"}</span>
+                    {contact.project === "property-owner-outreach" && (
+                      <span>Property Owner Outreach</span>
+                    )}
                   </div>
 
                   <div>
