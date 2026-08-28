@@ -52,7 +52,14 @@ export default function Home() {
     lastName: "",
     jobTitle: "",
     email: "",
+    phone: "",
     companyName: "",
+    street1: "",
+    street2: "",
+    city: "",
+    state: "",
+    zip: "",
+    country: "US",
     linkedin: "",
     rank: "",
   });
@@ -138,6 +145,11 @@ export default function Home() {
           contact.company?.name,
           contact.company?.industry,
           contact.relationshipType,
+          contact.address?.street1,
+          contact.address?.street2,
+          contact.address?.city,
+          contact.address?.state,
+          contact.address?.zip,
         ]
           .filter(Boolean)
           .join(" ")
@@ -216,18 +228,19 @@ export default function Home() {
       lastName: formData.lastName,
       jobTitle: formData.jobTitle,
       email: formData.email,
-      phone: "",
+      phone: formData.phone,
       company: {
         name: formData.companyName,
         website: "",
         industry: "",
       },
       address: {
-        street1: "",
-        street2: "",
-        city: "",
-        state: "",
-        zip: "",
+        street1: formData.street1,
+        street2: formData.street2,
+        city: formData.city,
+        state: formData.state,
+        zip: formData.zip,
+        country: formData.country,
       },
       rank: formData.rank,
       relationshipType: "",
@@ -272,7 +285,14 @@ export default function Home() {
         lastName: "",
         jobTitle: "",
         email: "",
+        phone: "",
         companyName: "",
+        street1: "",
+        street2: "",
+        city: "",
+        state: "",
+        zip: "",
+        country: "US",
         linkedin: "",
         rank: "",
       });
@@ -445,7 +465,7 @@ export default function Home() {
             <div>
               <p className={styles.eyebrow}>New record</p>
               <h2>Add a contact</h2>
-              <p>Start with the essentials. More details can be added later.</p>
+              <p>Add the contact details you know, including a mailing address when available.</p>
             </div>
           </div>
 
@@ -497,6 +517,18 @@ export default function Home() {
             </label>
 
             <label>
+              <span>Phone</span>
+              <input
+                type="tel"
+                name="phone"
+                placeholder="Phone number"
+                value={formData.phone}
+                onChange={handleChange}
+                autoComplete="tel"
+              />
+            </label>
+
+            <label>
               <span>Company</span>
               <input
                 name="companyName"
@@ -504,6 +536,72 @@ export default function Home() {
                 value={formData.companyName}
                 onChange={handleChange}
                 autoComplete="organization"
+              />
+            </label>
+
+            <label>
+              <span>Address line 1</span>
+              <input
+                name="street1"
+                placeholder="Street address"
+                value={formData.street1}
+                onChange={handleChange}
+                autoComplete="address-line1"
+              />
+            </label>
+
+            <label>
+              <span>Address line 2</span>
+              <input
+                name="street2"
+                placeholder="Apartment, suite, unit, etc."
+                value={formData.street2}
+                onChange={handleChange}
+                autoComplete="address-line2"
+              />
+            </label>
+
+            <label>
+              <span>City</span>
+              <input
+                name="city"
+                placeholder="City"
+                value={formData.city}
+                onChange={handleChange}
+                autoComplete="address-level2"
+              />
+            </label>
+
+            <label>
+              <span>State</span>
+              <input
+                name="state"
+                placeholder="State"
+                value={formData.state}
+                onChange={handleChange}
+                autoComplete="address-level1"
+              />
+            </label>
+
+            <label>
+              <span>ZIP / Postal code</span>
+              <input
+                name="zip"
+                placeholder="ZIP / Postal code"
+                value={formData.zip}
+                onChange={handleChange}
+                autoComplete="postal-code"
+              />
+            </label>
+
+            <label>
+              <span>Country</span>
+              <input
+                name="country"
+                placeholder="US"
+                value={formData.country}
+                onChange={handleChange}
+                autoComplete="country"
               />
             </label>
 
