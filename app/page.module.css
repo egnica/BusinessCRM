@@ -406,12 +406,36 @@
   background: transparent;
 }
 
+.customerListItem[data-status="overdue"] {
+  background: #fff1f1;
+}
+
+.customerListItem[data-status="overdue"]:hover {
+  background: #ffe8e8;
+}
+
 .customerListItem[data-status="overdue"]::before {
   background: #d92d20;
 }
 
+.customerListItem[data-status="today"] {
+  background: #fffaf0;
+}
+
+.customerListItem[data-status="today"]:hover {
+  background: #fff4dd;
+}
+
 .customerListItem[data-status="today"]::before {
   background: #f79009;
+}
+
+.customerListItem[data-status="upcoming"] {
+  background: #eef5ff;
+}
+
+.customerListItem[data-status="upcoming"]:hover {
+  background: #e2edff;
 }
 
 .customerListItem[data-status="upcoming"]::before {
