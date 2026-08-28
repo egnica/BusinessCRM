@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import CustomerPanel from "./components/CustomerPanel";
 import EmailDashboard from "./components/EmailDashboard";
 import NewsletterModal from "./components/NewsletterModal";
@@ -103,7 +103,7 @@ export default function Home() {
     rank: "",
   });
 
-  async function refreshContacts() {
+  const refreshContacts = useCallback(async () => {
     try {
       const res = await fetch("/api/contacts", { cache: "no-store" });
       const data = await res.json();
@@ -111,11 +111,11 @@ export default function Home() {
     } catch (error) {
       console.error("Failed to fetch contacts:", error);
     }
-  }
+  }, []);
 
   useEffect(() => {
     refreshContacts();
-  }, []);
+  }, [refreshContacts]);
 
   const getFollowUpStatus = (contact) => {
     const followUp = parseLocalDate(contact.nextFollowUp);
