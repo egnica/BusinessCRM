@@ -276,7 +276,7 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
           <section className={styles.panelSection}>
             <div className={styles.panelSectionHeader}>
               <h4>Company</h4>
-              <p>Organization, industry, and address details.</p>
+              <p>Organization and industry details.</p>
             </div>
 
             <div className={styles.customerPanelGrid}>
@@ -319,9 +319,18 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
                   onChange={(e) => updateContact({ website: e.target.value })}
                 />
               </label>
+            </div>
+          </section>
 
+          <section className={styles.panelSection}>
+            <div className={styles.panelSectionHeader}>
+              <h4>Mailing Address</h4>
+              <p>Structured address fields for physical mail and future mail automation.</p>
+            </div>
+
+            <div className={styles.customerPanelGrid}>
               <label className={styles.customerPanelField}>
-                <span>Street 1</span>
+                <span>Address Line 1</span>
                 <input
                   type="text"
                   value={customerSelected.address?.street1 || ""}
@@ -332,7 +341,7 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
               </label>
 
               <label className={styles.customerPanelField}>
-                <span>Street 2</span>
+                <span>Address Line 2</span>
                 <input
                   type="text"
                   value={customerSelected.address?.street2 || ""}
@@ -365,13 +374,25 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
               </label>
 
               <label className={styles.customerPanelField}>
-                <span>Zip</span>
+                <span>ZIP / Postal Code</span>
                 <input
                   type="text"
                   value={customerSelected.address?.zip || ""}
                   onChange={(e) =>
                     updateNested("address", { zip: e.target.value })
                   }
+                />
+              </label>
+
+              <label className={styles.customerPanelField}>
+                <span>Country</span>
+                <input
+                  type="text"
+                  value={customerSelected.address?.country || ""}
+                  onChange={(e) =>
+                    updateNested("address", { country: e.target.value })
+                  }
+                  placeholder="US"
                 />
               </label>
             </div>
