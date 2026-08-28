@@ -888,7 +888,7 @@ export default function Home() {
         <div className={styles.contactTable}>
           <div className={styles.contactTableHeader}>
             <span>Contact</span>
-            <span>Company / Role</span>
+            <span>Company / Context</span>
             <span>Rank</span>
             <span>Last Contact</span>
             <span>Next Follow-up</span>
@@ -944,8 +944,27 @@ export default function Home() {
                   </div>
 
                   <div className={styles.companyCell}>
-                    <strong>{contact.company?.name || "—"}</strong>
-                    <span>{contact.jobTitle || contact.relationshipType || "—"}</span>
+                    <strong>
+                      {contact.project === "property-owner-outreach"
+                        ? contact.property?.street1 || contact.company?.name || "—"
+                        : contact.company?.name || "—"}
+                    </strong>
+                    <span>
+                      {contact.project === "property-owner-outreach"
+                        ? [
+                            contact.ownerType === "llc"
+                              ? "LLC / Entity"
+                              : contact.ownerType === "couple"
+                                ? "Couple"
+                                : "Individual",
+                            (contact.properties || []).length > 1
+                              ? `${contact.properties.length} matching properties`
+                              : contact.relationshipType,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")
+                        : contact.jobTitle || contact.relationshipType || "—"}
+                    </span>
                     {contact.project === "property-owner-outreach" && (
                       <span>Property Owner Outreach</span>
                     )}
