@@ -5,8 +5,22 @@ export async function GET() {
     const client = await clientPromise;
     const db = client.db("crm");
 
-    const contacts = await db
-      .collection("contacts")
+    const contactsCollection = db.collection("contacts");
+
+    await contactsCollection.updateMany(
+      {
+        $or: [
+          { emailStatus: { $exists: false } },
+          { emailStatus: null },
+          { emailStatus: "" },
+        ],
+      },
+      {
+        $set: { emailStatus: "subscribed" },
+      },
+    );
+
+    const contacts = await contactsCollection
       .find({})
       .sort({ createdAt: -1 })
       .toArray();
@@ -35,7 +49,12 @@ export async function POST(req) {
     const client = await clientPromise;
     const db = client.db("crm");
 
-    const result = await db.collection("contacts").insertOne(body);
+    const contact = {
+      ...body,
+      emailStatus: body.emailStatus || "subscribed",
+    };
+
+    const result = await db.collection("contacts").insertOne(contact);
 
     return Response.json(
       {
