@@ -328,6 +328,29 @@
   font: inherit;
 }
 
+.projectFilter {
+  flex: 0 0 auto;
+}
+
+.projectFilter select {
+  box-sizing: border-box;
+  min-width: 190px;
+  padding: 0.72rem 2.1rem 0.72rem 0.82rem;
+  border: 1px solid #d0d5dd;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #344054;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.projectFilter select:focus {
+  outline: none;
+  border-color: #84adff;
+  box-shadow: 0 0 0 3px rgba(21, 112, 239, 0.12);
+}
+
 .filterGroup {
   display: flex;
   flex-wrap: wrap;
@@ -821,6 +844,10 @@
   .searchField {
     max-width: none;
     flex-basis: auto;
+  }
+
+  .projectFilter select {
+    width: 100%;
   }
 
   .calendarGrid {
