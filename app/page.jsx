@@ -116,6 +116,15 @@ export default function Home() {
     [contacts],
   );
 
+  const unsubscribedEmailCount = useMemo(
+    () =>
+      contacts.filter(
+        (contact) =>
+          contact.email && contact.emailStatus === "unsubscribed",
+      ).length,
+    [contacts],
+  );
+
   const filteredContacts = useMemo(() => {
     const query = searchName.trim().toLowerCase();
 
@@ -348,6 +357,37 @@ export default function Home() {
           <div className={styles.appHeaderActions}>
             <button
               type="button"
+              className={styles.primaryButton}
+              onClick={() => setNewUserToggle((prev) => !prev)}
+            >
+              {newUserToggle ? "Close Form" : "+ New Contact"}
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.emailOutreachPanel}>
+          <div>
+            <p className={styles.eyebrow}>Email outreach</p>
+            <h2>Newsletter</h2>
+            <p className={styles.emailOutreachDescription}>
+              Send updates to subscribed contacts and review campaign history.
+            </p>
+          </div>
+
+          <div className={styles.emailOutreachStats}>
+            <div className={styles.emailOutreachStat}>
+              <strong>{subscribedEmailCount}</strong>
+              <span>Subscribed</span>
+            </div>
+            <div className={styles.emailOutreachStat}>
+              <strong>{unsubscribedEmailCount}</strong>
+              <span>Unsubscribed</span>
+            </div>
+          </div>
+
+          <div className={styles.emailOutreachActions}>
+            <button
+              type="button"
               className={styles.secondaryButton}
               onClick={() => setEmailHistoryOpen((prev) => !prev)}
             >
@@ -360,45 +400,38 @@ export default function Home() {
             >
               Send Newsletter
             </button>
-            <button
-              type="button"
-              className={styles.secondaryButton}
-              onClick={() => setNewUserToggle((prev) => !prev)}
-            >
-              {newUserToggle ? "Close Form" : "+ New Contact"}
-            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.dashboardPanel}>
+        <div className={styles.dashboardHeading}>
+          <div>
+            <p className={styles.eyebrow}>Outreach dashboard</p>
+            <h2>At a glance</h2>
+          </div>
+          <div className={styles.totalContacts}>
+            <span>{outreachStats.total}</span>
+            <small>Total contacts</small>
           </div>
         </div>
 
-        <div className={styles.dashboardPanel}>
-          <div className={styles.dashboardHeading}>
-            <div>
-              <p className={styles.eyebrow}>Outreach dashboard</p>
-              <h2>At a glance</h2>
-            </div>
-            <div className={styles.totalContacts}>
-              <span>{outreachStats.total}</span>
-              <small>Total contacts</small>
-            </div>
-          </div>
-
-          <div className={styles.dashboardGrid}>
-            {dashboardCards.map((card) => (
-              <button
-                type="button"
-                key={card.label}
-                className={`${styles.metricCard} ${styles[`metric_${card.tone}`]}`}
-                onClick={() => {
-                  setDateFilter(card.filter);
-                  setSelectedIndex(-1);
-                }}
-              >
-                <span className={styles.metricValue}>{card.value}</span>
-                <span className={styles.metricLabel}>{card.label}</span>
-                <span className={styles.metricHelper}>{card.helper}</span>
-              </button>
-            ))}
-          </div>
+        <div className={styles.dashboardGrid}>
+          {dashboardCards.map((card) => (
+            <button
+              type="button"
+              key={card.label}
+              className={`${styles.metricCard} ${styles[`metric_${card.tone}`]}`}
+              onClick={() => {
+                setDateFilter(card.filter);
+                setSelectedIndex(-1);
+              }}
+            >
+              <span className={styles.metricValue}>{card.value}</span>
+              <span className={styles.metricLabel}>{card.label}</span>
+              <span className={styles.metricHelper}>{card.helper}</span>
+            </button>
+          ))}
         </div>
       </section>
 
@@ -601,9 +634,17 @@ export default function Home() {
                     >
                       {contact.email || "No email"}
                     </a>
-                    {contact.emailStatus === "unsubscribed" && (
-                      <span className={styles.unsubscribeBadge}>
-                        Unsubscribed
+                    {contact.email && (
+                      <span
+                        className={`${styles.emailStatusBadge} ${
+                          contact.emailStatus === "unsubscribed"
+                            ? styles.emailStatusUnsubscribed
+                            : styles.emailStatusSubscribed
+                        }`}
+                      >
+                        {contact.emailStatus === "unsubscribed"
+                          ? "Unsubscribed"
+                          : "Subscribed"}
                       </span>
                     )}
                   </div>
