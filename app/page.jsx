@@ -36,6 +36,21 @@ const formatDate = (dateStr) => {
   });
 };
 
+const getContactDisplayName = (contact) => {
+  const personName =
+    `${contact.firstName || ""} ${contact.lastName || ""}`.trim();
+
+  if (contact.ownerType === "llc" && contact.company?.name) {
+    return contact.company.name;
+  }
+
+  if (contact.ownerType === "couple" && contact.coOwnerName) {
+    return [personName, contact.coOwnerName].filter(Boolean).join(" & ");
+  }
+
+  return personName || contact.company?.name || "Unnamed Contact";
+};
+
 export default function Home() {
   const [contacts, setContacts] = useState([]);
   const [newUserToggle, setNewUserToggle] = useState(false);
@@ -43,6 +58,7 @@ export default function Home() {
   const [searchName, setSearchName] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [dateFilter, setDateFilter] = useState("all");
+  const [projectFilter, setProjectFilter] = useState("all");
   const [newsletterOpen, setNewsletterOpen] = useState(false);
   const [emailHistoryOpen, setEmailHistoryOpen] = useState(false);
   const [emailHistoryRefresh, setEmailHistoryRefresh] = useState(0);
@@ -50,6 +66,9 @@ export default function Home() {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
+    ownerType: "individual",
+    coOwnerName: "",
+    project: "",
     jobTitle: "",
     email: "",
     phone: "",
@@ -60,6 +79,12 @@ export default function Home() {
     state: "",
     zip: "",
     country: "US",
+    propertyStreet1: "",
+    propertyStreet2: "",
+    propertyCity: "",
+    propertyState: "",
+    propertyZip: "",
+    propertyCountry: "US",
     linkedin: "",
     rank: "",
   });
@@ -145,11 +170,19 @@ export default function Home() {
           contact.company?.name,
           contact.company?.industry,
           contact.relationshipType,
+          contact.project,
+          contact.ownerType,
+          contact.coOwnerName,
           contact.address?.street1,
           contact.address?.street2,
           contact.address?.city,
           contact.address?.state,
           contact.address?.zip,
+          contact.property?.street1,
+          contact.property?.street2,
+          contact.property?.city,
+          contact.property?.state,
+          contact.property?.zip,
         ]
           .filter(Boolean)
           .join(" ")
@@ -157,6 +190,10 @@ export default function Home() {
 
         const matchesSearch = !query || haystack.includes(query);
         if (!matchesSearch) return false;
+
+        if (projectFilter !== "all" && contact.project !== projectFilter) {
+          return false;
+        }
 
         const status = getFollowUpStatus(contact);
         const followUp = parseLocalDate(contact.nextFollowUp);
@@ -183,7 +220,7 @@ export default function Home() {
 
         return dateA - dateB;
       });
-  }, [contacts, dateFilter, searchName]);
+  }, [contacts, dateFilter, projectFilter, searchName]);
 
   const handleKeyDown = (e) => {
     if (e.key === "ArrowDown") {
@@ -226,6 +263,9 @@ export default function Home() {
     const newContact = {
       firstName: formData.firstName,
       lastName: formData.lastName,
+      ownerType: formData.ownerType,
+      coOwnerName: formData.coOwnerName,
+      project: formData.project,
       jobTitle: formData.jobTitle,
       email: formData.email,
       phone: formData.phone,
@@ -241,6 +281,14 @@ export default function Home() {
         state: formData.state,
         zip: formData.zip,
         country: formData.country,
+      },
+      property: {
+        street1: formData.propertyStreet1,
+        street2: formData.propertyStreet2,
+        city: formData.propertyCity,
+        state: formData.propertyState,
+        zip: formData.propertyZip,
+        country: formData.propertyCountry,
       },
       rank: formData.rank,
       relationshipType: "",
@@ -283,6 +331,9 @@ export default function Home() {
       setFormData({
         firstName: "",
         lastName: "",
+        ownerType: "individual",
+        coOwnerName: "",
+        project: "",
         jobTitle: "",
         email: "",
         phone: "",
@@ -293,6 +344,12 @@ export default function Home() {
         state: "",
         zip: "",
         country: "US",
+        propertyStreet1: "",
+        propertyStreet2: "",
+        propertyCity: "",
+        propertyState: "",
+        propertyZip: "",
+        propertyCountry: "US",
         linkedin: "",
         rank: "",
       });
@@ -471,6 +528,32 @@ export default function Home() {
 
           <div className={styles.formGrid}>
             <label>
+              <span>Project</span>
+              <select
+                name="project"
+                value={formData.project}
+                onChange={handleChange}
+              >
+                <option value="">No project</option>
+                <option value="property-owner-outreach">Property Owner Outreach</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Owner type</span>
+              <select
+                name="ownerType"
+                value={formData.ownerType}
+                onChange={handleChange}
+              >
+                <option value="individual">Individual</option>
+                <option value="couple">Couple</option>
+                <option value="llc">LLC / Entity</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+
+            <label>
               <span>First name</span>
               <input
                 name="firstName"
@@ -478,7 +561,7 @@ export default function Home() {
                 value={formData.firstName}
                 onChange={handleChange}
                 autoComplete="given-name"
-                required
+                required={formData.ownerType !== "llc"}
               />
             </label>
 
@@ -490,9 +573,21 @@ export default function Home() {
                 value={formData.lastName}
                 onChange={handleChange}
                 autoComplete="family-name"
-                required
+                required={formData.ownerType !== "llc"}
               />
             </label>
+
+            {formData.ownerType === "couple" && (
+              <label>
+                <span>Co-owner name</span>
+                <input
+                  name="coOwnerName"
+                  placeholder="Full name of second owner"
+                  value={formData.coOwnerName}
+                  onChange={handleChange}
+                />
+              </label>
+            )}
 
             <label>
               <span>Job title</span>
@@ -529,13 +624,14 @@ export default function Home() {
             </label>
 
             <label>
-              <span>Company</span>
+              <span>{formData.ownerType === "llc" ? "LLC / Entity name" : "Company"}</span>
               <input
                 name="companyName"
-                placeholder="Company name"
+                placeholder={formData.ownerType === "llc" ? "LLC or entity name" : "Company name"}
                 value={formData.companyName}
                 onChange={handleChange}
                 autoComplete="organization"
+                required={formData.ownerType === "llc"}
               />
             </label>
 
@@ -606,6 +702,66 @@ export default function Home() {
             </label>
 
             <label>
+              <span>Property address line 1</span>
+              <input
+                name="propertyStreet1"
+                placeholder="Target property street address"
+                value={formData.propertyStreet1}
+                onChange={handleChange}
+              />
+            </label>
+
+            <label>
+              <span>Property address line 2</span>
+              <input
+                name="propertyStreet2"
+                placeholder="Unit or suite"
+                value={formData.propertyStreet2}
+                onChange={handleChange}
+              />
+            </label>
+
+            <label>
+              <span>Property city</span>
+              <input
+                name="propertyCity"
+                placeholder="City"
+                value={formData.propertyCity}
+                onChange={handleChange}
+              />
+            </label>
+
+            <label>
+              <span>Property state</span>
+              <input
+                name="propertyState"
+                placeholder="State"
+                value={formData.propertyState}
+                onChange={handleChange}
+              />
+            </label>
+
+            <label>
+              <span>Property ZIP</span>
+              <input
+                name="propertyZip"
+                placeholder="ZIP"
+                value={formData.propertyZip}
+                onChange={handleChange}
+              />
+            </label>
+
+            <label>
+              <span>Property country</span>
+              <input
+                name="propertyCountry"
+                placeholder="US"
+                value={formData.propertyCountry}
+                onChange={handleChange}
+              />
+            </label>
+
+            <label>
               <span>LinkedIn</span>
               <input
                 name="linkedin"
@@ -672,6 +828,20 @@ export default function Home() {
             />
           </label>
 
+          <label className={styles.projectFilter}>
+            <span className={styles.srOnly}>Project filter</span>
+            <select
+              value={projectFilter}
+              onChange={(e) => {
+                setProjectFilter(e.target.value);
+                setSelectedIndex(-1);
+              }}
+            >
+              <option value="all">All projects</option>
+              <option value="property-owner-outreach">Property Owner Outreach</option>
+            </select>
+          </label>
+
           <div className={styles.filterGroup} aria-label="Follow-up filters">
             {filterOptions.map(([value, label]) => (
               <button
@@ -724,7 +894,7 @@ export default function Home() {
                       className={styles.contactName}
                       onClick={() => setCustomerToggle(contact._id)}
                     >
-                      {contact.firstName} {contact.lastName}
+                      {getContactDisplayName(contact)}
                     </button>
                     <a
                       className={styles.emailLink}
