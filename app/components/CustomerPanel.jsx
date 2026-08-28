@@ -146,8 +146,13 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
   const personName =
     `${customerSelected.firstName || ""} ${customerSelected.lastName || ""}`.trim();
 
-  const fullName =
-    customerSelected.ownerType === "llc" && customerSelected.company?.name
+  const fullName = customerSelected.ownerNameRaw
+    ? customerSelected.ownerType === "couple" &&
+      customerSelected.coOwnerName &&
+      !customerSelected.ownerNameRaw.includes(customerSelected.coOwnerName)
+      ? `${customerSelected.ownerNameRaw} & ${customerSelected.coOwnerName}`
+      : customerSelected.ownerNameRaw
+    : customerSelected.ownerType === "llc" && customerSelected.company?.name
       ? customerSelected.company.name
       : customerSelected.ownerType === "couple" && customerSelected.coOwnerName
         ? [personName, customerSelected.coOwnerName].filter(Boolean).join(" & ")
@@ -201,6 +206,16 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
             </div>
 
             <div className={styles.customerPanelGrid}>
+              <label className={styles.customerPanelField}>
+                <span>Owner / Entity Name</span>
+                <input
+                  type="text"
+                  value={customerSelected.ownerNameRaw || ""}
+                  onChange={(e) => updateContact({ ownerNameRaw: e.target.value })}
+                  placeholder="Used for imported property-owner records"
+                />
+              </label>
+
               <label className={styles.customerPanelField}>
                 <span>Project</span>
                 <select
@@ -453,8 +468,8 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
 
           <section className={styles.panelSection}>
             <div className={styles.panelSectionHeader}>
-              <h4>Property Address</h4>
-              <p>The property tied to this outreach record, separate from the owner mailing address.</p>
+              <h4>Primary Property</h4>
+              <p>The main property tied to this outreach record, separate from the owner mailing address.</p>
             </div>
 
             <div className={styles.customerPanelGrid}>
@@ -525,6 +540,42 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
                 />
               </label>
             </div>
+
+            {(customerSelected.properties || []).length > 1 && (
+              <div className={styles.propertyPortfolio}>
+                <div className={styles.propertyPortfolioHeader}>
+                  <strong>Matching property portfolio</strong>
+                  <span>{customerSelected.properties.length} properties</span>
+                </div>
+
+                {customerSelected.properties.map((property) => (
+                  <div
+                    className={styles.propertyPortfolioRow}
+                    key={property.parcelId || property.street1}
+                  >
+                    <div>
+                      <strong>
+                        {[property.street1, property.city, property.state, property.zip]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </strong>
+                      <span>
+                        {property.numUnits || "—"} units
+                        {property.yearBuilt ? ` · Built ${property.yearBuilt}` : ""}
+                      </span>
+                    </div>
+                    <div>
+                      <span>
+                        {property.ownershipYears != null
+                          ? `${property.ownershipYears} years since recorded sale`
+                          : "Sale date unavailable"}
+                      </span>
+                      <small>Parcel {property.parcelId || "—"}</small>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
 
           <section className={styles.panelSection}>
