@@ -39,9 +39,17 @@ export async function POST(req) {
   try {
     const body = await req.json();
 
-    if (!body.firstName || !body.lastName) {
+    const isEntity = body.ownerType === "llc";
+    const hasPersonName = Boolean(body.firstName?.trim() && body.lastName?.trim());
+    const hasEntityName = Boolean(body.company?.name?.trim());
+
+    if ((isEntity && !hasEntityName) || (!isEntity && !hasPersonName)) {
       return Response.json(
-        { error: "First name and last name are required" },
+        {
+          error: isEntity
+            ? "LLC / entity name is required"
+            : "First name and last name are required",
+        },
         { status: 400 },
       );
     }
