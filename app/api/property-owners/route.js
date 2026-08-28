@@ -127,10 +127,14 @@ function classifyOwner(ownerName, ownerMore) {
   if (excluded.test(combined)) return "other";
 
   const entity =
-    /\b(LLC|L L C|LIMITED LIABILITY|INC|INCORPORATED|CORP|CORPORATION|LTD|LP|LLP|PARTNERSHIP|PROPERTIES|HOLDINGS)\b/;
+    /\b(LLC|L L C|LIMITED LIABILITY|INC|INCORPORATED|CORP|CORPORATION|LTD|LP|LLP|PARTNERSHIP|PROPERTIES|HOLDINGS|INVESTMENTS|REALTY|MANAGEMENT|APARTMENTS|ASSOCIATES|VENTURES|GROUP)\b/;
 
   if (entity.test(combined)) return "llc";
-  if (more || /\s(&|AND)\s/i.test(name)) return "couple";
+
+  const moreLooksLikeOwner =
+    more && !/^(C\/?O|ATTN|ATTENTION|CARE OF|%)/i.test(more);
+
+  if (moreLooksLikeOwner || /\s(&|AND)\s/i.test(name)) return "couple";
 
   return "individual";
 }
@@ -163,7 +167,25 @@ function scoreParcel(attributes, ownerType) {
   return score;
 }
 
-function isEligible(attributes, ownerType) {
+function isTargetMunicipality(attributes, county) {
+  const municipality = clean(attributes.CTU_NAME)
+    .toLowerCase()
+    .replace(/\./g, "")
+    .replace(/\s+/g, " ");
+
+  if (county === "Hennepin") {
+    return municipality === "minneapolis";
+  }
+
+  if (county === "Ramsey") {
+    return municipality === "st paul" || municipality === "saint paul";
+  }
+
+  return false;
+}
+
+function isEligible(attributes, ownerType, county) {
+  if (!isTargetMunicipality(attributes, county)) return false;
   if (!["individual", "couple", "llc"].includes(ownerType)) return false;
   if (!clean(attributes.OWNER_NAME)) return false;
   if (isTaxExempt(attributes.TAX_EXEMPT)) return false;
@@ -263,7 +285,7 @@ function groupProspects(rows) {
     const ownerMoreRaw = clean(attributes.OWNER_MORE);
     const ownerType = classifyOwner(ownerNameRaw, ownerMoreRaw);
 
-    if (!isEligible(attributes, ownerType)) continue;
+    if (!isEligible(attributes, ownerType, row.county)) continue;
 
     const baseOwnerKey = normalizedKey(ownerNameRaw + "|" + ownerMoreRaw);
     if (!baseOwnerKey) continue;
@@ -359,9 +381,6 @@ function insertDefaults(prospect, now) {
   return {
     firstName: "",
     lastName: "",
-    ownerNameRaw: prospect.ownerNameRaw,
-    ownerType: prospect.ownerType,
-    coOwnerName: prospect.ownerMoreRaw,
     jobTitle: "",
     email: "",
     phone: "",
@@ -379,7 +398,6 @@ function insertDefaults(prospect, now) {
       country: "US",
     },
     rank: "",
-    relationshipType: "Property Owner Prospect",
     facebook: "",
     linkedin: "",
     website: "",
