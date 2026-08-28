@@ -1,3 +1,34 @@
+:root {
+  color-scheme: light;
+  --background: #f6f7f9;
+  --foreground: #18202a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+}
+
 main {
   padding: 0;
 }
