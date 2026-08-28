@@ -876,3 +876,358 @@
     flex: 1;
   }
 }
+
+
+/* Newsletter V1 */
+
+.appHeaderActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+  box-shadow: none;
+}
+
+.unsubscribeBadge {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 2px;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  background: #fee4e2;
+  color: #b42318;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.newsletterBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1099;
+  background: rgba(16, 24, 40, 0.42);
+  backdrop-filter: blur(3px);
+}
+
+.newsletterModal {
+  position: fixed;
+  z-index: 1100;
+  top: 50%;
+  left: 50%;
+  width: min(760px, calc(100vw - 32px));
+  max-height: 90vh;
+  overflow-y: auto;
+  transform: translate(-50%, -50%);
+  border: 1px solid #e4e7ec;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(16, 24, 40, 0.24);
+}
+
+.newsletterModalHeader {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid #eaecf0;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(8px);
+}
+
+.newsletterModalHeader h2,
+.emailDashboardHeader h2 {
+  margin: 4px 0 0;
+  font-size: 1.4rem;
+  letter-spacing: -0.02em;
+}
+
+.newsletterModalBody {
+  padding: 24px;
+  display: grid;
+  gap: 18px;
+}
+
+.newsletterField {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.newsletterField > span {
+  color: #475467;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.newsletterField input,
+.newsletterField select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0.72rem 0.82rem;
+  color: #1d2939;
+  font: inherit;
+}
+
+.newsletterField input:focus,
+.newsletterField select:focus {
+  outline: none;
+  border-color: #84adff;
+  box-shadow: 0 0 0 3px rgba(21, 112, 239, 0.12);
+}
+
+.newsletterRecipientSummary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 13px 14px;
+  border: 1px solid #e4e7ec;
+  border-radius: 10px;
+  background: #f9fafb;
+  color: #667085;
+  font-size: 0.86rem;
+}
+
+.newsletterRecipientSummary strong {
+  color: #101828;
+  font-size: 1.35rem;
+}
+
+.newsletterTestRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.newsletterActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  padding-top: 4px;
+}
+
+.newsletterStatus {
+  margin: 0;
+  padding: 11px 13px;
+  border-radius: 9px;
+  background: #f2f4f7;
+  color: #344054;
+  font-size: 0.86rem;
+}
+
+.newsletterPreview {
+  overflow: hidden;
+  border: 1px solid #d0d5dd;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.newsletterPreviewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid #eaecf0;
+  background: #f9fafb;
+  font-size: 0.82rem;
+}
+
+.previewClose {
+  border: 0;
+  background: transparent;
+  color: #475467;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.newsletterPreviewFrame {
+  display: block;
+  width: 100%;
+  height: 480px;
+  border: 0;
+  background: #ffffff;
+}
+
+.emailDashboard {
+  margin-bottom: 28px;
+  padding: 24px;
+  overflow: hidden;
+  border: 1px solid #e3e7ec;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 8px 28px rgba(17, 24, 39, 0.05);
+}
+
+.emailDashboardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.emailDashboardEmpty {
+  margin: 0;
+  padding: 28px 0 8px;
+  color: #667085;
+}
+
+.emailHistoryTable {
+  margin: 0 -24px -24px;
+  overflow-x: auto;
+  border-top: 1px solid #eaecf0;
+}
+
+.emailHistoryHeader,
+.emailHistoryRow {
+  min-width: 900px;
+  display: grid;
+  grid-template-columns: 1.25fr 1.7fr 1.35fr 0.55fr 0.65fr 0.8fr;
+  gap: 14px;
+  align-items: center;
+}
+
+.emailHistoryHeader {
+  padding: 11px 24px;
+  background: #f9fafb;
+  color: #667085;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.emailHistoryRow {
+  width: 100%;
+  padding: 14px 24px;
+  border: 0;
+  border-top: 1px solid #eaecf0;
+  background: #ffffff;
+  color: #344054;
+  font: inherit;
+  font-size: 0.86rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.emailHistoryRow:hover {
+  background: #f9fafb;
+}
+
+.emailHistoryRow strong {
+  color: #101828;
+}
+
+.emailHistoryChildren {
+  min-width: 900px;
+  padding: 18px 24px 22px;
+  border-top: 1px solid #eaecf0;
+  background: #f8fafc;
+}
+
+.emailHistoryChildren > p {
+  margin: 0;
+  color: #667085;
+}
+
+.emailHistoryMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  margin-bottom: 14px;
+  color: #667085;
+  font-size: 0.8rem;
+}
+
+.emailHistoryMeta strong {
+  color: #344054;
+}
+
+.emailRecipientTable {
+  overflow: hidden;
+  border: 1px solid #e4e7ec;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.emailRecipientHeader,
+.emailRecipientRow {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr 0.7fr;
+  gap: 14px;
+  align-items: center;
+  padding: 10px 12px;
+}
+
+.emailRecipientHeader {
+  background: #f9fafb;
+  color: #667085;
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.emailRecipientRow {
+  border-top: 1px solid #eaecf0;
+  color: #475467;
+  font-size: 0.82rem;
+}
+
+.deliveryBadge {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.22rem 0.45rem;
+  border-radius: 999px;
+  background: #ecfdf3;
+  color: #027a48;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.delivery_failed {
+  background: #fef3f2;
+  color: #b42318;
+}
+
+.delivery_unsubscribed {
+  background: #fff4ed;
+  color: #b93815;
+}
+
+@media (max-width: 650px) {
+  .appHeaderActions {
+    width: 100%;
+  }
+
+  .appHeaderActions button {
+    flex: 1 1 100%;
+  }
+
+  .newsletterTestRow {
+    grid-template-columns: 1fr;
+  }
+
+  .newsletterActions {
+    flex-direction: column;
+  }
+
+  .newsletterActions button {
+    width: 100%;
+  }
+}
