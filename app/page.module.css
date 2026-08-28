@@ -407,11 +407,11 @@
 }
 
 .customerListItem[data-status="overdue"] {
-  background: #fff1f1;
+  background: #f7caca;
 }
 
 .customerListItem[data-status="overdue"]:hover {
-  background: #ffe8e8;
+  background: #f3bcbc;
 }
 
 .customerListItem[data-status="overdue"]::before {
