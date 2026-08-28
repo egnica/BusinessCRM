@@ -110,7 +110,10 @@ export default function PropertyOwnerImport({
 
   return (
     <>
-      <div className={styles.newsletterBackdrop} onClick={onClose} />
+      <div
+        className={styles.newsletterBackdrop}
+        onClick={working ? undefined : onClose}
+      />
       <section
         className={styles.newsletterModal}
         role="dialog"
