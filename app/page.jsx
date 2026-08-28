@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import CustomerPanel from "./components/CustomerPanel";
+import EmailDashboard from "./components/EmailDashboard";
+import NewsletterModal from "./components/NewsletterModal";
 import styles from "./page.module.css";
 
 const getDateOnly = (dateStr) => (dateStr ? String(dateStr).slice(0, 10) : "");
@@ -41,6 +43,9 @@ export default function Home() {
   const [searchName, setSearchName] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [dateFilter, setDateFilter] = useState("all");
+  const [newsletterOpen, setNewsletterOpen] = useState(false);
+  const [emailHistoryOpen, setEmailHistoryOpen] = useState(false);
+  const [emailHistoryRefresh, setEmailHistoryRefresh] = useState(0);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -101,6 +106,15 @@ export default function Home() {
 
     return stats;
   }, [contacts]);
+
+  const subscribedEmailCount = useMemo(
+    () =>
+      contacts.filter(
+        (contact) =>
+          contact.email && contact.emailStatus !== "unsubscribed",
+      ).length,
+    [contacts],
+  );
 
   const filteredContacts = useMemo(() => {
     const query = searchName.trim().toLowerCase();
@@ -331,13 +345,29 @@ export default function Home() {
             </p>
           </div>
 
-          <button
-            type="button"
-            className={styles.primaryButton}
-            onClick={() => setNewUserToggle((prev) => !prev)}
-          >
-            {newUserToggle ? "Close Form" : "+ New Contact"}
-          </button>
+          <div className={styles.appHeaderActions}>
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={() => setEmailHistoryOpen((prev) => !prev)}
+            >
+              {emailHistoryOpen ? "Hide Email History" : "Email History"}
+            </button>
+            <button
+              type="button"
+              className={styles.primaryButton}
+              onClick={() => setNewsletterOpen(true)}
+            >
+              Send Newsletter
+            </button>
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={() => setNewUserToggle((prev) => !prev)}
+            >
+              {newUserToggle ? "Close Form" : "+ New Contact"}
+            </button>
+          </div>
         </div>
 
         <div className={styles.dashboardPanel}>
@@ -371,6 +401,10 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {emailHistoryOpen && (
+        <EmailDashboard refreshKey={emailHistoryRefresh} />
+      )}
 
       {newUserToggle && (
         <form className={styles.mainRecordFormContain} onSubmit={handleSubmit}>
@@ -567,6 +601,11 @@ export default function Home() {
                     >
                       {contact.email || "No email"}
                     </a>
+                    {contact.emailStatus === "unsubscribed" && (
+                      <span className={styles.unsubscribeBadge}>
+                        Unsubscribed
+                      </span>
+                    )}
                   </div>
 
                   <div className={styles.companyCell}>
@@ -659,6 +698,17 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {newsletterOpen && (
+        <NewsletterModal
+          recipientCount={subscribedEmailCount}
+          onClose={() => setNewsletterOpen(false)}
+          onSent={() => {
+            setEmailHistoryRefresh((prev) => prev + 1);
+            setEmailHistoryOpen(true);
+          }}
+        />
+      )}
 
       {customerToggle !== "" && customerSelected && (
         <CustomerPanel
