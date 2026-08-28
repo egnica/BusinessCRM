@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import styles from "../page.module.css";
 
 function formatMoney(value) {
@@ -36,7 +36,7 @@ export default function PropertyOwnerImport({
   const [status, setStatus] = useState("");
   const [working, setWorking] = useState(false);
 
-  async function loadPreview(nextLimit = limit) {
+  const loadPreview = useCallback(async (nextLimit) => {
     setWorking(true);
     setStatus("");
 
@@ -58,11 +58,11 @@ export default function PropertyOwnerImport({
     } finally {
       setWorking(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     loadPreview(250);
-  }, []);
+  }, [loadPreview]);
 
   async function handleLimitChange(value) {
     const nextLimit = Number(value);
@@ -101,7 +101,6 @@ export default function PropertyOwnerImport({
         `Import complete: ${data.importedCount || 0} new contacts, ${data.updatedCount || 0} refreshed.`,
       );
       await onImported?.();
-      await loadPreview(limit);
     } catch {
       setStatus("Property owner import failed.");
     } finally {
