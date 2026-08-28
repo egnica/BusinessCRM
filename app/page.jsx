@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import CustomerPanel from "./components/CustomerPanel";
 import EmailDashboard from "./components/EmailDashboard";
 import NewsletterModal from "./components/NewsletterModal";
+import PropertyOwnerImport from "./components/PropertyOwnerImport";
 import styles from "./page.module.css";
 
 const getDateOnly = (dateStr) => (dateStr ? String(dateStr).slice(0, 10) : "");
@@ -40,6 +41,18 @@ const getContactDisplayName = (contact) => {
   const personName =
     `${contact.firstName || ""} ${contact.lastName || ""}`.trim();
 
+  if (contact.ownerNameRaw) {
+    if (
+      contact.ownerType === "couple" &&
+      contact.coOwnerName &&
+      !contact.ownerNameRaw.includes(contact.coOwnerName)
+    ) {
+      return `${contact.ownerNameRaw} & ${contact.coOwnerName}`;
+    }
+
+    return contact.ownerNameRaw;
+  }
+
   if (contact.ownerType === "llc" && contact.company?.name) {
     return contact.company.name;
   }
@@ -59,6 +72,7 @@ export default function Home() {
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [dateFilter, setDateFilter] = useState("all");
   const [projectFilter, setProjectFilter] = useState("all");
+  const [propertyImportOpen, setPropertyImportOpen] = useState(false);
   const [newsletterOpen, setNewsletterOpen] = useState(false);
   const [emailHistoryOpen, setEmailHistoryOpen] = useState(false);
   const [emailHistoryRefresh, setEmailHistoryRefresh] = useState(0);
@@ -89,18 +103,18 @@ export default function Home() {
     rank: "",
   });
 
-  useEffect(() => {
-    async function fetchContacts() {
-      try {
-        const res = await fetch("/api/contacts");
-        const data = await res.json();
-        setContacts(data.contacts || []);
-      } catch (error) {
-        console.error("Failed to fetch contacts:", error);
-      }
+  async function refreshContacts() {
+    try {
+      const res = await fetch("/api/contacts", { cache: "no-store" });
+      const data = await res.json();
+      setContacts(data.contacts || []);
+    } catch (error) {
+      console.error("Failed to fetch contacts:", error);
     }
+  }
 
-    fetchContacts();
+  useEffect(() => {
+    refreshContacts();
   }, []);
 
   const getFollowUpStatus = (contact) => {
@@ -170,6 +184,7 @@ export default function Home() {
           contact.company?.name,
           contact.company?.industry,
           contact.relationshipType,
+          contact.ownerNameRaw,
           contact.project,
           contact.ownerType,
           contact.coOwnerName,
@@ -183,6 +198,12 @@ export default function Home() {
           contact.property?.city,
           contact.property?.state,
           contact.property?.zip,
+          ...(contact.properties || []).flatMap((property) => [
+            property.street1,
+            property.city,
+            property.state,
+            property.zip,
+          ]),
         ]
           .filter(Boolean)
           .join(" ")
@@ -213,7 +234,7 @@ export default function Home() {
         const dateB = parseLocalDate(b.nextFollowUp);
 
         if (!dateA && !dateB) {
-          return `${a.lastName || ""}`.localeCompare(b.lastName || "");
+          return getContactDisplayName(a).localeCompare(getContactDisplayName(b));
         }
         if (!dateA) return 1;
         if (!dateB) return -1;
@@ -354,9 +375,7 @@ export default function Home() {
         rank: "",
       });
 
-      const refreshed = await fetch("/api/contacts");
-      const refreshedData = await refreshed.json();
-      setContacts(refreshedData.contacts || []);
+      await refreshContacts();
       setNewUserToggle(false);
     } catch (error) {
       console.error("Failed to create contact:", error);
@@ -432,6 +451,13 @@ export default function Home() {
           </div>
 
           <div className={styles.appHeaderActions}>
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={() => setPropertyImportOpen(true)}
+            >
+              Find Property Owners
+            </button>
             <button
               type="button"
               className={styles.primaryButton}
@@ -1018,6 +1044,17 @@ export default function Home() {
           onSent={() => {
             setEmailHistoryRefresh((prev) => prev + 1);
             setEmailHistoryOpen(true);
+          }}
+        />
+      )}
+
+      {propertyImportOpen && (
+        <PropertyOwnerImport
+          onClose={() => setPropertyImportOpen(false)}
+          onImported={async () => {
+            await refreshContacts();
+            setProjectFilter("property-owner-outreach");
+            setDateFilter("all");
           }}
         />
       )}
