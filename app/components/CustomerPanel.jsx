@@ -102,8 +102,7 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
   const buildGoogleCalendarLink = () => {
     if (!customerSelected?.nextFollowUp) return "#";
 
-    const title =
-      `Follow up with ${customerSelected.firstName || ""} ${customerSelected.lastName || ""}`.trim();
+    const title = `Follow up with ${fullName}`;
 
     const baseDate = new Date(customerSelected.nextFollowUp);
     baseDate.setHours(9, 0, 0, 0);
@@ -129,6 +128,16 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
       customerSelected.email ? `Email: ${customerSelected.email}` : "",
       customerSelected.company?.name
         ? `Company: ${customerSelected.company.name}`
+        : "",
+      customerSelected.property?.street1
+        ? `Property: ${[
+            customerSelected.property.street1,
+            customerSelected.property.city,
+            customerSelected.property.state,
+            customerSelected.property.zip,
+          ]
+            .filter(Boolean)
+            .join(", ")}`
         : "",
       customerSelected.notes ? `Notes: ${customerSelected.notes}` : "",
     ]
