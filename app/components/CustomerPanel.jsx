@@ -35,9 +35,12 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
   const handleDelete = async () => {
     if (!customerSelected?._id) return;
 
+    const personName =
+      `${customerSelected.firstName || ""} ${customerSelected.lastName || ""}`.trim();
     const name =
-      `${customerSelected.firstName || ""} ${customerSelected.lastName || ""}`.trim() ||
-      "this contact";
+      customerSelected.ownerType === "llc" && customerSelected.company?.name
+        ? customerSelected.company.name
+        : personName || customerSelected.company?.name || "this contact";
 
     const confirmed = window.confirm(
       `Delete ${name}? This cannot be undone.`,
@@ -140,8 +143,15 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
     );
   };
 
-  const fullName =
+  const personName =
     `${customerSelected.firstName || ""} ${customerSelected.lastName || ""}`.trim();
+
+  const fullName =
+    customerSelected.ownerType === "llc" && customerSelected.company?.name
+      ? customerSelected.company.name
+      : customerSelected.ownerType === "couple" && customerSelected.coOwnerName
+        ? [personName, customerSelected.coOwnerName].filter(Boolean).join(" & ")
+        : personName || customerSelected.company?.name || "Unnamed Contact";
 
   return (
     <>
@@ -184,6 +194,49 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
         </div>
 
         <div className={styles.customerPanelScroll}>
+          <section className={styles.panelSection}>
+            <div className={styles.panelSectionHeader}>
+              <h4>Project / Owner</h4>
+              <p>Group this record and describe how the property is owned.</p>
+            </div>
+
+            <div className={styles.customerPanelGrid}>
+              <label className={styles.customerPanelField}>
+                <span>Project</span>
+                <select
+                  value={customerSelected.project || ""}
+                  onChange={(e) => updateContact({ project: e.target.value })}
+                >
+                  <option value="">No project</option>
+                  <option value="property-owner-outreach">Property Owner Outreach</option>
+                </select>
+              </label>
+
+              <label className={styles.customerPanelField}>
+                <span>Owner Type</span>
+                <select
+                  value={customerSelected.ownerType || "individual"}
+                  onChange={(e) => updateContact({ ownerType: e.target.value })}
+                >
+                  <option value="individual">Individual</option>
+                  <option value="couple">Couple</option>
+                  <option value="llc">LLC / Entity</option>
+                  <option value="other">Other</option>
+                </select>
+              </label>
+
+              <label className={styles.customerPanelField}>
+                <span>Co-owner Name</span>
+                <input
+                  type="text"
+                  value={customerSelected.coOwnerName || ""}
+                  onChange={(e) => updateContact({ coOwnerName: e.target.value })}
+                  placeholder="Optional second owner"
+                />
+              </label>
+            </div>
+          </section>
+
           <section className={styles.panelSection}>
             <div className={styles.panelSectionHeader}>
               <h4>Contact</h4>
@@ -391,6 +444,82 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
                   value={customerSelected.address?.country || ""}
                   onChange={(e) =>
                     updateNested("address", { country: e.target.value })
+                  }
+                  placeholder="US"
+                />
+              </label>
+            </div>
+          </section>
+
+          <section className={styles.panelSection}>
+            <div className={styles.panelSectionHeader}>
+              <h4>Property Address</h4>
+              <p>The property tied to this outreach record, separate from the owner mailing address.</p>
+            </div>
+
+            <div className={styles.customerPanelGrid}>
+              <label className={styles.customerPanelField}>
+                <span>Address Line 1</span>
+                <input
+                  type="text"
+                  value={customerSelected.property?.street1 || ""}
+                  onChange={(e) =>
+                    updateNested("property", { street1: e.target.value })
+                  }
+                />
+              </label>
+
+              <label className={styles.customerPanelField}>
+                <span>Address Line 2</span>
+                <input
+                  type="text"
+                  value={customerSelected.property?.street2 || ""}
+                  onChange={(e) =>
+                    updateNested("property", { street2: e.target.value })
+                  }
+                />
+              </label>
+
+              <label className={styles.customerPanelField}>
+                <span>City</span>
+                <input
+                  type="text"
+                  value={customerSelected.property?.city || ""}
+                  onChange={(e) =>
+                    updateNested("property", { city: e.target.value })
+                  }
+                />
+              </label>
+
+              <label className={styles.customerPanelField}>
+                <span>State</span>
+                <input
+                  type="text"
+                  value={customerSelected.property?.state || ""}
+                  onChange={(e) =>
+                    updateNested("property", { state: e.target.value })
+                  }
+                />
+              </label>
+
+              <label className={styles.customerPanelField}>
+                <span>ZIP / Postal Code</span>
+                <input
+                  type="text"
+                  value={customerSelected.property?.zip || ""}
+                  onChange={(e) =>
+                    updateNested("property", { zip: e.target.value })
+                  }
+                />
+              </label>
+
+              <label className={styles.customerPanelField}>
+                <span>Country</span>
+                <input
+                  type="text"
+                  value={customerSelected.property?.country || ""}
+                  onChange={(e) =>
+                    updateNested("property", { country: e.target.value })
                   }
                   placeholder="US"
                 />
