@@ -5,12 +5,16 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function buildContact(prospect, now) {
+  const confirmedProperties =
+    prospect.metroLookup?.confirmedProperties?.length
+      ? prospect.metroLookup.confirmedProperties
+      : prospect.properties || [];
   const primaryProperty =
     prospect.primaryProperty ||
-    (prospect.properties || []).find(
+    confirmedProperties.find(
       (property) => property.parcelId === prospect.primaryParcelId,
     ) ||
-    prospect.properties?.[0] ||
+    confirmedProperties[0] ||
     null;
 
   return {
@@ -37,8 +41,13 @@ function buildContact(prospect, now) {
       country: "US",
     },
     property: primaryProperty,
-    properties: prospect.properties || [],
+    properties: confirmedProperties,
     propertyOutreachKey: prospect.propertyOutreachKey,
+    propertySearchCity: prospect.searchCity || "",
+    propertyCityCount:
+      prospect.cityPropertyCount || prospect.propertyCount || 0,
+    propertyMetroConfirmedCount:
+      prospect.metroLookup?.confirmedPropertyCount || null,
     propertyOutreachAliases: prospect.propertyOutreachAliases || [],
     propertyProspectId: prospect._id.toString(),
     propertyMailingAddressRaw: prospect.mailingAddress || null,
@@ -89,7 +98,11 @@ export async function POST(_request, { params }) {
       return Response.json({ error: "Prospect not found" }, { status: 404 });
     }
 
-    const parcelKeys = (prospect.properties || [])
+    const linkedProperties =
+      prospect.metroLookup?.confirmedProperties?.length
+        ? prospect.metroLookup.confirmedProperties
+        : prospect.properties || [];
+    const parcelKeys = linkedProperties
       .map(
         (property) =>
           property.parcelKey ||
@@ -98,7 +111,7 @@ export async function POST(_request, { params }) {
             : ""),
       )
       .filter(Boolean);
-    const parcelIds = (prospect.properties || [])
+    const parcelIds = linkedProperties
       .map((property) => property.parcelId)
       .filter(Boolean);
 
