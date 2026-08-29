@@ -269,9 +269,9 @@ export default function PropertyProspectList({
               </div>
 
               <span>
-                {prospect.propertyCount ||
-                  prospect.properties?.length ||
-                  1}
+                {prospect.metroLookup?.confirmedPropertyCount
+                  ? `${prospect.metroLookup.confirmedPropertyCount} metro`
+                  : `${prospect.cityPropertyCount || prospect.propertyCount || prospect.properties?.length || 1} in ${prospect.searchCity || prospect.primaryProperty?.municipality || "city"}`}
               </span>
 
               <span>
