@@ -154,9 +154,15 @@ export async function GET(request) {
       pageSize,
     });
 
+    const markedProspects = await addSavedState(result.prospects);
+
     return Response.json({
       ...result,
-      prospects: await addSavedState(result.prospects),
+      prospects: markedProspects.map((prospect) => {
+        const { mailingAddress: _mailingAddress, ...searchProspect } =
+          prospect;
+        return searchProspect;
+      }),
     });
   } catch (error) {
     console.error("Property owner search error:", error);
