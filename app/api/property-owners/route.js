@@ -49,6 +49,7 @@ async function addSavedState(prospects) {
           properties: 1,
           crmContactId: 1,
           mailingAddress: 1,
+          taxNameRaw: 1,
         },
       })
       .toArray(),
@@ -131,7 +132,10 @@ async function addSavedState(prospects) {
       inCrm: Boolean(crm || saved?.crmContactId),
       crmContactId:
         crm?._id?.toString() || saved?.crmContactId?.toString?.() || "",
-      savedMailingName: saved?.mailingAddress?.recipientName || "",
+      savedMailingName:
+        saved?.taxNameRaw ||
+        saved?.mailingAddress?.recipientName ||
+        "",
     };
   });
 }
@@ -155,6 +159,7 @@ export async function GET(request) {
       prospects: markedProspects.map((prospect) => {
         const mailingName =
           prospect.savedMailingName ||
+          prospect.taxNameRaw ||
           prospect.mailingAddress?.recipientName ||
           "";
         const {
