@@ -47,6 +47,11 @@ async function saveProspects(prospects, filters) {
   const db = client.db("crm");
   const collection = db.collection("propertyProspects");
   const keys = prospects.map((prospect) => prospect.propertyOutreachKey);
+  const parcelKeys = prospects.flatMap((prospect) =>
+    (prospect.properties || [])
+      .map((property) => property.parcelKey)
+      .filter(Boolean),
+  );
   const parcelIds = prospects.flatMap((prospect) =>
     (prospect.properties || [])
       .map((property) => property.parcelId)
@@ -58,6 +63,7 @@ async function saveProspects(prospects, filters) {
       $or: [
         { propertyOutreachKey: { $in: keys } },
         { propertyOutreachAliases: { $in: keys } },
+        { "properties.parcelKey": { $in: parcelKeys } },
         { "properties.parcelId": { $in: parcelIds } },
       ],
     })
@@ -76,8 +82,14 @@ async function saveProspects(prospects, filters) {
     }
 
     for (const property of prospect.properties || []) {
-      if (property.parcelId) {
-        existingByParcel.set(property.parcelId, prospect);
+      const parcelKey =
+        property.parcelKey ||
+        (property.county && property.parcelId
+          ? `${property.county}:${property.parcelId}`
+          : "");
+
+      if (parcelKey) {
+        existingByParcel.set(parcelKey, prospect);
       }
     }
   }
@@ -87,7 +99,14 @@ async function saveProspects(prospects, filters) {
     const existing =
       existingByKey.get(prospect.propertyOutreachKey) ||
       (prospect.properties || [])
-        .map((property) => existingByParcel.get(property.parcelId))
+        .map((property) =>
+          existingByParcel.get(
+            property.parcelKey ||
+              (property.county && property.parcelId
+                ? `${property.county}:${property.parcelId}`
+                : ""),
+          ),
+        )
         .find(Boolean);
 
     const properties = mergeProperties(
@@ -249,7 +268,7 @@ export async function POST(request) {
 
     const result = await searchPropertyOwners(filters, {
       paginate: false,
-      maxOwners: 30000,
+      maxOwners: 50000,
       includeMailingAddress: true,
     });
 
