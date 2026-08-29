@@ -4,9 +4,9 @@ import { useMemo, useState } from "react";
 import styles from "../page.module.css";
 
 const DEFAULT_FILTERS = {
+  city: "Minneapolis",
   minProperties: "2",
   maxProperties: "8",
-  city: "",
 };
 
 function formatMoney(value) {
@@ -20,24 +20,11 @@ function formatMoney(value) {
   }).format(amount);
 }
 
-function formatCityBreakdown(prospect) {
-  const cities = prospect.cityBreakdown || [];
-  if (!cities.length) return "—";
-
-  const visible = cities.slice(0, 3);
-  const remaining = cities.length - visible.length;
-  const summary = visible
-    .map((item) => `${item.city} ${item.count}`)
-    .join(" · ");
-
-  return summary + (remaining > 0 ? ` · +${remaining} cities` : "");
-}
-
 function buildSearchParams(filters, page) {
   return new URLSearchParams({
+    city: filters.city.trim(),
     minProperties: filters.minProperties,
     maxProperties: filters.maxProperties,
-    city: filters.city.trim(),
     page: String(page),
     pageSize: "25",
   });
@@ -61,6 +48,10 @@ export default function PropertyOwnerSearch({ onSaved }) {
   function validateFilters(activeFilters) {
     const minProperties = Number(activeFilters.minProperties);
     const maxProperties = Number(activeFilters.maxProperties);
+
+    if (!activeFilters.city.trim()) {
+      return "Choose a city before searching.";
+    }
 
     if (!Number.isFinite(minProperties) || minProperties < 2) {
       return "Property minimum must be at least 2.";
@@ -117,7 +108,10 @@ export default function PropertyOwnerSearch({ onSaved }) {
         matchedPropertyCount:
           result.matchedPropertyCount || result.sourcePropertyCount || 0,
       });
-      setAppliedFilters({ ...activeFilters });
+      setAppliedFilters({
+        ...activeFilters,
+        city: result.filters?.city || activeFilters.city.trim(),
+      });
       setHasSearched(true);
     } catch (error) {
       setHasSearched(true);
@@ -137,10 +131,8 @@ export default function PropertyOwnerSearch({ onSaved }) {
   function toggleResult(key) {
     setSelectedKeys((current) => {
       const next = new Set(current);
-
       if (next.has(key)) next.delete(key);
       else next.add(key);
-
       return next;
     });
   }
@@ -257,16 +249,18 @@ export default function PropertyOwnerSearch({ onSaved }) {
     });
   }
 
+  const cityLabel = appliedFilters.city || filters.city || "city";
+
   return (
     <>
       <section className={styles.propertyFilterPanel}>
         <div className={styles.propertyFilterHeading}>
           <div>
             <p className={styles.eyebrow}>Owner finder</p>
-            <h2>Find property owners</h2>
+            <h2>Find owners by city</h2>
             <p>
-              Search the seven-county Twin Cities metro by number of properties,
-              with an optional city filter.
+              Count properties inside one city first. Metro-wide ownership is
+              checked only after you save a specific prospect.
             </p>
           </div>
 
@@ -282,7 +276,23 @@ export default function PropertyOwnerSearch({ onSaved }) {
 
         <div className={styles.propertyFinderGrid}>
           <label className={styles.propertyFilterField}>
-            <span>Properties min</span>
+            <span>City</span>
+            <input
+              type="search"
+              value={filters.city}
+              onChange={(event) =>
+                setFilters((current) => ({
+                  ...current,
+                  city: event.target.value,
+                }))
+              }
+              placeholder="Minneapolis"
+              disabled={searchLoading}
+            />
+          </label>
+
+          <label className={styles.propertyFilterField}>
+            <span>Properties in city min</span>
             <input
               type="number"
               min="2"
@@ -299,7 +309,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
           </label>
 
           <label className={styles.propertyFilterField}>
-            <span>Properties max</span>
+            <span>Properties in city max</span>
             <input
               type="number"
               min="2"
@@ -310,22 +320,6 @@ export default function PropertyOwnerSearch({ onSaved }) {
                 setFilters((current) => ({
                   ...current,
                   maxProperties: event.target.value,
-                }))
-              }
-              disabled={searchLoading}
-            />
-          </label>
-
-          <label className={styles.propertyFilterField}>
-            <span>Owns property in</span>
-            <input
-              type="search"
-              placeholder="Any city, e.g. Minneapolis"
-              value={filters.city}
-              onChange={(event) =>
-                setFilters((current) => ({
-                  ...current,
-                  city: event.target.value,
                 }))
               }
               disabled={searchLoading}
@@ -355,12 +349,14 @@ export default function PropertyOwnerSearch({ onSaved }) {
                   " owner" +
                   (data.total === 1 ? "" : "s") +
                   " matched"
-                : "Search metro property ownership"}
+                : "Search city property ownership"}
             </h2>
             <p>
               {hasSearched
-                ? "Owners are ranked by property count, then longer-held portfolios."
-                : "Start with a focused property range, such as 2–8 properties."}
+                ? "These counts are only properties found inside " +
+                  cityLabel +
+                  "."
+                : "Start with Minneapolis and a range such as 2–8 properties."}
             </p>
           </div>
 
@@ -397,7 +393,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
 
         {searchLoading && (
           <p className={styles.newsletterStatus}>
-            Grouping property ownership across the Twin Cities metro…
+            Grouping property ownership inside {filters.city || "the city"}…
           </p>
         )}
 
@@ -408,16 +404,13 @@ export default function PropertyOwnerSearch({ onSaved }) {
         {hasSearched && (
           <div className={styles.propertyResultSummary}>
             <span>
-              {data.matchedPropertyCount.toLocaleString("en-US")} matching
-              properties represented
+              {data.matchedPropertyCount.toLocaleString("en-US")} properties
+              represented in {cityLabel}
             </span>
-            {appliedFilters.city && (
-              <span>Owns in: {appliedFilters.city}</span>
-            )}
             {data.total > 250 && (
               <span>
-                Add All is limited to 250 owners. Narrow the property range
-                or city, or use Add Selected.
+                Add All is limited to 250 owners. Narrow the property range or
+                use Add Selected.
               </span>
             )}
           </div>
@@ -435,8 +428,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
               />
             </span>
             <span>Owner</span>
-            <span>Properties</span>
-            <span>Property Cities</span>
+            <span>Properties in {cityLabel}</span>
             <span>Longest Held</span>
             <span>Est. Value</span>
             <span>Mailing</span>
@@ -447,7 +439,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
             <div className={styles.emptyState}>
               <strong>Ready to search.</strong>
               <span>
-                Choose a property range, optionally add a city, then search the metro.
+                Choose a city and a property-count range, then search.
               </span>
             </div>
           ) : data.prospects.length ? (
@@ -475,28 +467,14 @@ export default function PropertyOwnerSearch({ onSaved }) {
 
                   <div>
                     <strong>{prospect.ownerNameRaw}</strong>
-                    {(prospect.ownsInMinneapolis ||
-                      prospect.mailingInMinneapolis) && (
-                      <span className={styles.propertyOwnerSignals}>
-                        {prospect.ownsInMinneapolis && (
-                          <small>OWNS IN MPLS</small>
-                        )}
-                        {prospect.mailingInMinneapolis && (
-                          <small>MAILS FROM MPLS</small>
-                        )}
-                      </span>
+                    {prospect.countsReconcile === false && (
+                      <span>Property details need review</span>
                     )}
                   </div>
 
-                  <strong>{prospect.propertyCount}</strong>
-
-                  <div>
-                    <strong>
-                      {prospect.countsReconcile === false
-                        ? "Details unavailable"
-                        : formatCityBreakdown(prospect)}
-                    </strong>
-                  </div>
+                  <strong>
+                    {prospect.cityPropertyCount || prospect.propertyCount}
+                  </strong>
 
                   <span>
                     {prospect.longestHeldYears != null
@@ -532,9 +510,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
           ) : (
             <div className={styles.emptyState}>
               <strong>No owners matched this profile.</strong>
-              <span>
-                Try a wider property range or another city.
-              </span>
+              <span>Try a wider property range or another city.</span>
             </div>
           )}
         </div>
