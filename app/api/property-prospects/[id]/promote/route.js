@@ -89,6 +89,15 @@ export async function POST(_request, { params }) {
       return Response.json({ error: "Prospect not found" }, { status: 404 });
     }
 
+    const parcelKeys = (prospect.properties || [])
+      .map(
+        (property) =>
+          property.parcelKey ||
+          (property.county && property.parcelId
+            ? `${property.county}:${property.parcelId}`
+            : ""),
+      )
+      .filter(Boolean);
     const parcelIds = (prospect.properties || [])
       .map((property) => property.parcelId)
       .filter(Boolean);
@@ -97,6 +106,9 @@ export async function POST(_request, { params }) {
       $or: [
         { propertyOutreachKey: prospect.propertyOutreachKey },
         { propertyOutreachAliases: prospect.propertyOutreachKey },
+        ...(parcelKeys.length
+          ? [{ "properties.parcelKey": { $in: parcelKeys } }]
+          : []),
         ...(parcelIds.length
           ? [{ "properties.parcelId": { $in: parcelIds } }]
           : []),
