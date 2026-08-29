@@ -1,5 +1,8 @@
 import clientPromise from "@/lib/mongodb";
-import { searchPropertyOwners } from "@/lib/propertyOwnerSearch";
+import {
+  getMailingContactName,
+  searchPropertyOwners,
+} from "@/lib/propertyOwnerSearch";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -157,11 +160,11 @@ export async function GET(request) {
     return Response.json({
       ...result,
       prospects: markedProspects.map((prospect) => {
-        const mailingName =
-          prospect.savedMailingName ||
-          prospect.taxNameRaw ||
-          prospect.mailingAddress?.recipientName ||
-          "";
+        const mailingName = getMailingContactName({
+          mailingContactName: prospect.savedMailingName,
+          taxNameRaw: prospect.taxNameRaw,
+          mailingAddress: prospect.mailingAddress,
+        });
         const {
           mailingAddress: _mailingAddress,
           savedMailingName: _savedMailingName,
