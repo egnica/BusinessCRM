@@ -250,6 +250,7 @@ export async function POST(request) {
     const result = await searchPropertyOwners(filters, {
       paginate: false,
       maxOwners: 30000,
+      includeMailingAddress: true,
     });
 
     let prospects = result.prospects;
