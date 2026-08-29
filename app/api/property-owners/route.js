@@ -8,6 +8,7 @@ function readFilters(searchParams) {
   return {
     minProperties: searchParams.get("minProperties"),
     maxProperties: searchParams.get("maxProperties"),
+    maxResults: searchParams.get("maxResults"),
     city: searchParams.get("city") || "",
   };
 }
