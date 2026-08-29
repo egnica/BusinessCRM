@@ -496,6 +496,13 @@ export default function PropertyOwnerSearch({ onSaved }) {
 
                   <div>
                     <strong>{prospect.ownerNameRaw}</strong>
+                    {prospect.mailingRecipientName &&
+                      prospect.mailingRecipientName.trim().toLowerCase() !==
+                        prospect.ownerNameRaw.trim().toLowerCase() && (
+                        <span>
+                          Mail to: {prospect.mailingRecipientName}
+                        </span>
+                      )}
                     {prospect.countsReconcile === false && (
                       <span>Property details need review</span>
                     )}
