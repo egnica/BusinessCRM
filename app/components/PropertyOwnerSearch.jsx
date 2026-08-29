@@ -263,7 +263,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
         <div className={styles.propertyFilterHeading}>
           <div>
             <p className={styles.eyebrow}>Owner finder</p>
-            <h2>Find residential property owners</h2>
+            <h2>Find property owners</h2>
             <p>
               Search the seven-county Twin Cities metro by number of properties,
               with an optional city filter.
@@ -409,15 +409,15 @@ export default function PropertyOwnerSearch({ onSaved }) {
           <div className={styles.propertyResultSummary}>
             <span>
               {data.matchedPropertyCount.toLocaleString("en-US")} matching
-              residential properties represented
+              properties represented
             </span>
             {appliedFilters.city && (
               <span>Owns in: {appliedFilters.city}</span>
             )}
             {data.total > 250 && (
               <span>
-                Add All is limited to 250 owners. Narrow the property range,
-                city, or owner types, or use Add Selected.
+                Add All is limited to 250 owners. Narrow the property range
+                or city, or use Add Selected.
               </span>
             )}
           </div>
@@ -447,7 +447,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
             <div className={styles.emptyState}>
               <strong>Ready to search.</strong>
               <span>
-                Choose a property range and owner types, then search the metro.
+                Choose a property range, optionally add a city, then search the metro.
               </span>
             </div>
           ) : data.prospects.length ? (
