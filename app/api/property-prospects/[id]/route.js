@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
+import { getMailingContactName } from "@/lib/propertyOwnerSearch";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +15,7 @@ const ALLOWED_STATUSES = [
 function serializeProspect(prospect) {
   return {
     ...prospect,
+    mailingContactName: getMailingContactName(prospect),
     _id: prospect._id?.toString?.() || prospect._id,
     crmContactId:
       prospect.crmContactId?.toString?.() || prospect.crmContactId || "",
