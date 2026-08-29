@@ -8,27 +8,12 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function parseList(value) {
-  if (!value) return [];
-  return String(value)
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
 function readFilters(searchParams) {
   return {
     county: searchParams.get("county") || "Hennepin",
-    cities: parseList(searchParams.get("cities")),
+    city: searchParams.get("city") || "",
     minUnits: searchParams.get("minUnits"),
     maxUnits: searchParams.get("maxUnits"),
-    minOwnershipYears: searchParams.get("minOwnershipYears"),
-    ownerTypes: parseList(searchParams.get("ownerTypes")),
-    homestead: searchParams.get("homestead") || "any",
-    minAssessedValue: searchParams.get("minAssessedValue"),
-    maxAssessedValue: searchParams.get("maxAssessedValue"),
-    builtBefore: searchParams.get("builtBefore"),
-    minPortfolioSize: searchParams.get("minPortfolioSize"),
   };
 }
 
