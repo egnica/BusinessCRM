@@ -148,6 +148,11 @@ async function saveProspects(prospects, filters) {
             propertyOutreachAliases: aliases,
             ownerNameRaw: prospect.ownerNameRaw,
             ownerMoreRaw: prospect.ownerMoreRaw,
+            taxNameRaw:
+              prospect.taxNameRaw ||
+              existing?.taxNameRaw ||
+              mailingAddress?.recipientName ||
+              "",
             ownerType: prospect.ownerType,
             coOwnerName: prospect.coOwnerName || "",
             mailingAddress,
