@@ -502,13 +502,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
                     )}
                   </div>
 
-                  <span>
-                    {prospect.mailingName &&
-                    prospect.mailingName.trim().toLowerCase() !==
-                      prospect.ownerNameRaw.trim().toLowerCase()
-                      ? prospect.mailingName
-                      : "—"}
-                  </span>
+                  <span>{prospect.mailingName || "—"}</span>
 
                   <strong>
                     {prospect.cityPropertyCount || prospect.propertyCount}
