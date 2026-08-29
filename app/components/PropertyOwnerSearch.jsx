@@ -7,6 +7,7 @@ const DEFAULT_FILTERS = {
   city: "Minneapolis",
   minProperties: "2",
   maxProperties: "8",
+  maxResults: "100",
 };
 
 function formatMoney(value) {
@@ -25,6 +26,7 @@ function buildSearchParams(filters, page) {
     city: filters.city.trim(),
     minProperties: filters.minProperties,
     maxProperties: filters.maxProperties,
+    maxResults: filters.maxResults,
     page: String(page),
     pageSize: "25",
   });
@@ -48,6 +50,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
   function validateFilters(activeFilters) {
     const minProperties = Number(activeFilters.minProperties);
     const maxProperties = Number(activeFilters.maxProperties);
+    const maxResults = Number(activeFilters.maxResults);
 
     if (!activeFilters.city.trim()) {
       return "Choose a city before searching.";
@@ -69,6 +72,14 @@ export default function PropertyOwnerSearch({ onSaved }) {
       minProperties > maxProperties
     ) {
       return "Property minimum cannot be greater than the maximum.";
+    }
+
+    if (
+      !Number.isFinite(maxResults) ||
+      maxResults < 1 ||
+      maxResults > 1000
+    ) {
+      return "Max Results must be between 1 and 1,000.";
     }
 
     return "";
@@ -325,6 +336,24 @@ export default function PropertyOwnerSearch({ onSaved }) {
               disabled={searchLoading}
             />
           </label>
+
+          <label className={styles.propertyFilterField}>
+            <span>Max Results</span>
+            <input
+              type="number"
+              min="1"
+              max="1000"
+              step="1"
+              value={filters.maxResults}
+              onChange={(event) =>
+                setFilters((current) => ({
+                  ...current,
+                  maxResults: event.target.value,
+                }))
+              }
+              disabled={searchLoading}
+            />
+          </label>
         </div>
 
         <div className={styles.propertySearchActions}>
@@ -348,7 +377,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
                 ? data.total +
                   " owner" +
                   (data.total === 1 ? "" : "s") +
-                  " matched"
+                  " returned"
                 : "Search city property ownership"}
             </h2>
             <p>
@@ -405,7 +434,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
           <div className={styles.propertyResultSummary}>
             <span>
               {data.matchedPropertyCount.toLocaleString("en-US")} properties
-              represented in {cityLabel}
+              represented in {cityLabel} · max {appliedFilters.maxResults} owners
             </span>
             {data.total > 250 && (
               <span>
