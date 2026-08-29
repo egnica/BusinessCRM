@@ -322,7 +322,9 @@ export default function PropertyOwnerSearch({ onSaved }) {
             <p>
               {filtersAvailable
                 ? "Search by geography, property size, and owner portfolio range."
-                : "This county does not provide reliable unit-count data for these filters."}
+                : filters.geography === "all"
+                  ? "A combined metro search cannot apply these filters consistently across all seven counties."
+                  : "This county does not provide reliable unit-count data for these filters."}
             </p>
           </div>
 
@@ -336,7 +338,12 @@ export default function PropertyOwnerSearch({ onSaved }) {
           </button>
         </div>
 
-        <div className={styles.propertyFilterGrid}>
+        <div
+          className={
+            styles.propertyFilterGrid +
+            (!filtersAvailable ? " " + styles.propertyFilterGridLimited : "")
+          }
+        >
           <label className={styles.propertyFilterField}>
             <span>Geography</span>
             <select
@@ -415,8 +422,8 @@ export default function PropertyOwnerSearch({ onSaved }) {
         {!filtersAvailable && (
           <div className={styles.propertyFilterUnavailable}>
             Property size and portfolio filters are currently available for
-            Ramsey, Dakota, and Washington counties. MetroGIS does not populate
-            reliable unit counts for this county.
+            Ramsey, Dakota, and Washington counties. The other MetroGIS county
+            records do not populate reliable unit counts for this search.
           </div>
         )}
         {filtersAvailable && (
