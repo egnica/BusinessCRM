@@ -19,6 +19,11 @@ async function addSavedState(prospects) {
   const client = await clientPromise;
   const db = client.db("crm");
   const keys = prospects.map((prospect) => prospect.propertyOutreachKey);
+  const parcelKeys = prospects.flatMap((prospect) =>
+    (prospect.properties || [])
+      .map((property) => property.parcelKey)
+      .filter(Boolean),
+  );
   const parcelIds = prospects.flatMap((prospect) =>
     (prospect.properties || [])
       .map((property) => property.parcelId)
@@ -29,6 +34,7 @@ async function addSavedState(prospects) {
     $or: [
       { propertyOutreachKey: { $in: keys } },
       { propertyOutreachAliases: { $in: keys } },
+      { "properties.parcelKey": { $in: parcelKeys } },
       { "properties.parcelId": { $in: parcelIds } },
     ],
   };
@@ -72,8 +78,14 @@ async function addSavedState(prospects) {
       }
 
       for (const property of record.properties || []) {
-        if (property.parcelId) {
-          byParcel.set(property.parcelId, record);
+        const parcelKey =
+          property.parcelKey ||
+          (property.county && property.parcelId
+            ? `${property.county}:${property.parcelId}`
+            : "");
+
+        if (parcelKey) {
+          byParcel.set(parcelKey, record);
         }
       }
     }
@@ -88,13 +100,27 @@ async function addSavedState(prospects) {
     const saved =
       savedMaps.byKey.get(prospect.propertyOutreachKey) ||
       (prospect.properties || [])
-        .map((property) => savedMaps.byParcel.get(property.parcelId))
+        .map((property) =>
+          savedMaps.byParcel.get(
+            property.parcelKey ||
+              (property.county && property.parcelId
+                ? `${property.county}:${property.parcelId}`
+                : ""),
+          ),
+        )
         .find(Boolean);
 
     const crm =
       crmMaps.byKey.get(prospect.propertyOutreachKey) ||
       (prospect.properties || [])
-        .map((property) => crmMaps.byParcel.get(property.parcelId))
+        .map((property) =>
+          crmMaps.byParcel.get(
+            property.parcelKey ||
+              (property.county && property.parcelId
+                ? `${property.county}:${property.parcelId}`
+                : ""),
+          ),
+        )
         .find(Boolean);
 
     return {
