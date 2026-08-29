@@ -20,8 +20,10 @@ const SIZE_OPTIONS = [
   { value: "2-20", label: "2–20 units", minUnits: "2", maxUnits: "20" },
 ];
 
+const UNIT_FILTER_COUNTIES = new Set(["Ramsey", "Dakota", "Washington"]);
+
 const DEFAULT_FILTERS = {
-  geography: "all",
+  geography: "Ramsey",
   propertySize: "2-4",
   minUnits: "2",
   maxUnits: "4",
@@ -84,6 +86,30 @@ export default function PropertyOwnerSearch({ onSaved }) {
     searchedCounties: [],
   });
 
+  const filtersAvailable = UNIT_FILTER_COUNTIES.has(filters.geography);
+
+  function resetResults() {
+    setSelectedKeys(new Set());
+    setHasSearched(false);
+    setMessage("");
+    setData({
+      prospects: [],
+      total: 0,
+      page: 1,
+      totalPages: 1,
+      sourcePropertyCount: 0,
+      searchedCounties: [],
+    });
+  }
+
+  function handleGeographyChange(value) {
+    setFilters((current) => ({
+      ...current,
+      geography: value,
+    }));
+    resetResults();
+  }
+
   function handlePropertySizeChange(value) {
     const option = SIZE_OPTIONS.find((item) => item.value === value);
     if (!option) return;
@@ -97,6 +123,13 @@ export default function PropertyOwnerSearch({ onSaved }) {
   }
 
   async function runSearch(page, activeFilters) {
+    if (!UNIT_FILTER_COUNTIES.has(activeFilters.geography)) {
+      setMessage(
+        "Property-size and portfolio filtering are not available for this county's parcel data.",
+      );
+      return;
+    }
+
     const minPortfolio = Number(activeFilters.minPortfolioSize);
     const maxPortfolio = Number(activeFilters.maxPortfolioSize);
 
@@ -287,8 +320,9 @@ export default function PropertyOwnerSearch({ onSaved }) {
             <p className={styles.eyebrow}>Owner finder</p>
             <h2>Find property owners worth researching</h2>
             <p>
-              Search by geography, property size, and the number of matching
-              properties an owner appears to hold.
+              {filtersAvailable
+                ? "Search by geography, property size, and owner portfolio range."
+                : "This county does not provide reliable unit-count data for these filters."}
             </p>
           </div>
 
@@ -308,10 +342,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
             <select
               value={filters.geography}
               onChange={(event) =>
-                setFilters((current) => ({
-                  ...current,
-                  geography: event.target.value,
-                }))
+                handleGeographyChange(event.target.value)
               }
               disabled={searchLoading}
             >
@@ -323,28 +354,27 @@ export default function PropertyOwnerSearch({ onSaved }) {
             </select>
           </label>
 
-          <label className={styles.propertyFilterField}>
-            <span>Property size</span>
-            <select
-              value={filters.propertySize}
-              onChange={(event) =>
-                handlePropertySizeChange(event.target.value)
-              }
-              disabled={searchLoading}
-            >
-              {SIZE_OPTIONS.map((option) => (
-                <option value={option.value} key={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          {filtersAvailable && (
+            <>
+              <label className={styles.propertyFilterField}>
+                <span>Property size</span>
+                <select
+                  value={filters.propertySize}
+                  onChange={(event) =>
+                    handlePropertySizeChange(event.target.value)
+                  }
+                  disabled={searchLoading}
+                >
+                  {SIZE_OPTIONS.map((option) => (
+                    <option value={option.value} key={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-          <div className={styles.propertyFilterField}>
-            <span>Portfolio size</span>
-            <div className={styles.propertyPortfolioRange}>
-              <label>
-                <small>Min</small>
+              <label className={styles.propertyFilterField}>
+                <span>Portfolio min</span>
                 <input
                   type="number"
                   min="1"
@@ -361,8 +391,8 @@ export default function PropertyOwnerSearch({ onSaved }) {
                 />
               </label>
 
-              <label>
-                <small>Max</small>
+              <label className={styles.propertyFilterField}>
+                <span>Portfolio max</span>
                 <input
                   type="number"
                   min="1"
@@ -378,25 +408,29 @@ export default function PropertyOwnerSearch({ onSaved }) {
                   disabled={searchLoading}
                 />
               </label>
-            </div>
+            </>
+          )}
+        </div>
+
+        {!filtersAvailable && (
+          <div className={styles.propertyFilterUnavailable}>
+            Property size and portfolio filters are currently available for
+            Ramsey, Dakota, and Washington counties. MetroGIS does not populate
+            reliable unit counts for this county.
           </div>
-        </div>
-
-        <p className={styles.propertyResultSummary}>
-          “Portfolio” means qualifying properties found in this search. An All
-          Metro search can group matching ownership across county lines.
-        </p>
-
-        <div className={styles.propertySearchActions}>
-          <button
-            type="button"
-            className={styles.primaryButton}
-            onClick={() => runSearch(1, filters)}
-            disabled={searchLoading}
-          >
-            {searchLoading ? "Searching…" : "Search Property Owners"}
-          </button>
-        </div>
+        )}
+        {filtersAvailable && (
+          <div className={styles.propertySearchActions}>
+            <button
+              type="button"
+              className={styles.primaryButton}
+              onClick={() => runSearch(1, filters)}
+              disabled={searchLoading}
+            >
+              {searchLoading ? "Searching…" : "Search Property Owners"}
+            </button>
+          </div>
+        )}
       </section>
 
       <section className={styles.propertyResultsPanel}>
@@ -491,7 +525,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
             <span>Locations</span>
             <span>Longest Held</span>
             <span>Est. Value</span>
-            <span>State</span>
+            <span>Status</span>
           </div>
 
           {!hasSearched ? (
