@@ -10,6 +10,7 @@ function readFilters(searchParams) {
     minUnits: searchParams.get("minUnits"),
     maxUnits: searchParams.get("maxUnits"),
     minPortfolioSize: searchParams.get("minPortfolioSize"),
+    maxPortfolioSize: searchParams.get("maxPortfolioSize"),
   };
 }
 
