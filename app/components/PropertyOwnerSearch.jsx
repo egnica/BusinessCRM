@@ -3,32 +3,17 @@
 import { useMemo, useState } from "react";
 import styles from "../page.module.css";
 
-const GEOGRAPHY_OPTIONS = [
-  ["all", "All Twin Cities Metro"],
-  ["Hennepin", "Hennepin County"],
-  ["Ramsey", "Ramsey County"],
-  ["Dakota", "Dakota County"],
-  ["Anoka", "Anoka County"],
-  ["Washington", "Washington County"],
-  ["Scott", "Scott County"],
-  ["Carver", "Carver County"],
+const OWNER_TYPE_OPTIONS = [
+  ["individual", "Individual"],
+  ["couple", "Couple / Partners"],
+  ["llc", "LLC / Entity"],
 ];
-
-const SIZE_OPTIONS = [
-  { value: "2-4", label: "2–4 units", minUnits: "2", maxUnits: "4" },
-  { value: "2-8", label: "2–8 units", minUnits: "2", maxUnits: "8" },
-  { value: "2-20", label: "2–20 units", minUnits: "2", maxUnits: "20" },
-];
-
-const UNIT_FILTER_COUNTIES = new Set(["Ramsey", "Dakota", "Washington"]);
 
 const DEFAULT_FILTERS = {
-  geography: "Ramsey",
-  propertySize: "2-4",
-  minUnits: "2",
-  maxUnits: "4",
-  minPortfolioSize: "",
-  maxPortfolioSize: "",
+  minProperties: "2",
+  maxProperties: "8",
+  city: "",
+  ownerTypes: ["individual", "couple", "llc"],
 };
 
 function formatMoney(value) {
@@ -44,27 +29,42 @@ function formatMoney(value) {
 
 function ownerTypeLabel(value) {
   if (value === "llc") return "LLC / Entity";
-  if (value === "couple") return "Couple";
+  if (value === "couple") return "Couple / Partners";
   return "Individual";
 }
 
-function formatLocations(prospect) {
-  const locations = prospect.locations || [];
-  if (!locations.length) return "—";
+function formatCityBreakdown(prospect) {
+  const cities = prospect.cityBreakdown || [];
+  if (!cities.length) return "—";
 
-  const visible = locations.slice(0, 3);
-  const remaining = locations.length - visible.length;
+  const visible = cities.slice(0, 3);
+  const remaining = cities.length - visible.length;
+  const summary = visible
+    .map((item) => `${item.city} ${item.count}`)
+    .join(" · ");
 
-  return visible.join(", ") + (remaining > 0 ? ` +${remaining}` : "");
+  return summary + (remaining > 0 ? ` · +${remaining} cities` : "");
+}
+
+function formatKnownUnits(prospect) {
+  const knownProperties = Number(prospect.knownUnitPropertyCount) || 0;
+  const totalUnits = Number(prospect.totalUnits) || 0;
+
+  if (!knownProperties || !totalUnits) return "—";
+
+  if (knownProperties < prospect.propertyCount) {
+    return `${totalUnits} known`;
+  }
+
+  return String(totalUnits);
 }
 
 function buildSearchParams(filters, page) {
   return new URLSearchParams({
-    geography: filters.geography,
-    minUnits: filters.minUnits,
-    maxUnits: filters.maxUnits,
-    minPortfolioSize: filters.minPortfolioSize,
-    maxPortfolioSize: filters.maxPortfolioSize,
+    minProperties: filters.minProperties,
+    maxProperties: filters.maxProperties,
+    city: filters.city.trim(),
+    ownerTypes: filters.ownerTypes.join(","),
     page: String(page),
     pageSize: "25",
   });
@@ -82,65 +82,57 @@ export default function PropertyOwnerSearch({ onSaved }) {
     total: 0,
     page: 1,
     totalPages: 1,
-    sourcePropertyCount: 0,
-    searchedCounties: [],
+    matchedPropertyCount: 0,
   });
 
-  const filtersAvailable = UNIT_FILTER_COUNTIES.has(filters.geography);
+  function toggleOwnerType(value) {
+    setFilters((current) => {
+      const selected = new Set(current.ownerTypes);
 
-  function resetResults() {
-    setSelectedKeys(new Set());
-    setHasSearched(false);
-    setMessage("");
-    setData({
-      prospects: [],
-      total: 0,
-      page: 1,
-      totalPages: 1,
-      sourcePropertyCount: 0,
-      searchedCounties: [],
+      if (selected.has(value)) selected.delete(value);
+      else selected.add(value);
+
+      return {
+        ...current,
+        ownerTypes: [...selected],
+      };
     });
   }
 
-  function handleGeographyChange(value) {
-    setFilters((current) => ({
-      ...current,
-      geography: value,
-    }));
-    resetResults();
-  }
+  function validateFilters(activeFilters) {
+    const minProperties = Number(activeFilters.minProperties);
+    const maxProperties = Number(activeFilters.maxProperties);
 
-  function handlePropertySizeChange(value) {
-    const option = SIZE_OPTIONS.find((item) => item.value === value);
-    if (!option) return;
+    if (!Number.isFinite(minProperties) || minProperties < 2) {
+      return "Property minimum must be at least 2.";
+    }
 
-    setFilters((current) => ({
-      ...current,
-      propertySize: option.value,
-      minUnits: option.minUnits,
-      maxUnits: option.maxUnits,
-    }));
+    if (
+      activeFilters.maxProperties !== "" &&
+      (!Number.isFinite(maxProperties) || maxProperties < 2)
+    ) {
+      return "Property maximum must be at least 2 or left blank.";
+    }
+
+    if (
+      activeFilters.maxProperties !== "" &&
+      minProperties > maxProperties
+    ) {
+      return "Property minimum cannot be greater than the maximum.";
+    }
+
+    if (!activeFilters.ownerTypes.length) {
+      return "Select at least one owner type.";
+    }
+
+    return "";
   }
 
   async function runSearch(page, activeFilters) {
-    if (!UNIT_FILTER_COUNTIES.has(activeFilters.geography)) {
-      setMessage(
-        "Property-size and portfolio filtering are not available for this county's parcel data.",
-      );
-      return;
-    }
+    const validationMessage = validateFilters(activeFilters);
 
-    const minPortfolio = Number(activeFilters.minPortfolioSize);
-    const maxPortfolio = Number(activeFilters.maxPortfolioSize);
-
-    if (
-      activeFilters.minPortfolioSize !== "" &&
-      activeFilters.maxPortfolioSize !== "" &&
-      Number.isFinite(minPortfolio) &&
-      Number.isFinite(maxPortfolio) &&
-      minPortfolio > maxPortfolio
-    ) {
-      setMessage("Portfolio minimum cannot be greater than the maximum.");
+    if (validationMessage) {
+      setMessage(validationMessage);
       return;
     }
 
@@ -167,10 +159,13 @@ export default function PropertyOwnerSearch({ onSaved }) {
         total: result.total || 0,
         page: result.page || 1,
         totalPages: result.totalPages || 1,
-        sourcePropertyCount: result.sourcePropertyCount || 0,
-        searchedCounties: result.searchedCounties || [],
+        matchedPropertyCount:
+          result.matchedPropertyCount || result.sourcePropertyCount || 0,
       });
-      setAppliedFilters({ ...activeFilters });
+      setAppliedFilters({
+        ...activeFilters,
+        ownerTypes: [...activeFilters.ownerTypes],
+      });
       setHasSearched(true);
     } catch (error) {
       setHasSearched(true);
@@ -179,8 +174,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
         total: 0,
         page: 1,
         totalPages: 1,
-        sourcePropertyCount: 0,
-        searchedCounties: [],
+        matchedPropertyCount: 0,
       });
       setMessage(error.message || "Property owner search failed.");
     } finally {
@@ -295,7 +289,10 @@ export default function PropertyOwnerSearch({ onSaved }) {
   }
 
   function resetFilters() {
-    const reset = { ...DEFAULT_FILTERS };
+    const reset = {
+      ...DEFAULT_FILTERS,
+      ownerTypes: [...DEFAULT_FILTERS.ownerTypes],
+    };
 
     setFilters(reset);
     setAppliedFilters(reset);
@@ -307,8 +304,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
       total: 0,
       page: 1,
       totalPages: 1,
-      sourcePropertyCount: 0,
-      searchedCounties: [],
+      matchedPropertyCount: 0,
     });
   }
 
@@ -318,13 +314,10 @@ export default function PropertyOwnerSearch({ onSaved }) {
         <div className={styles.propertyFilterHeading}>
           <div>
             <p className={styles.eyebrow}>Owner finder</p>
-            <h2>Find property owners worth researching</h2>
+            <h2>Find residential property owners</h2>
             <p>
-              {filtersAvailable
-                ? "Search by geography, property size, and owner portfolio range."
-                : filters.geography === "all"
-                  ? "A combined metro search cannot apply these filters consistently across all seven counties."
-                  : "This county does not provide reliable unit-count data for these filters."}
+              Search the seven-county Twin Cities metro by portfolio size and
+              owner type. Unit counts are shown when the county provides them.
             </p>
           </div>
 
@@ -338,106 +331,86 @@ export default function PropertyOwnerSearch({ onSaved }) {
           </button>
         </div>
 
-        <div
-          className={
-            styles.propertyFilterGrid +
-            (!filtersAvailable ? " " + styles.propertyFilterGridLimited : "")
-          }
-        >
+        <div className={styles.propertyFinderGrid}>
           <label className={styles.propertyFilterField}>
-            <span>Geography</span>
-            <select
-              value={filters.geography}
+            <span>Properties min</span>
+            <input
+              type="number"
+              min="2"
+              step="1"
+              value={filters.minProperties}
               onChange={(event) =>
-                handleGeographyChange(event.target.value)
+                setFilters((current) => ({
+                  ...current,
+                  minProperties: event.target.value,
+                }))
               }
               disabled={searchLoading}
-            >
-              {GEOGRAPHY_OPTIONS.map(([value, label]) => (
-                <option value={value} key={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
+            />
           </label>
 
-          {filtersAvailable && (
-            <>
-              <label className={styles.propertyFilterField}>
-                <span>Property size</span>
-                <select
-                  value={filters.propertySize}
-                  onChange={(event) =>
-                    handlePropertySizeChange(event.target.value)
-                  }
-                  disabled={searchLoading}
-                >
-                  {SIZE_OPTIONS.map((option) => (
-                    <option value={option.value} key={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+          <label className={styles.propertyFilterField}>
+            <span>Properties max</span>
+            <input
+              type="number"
+              min="2"
+              step="1"
+              placeholder="Any"
+              value={filters.maxProperties}
+              onChange={(event) =>
+                setFilters((current) => ({
+                  ...current,
+                  maxProperties: event.target.value,
+                }))
+              }
+              disabled={searchLoading}
+            />
+          </label>
 
-              <label className={styles.propertyFilterField}>
-                <span>Portfolio min</span>
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  placeholder="Any"
-                  value={filters.minPortfolioSize}
-                  onChange={(event) =>
-                    setFilters((current) => ({
-                      ...current,
-                      minPortfolioSize: event.target.value,
-                    }))
-                  }
-                  disabled={searchLoading}
-                />
-              </label>
-
-              <label className={styles.propertyFilterField}>
-                <span>Portfolio max</span>
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  placeholder="Any"
-                  value={filters.maxPortfolioSize}
-                  onChange={(event) =>
-                    setFilters((current) => ({
-                      ...current,
-                      maxPortfolioSize: event.target.value,
-                    }))
-                  }
-                  disabled={searchLoading}
-                />
-              </label>
-            </>
-          )}
+          <label className={styles.propertyFilterField}>
+            <span>Owns property in</span>
+            <input
+              type="search"
+              placeholder="Any city, e.g. Minneapolis"
+              value={filters.city}
+              onChange={(event) =>
+                setFilters((current) => ({
+                  ...current,
+                  city: event.target.value,
+                }))
+              }
+              disabled={searchLoading}
+            />
+          </label>
         </div>
 
-        {!filtersAvailable && (
-          <div className={styles.propertyFilterUnavailable}>
-            Property size and portfolio filters are currently available for
-            Ramsey, Dakota, and Washington counties. The other MetroGIS county
-            records do not populate reliable unit counts for this search.
+        <div className={styles.propertyOwnerTypeFilter}>
+          <span>Owner type</span>
+          <div>
+            {OWNER_TYPE_OPTIONS.map(([value, label]) => (
+              <label key={value}>
+                <input
+                  type="checkbox"
+                  checked={filters.ownerTypes.includes(value)}
+                  onChange={() => toggleOwnerType(value)}
+                  disabled={searchLoading}
+                />
+                {label}
+              </label>
+            ))}
           </div>
-        )}
-        {filtersAvailable && (
-          <div className={styles.propertySearchActions}>
-            <button
-              type="button"
-              className={styles.primaryButton}
-              onClick={() => runSearch(1, filters)}
-              disabled={searchLoading}
-            >
-              {searchLoading ? "Searching…" : "Search Property Owners"}
-            </button>
-          </div>
-        )}
+        </div>
+
+        <div className={styles.propertySearchActions}>
+          <button
+            type="button"
+            className={styles.primaryButton}
+            onClick={() => runSearch(1, filters)}
+            disabled={searchLoading}
+          >
+            {searchLoading ? "Searching…" : "Search Owners"}
+          </button>
+        </div>
       </section>
 
       <section className={styles.propertyResultsPanel}>
@@ -450,12 +423,12 @@ export default function PropertyOwnerSearch({ onSaved }) {
                   " owner" +
                   (data.total === 1 ? "" : "s") +
                   " matched"
-                : "Search the metro owner data"}
+                : "Search metro property ownership"}
             </h2>
             <p>
               {hasSearched
-                ? "Owners with more matching properties are ranked first, followed by longer-held properties."
-                : "Nothing enters Saved Prospects until you explicitly add it."}
+                ? "Owners are ranked by property count, then longer-held portfolios."
+                : "Start with a focused property range, such as 2–8 properties."}
             </p>
           </div>
 
@@ -492,7 +465,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
 
         {searchLoading && (
           <p className={styles.newsletterStatus}>
-            Searching MetroGIS parcel records and grouping matching owners…
+            Grouping residential ownership across the Twin Cities metro…
           </p>
         )}
 
@@ -502,14 +475,17 @@ export default function PropertyOwnerSearch({ onSaved }) {
 
         {hasSearched && (
           <div className={styles.propertyResultSummary}>
-            <span>{data.sourcePropertyCount} parcel records screened</span>
-            {data.searchedCounties.length > 1 && (
-              <span>{data.searchedCounties.length} counties searched</span>
+            <span>
+              {data.matchedPropertyCount.toLocaleString("en-US")} matching
+              residential properties represented
+            </span>
+            {appliedFilters.city && (
+              <span>Owns in: {appliedFilters.city}</span>
             )}
             {data.total > 250 && (
               <span>
-                Add All is limited to 250 owners. Use Portfolio Size or Add
-                Selected to keep the prospect list focused.
+                Add All is limited to 250 owners. Narrow the property range,
+                city, or owner types, or use Add Selected.
               </span>
             )}
           </div>
@@ -527,11 +503,13 @@ export default function PropertyOwnerSearch({ onSaved }) {
               />
             </span>
             <span>Owner</span>
+            <span>Type</span>
             <span>Properties</span>
-            <span>Total Units</span>
-            <span>Locations</span>
+            <span>Property Cities</span>
+            <span>Known Units</span>
             <span>Longest Held</span>
             <span>Est. Value</span>
+            <span>Mailing</span>
             <span>Status</span>
           </div>
 
@@ -539,8 +517,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
             <div className={styles.emptyState}>
               <strong>Ready to search.</strong>
               <span>
-                Choose the owner profile you want to explore and run the
-                search.
+                Choose a property range and owner types, then search the metro.
               </span>
             </div>
           ) : data.prospects.length ? (
@@ -568,18 +545,27 @@ export default function PropertyOwnerSearch({ onSaved }) {
 
                   <div>
                     <strong>{prospect.ownerNameRaw}</strong>
-                    <span>{ownerTypeLabel(prospect.ownerType)}</span>
+                    {(prospect.ownsInMinneapolis ||
+                      prospect.mailingInMinneapolis) && (
+                      <span className={styles.propertyOwnerSignals}>
+                        {prospect.ownsInMinneapolis && (
+                          <small>OWNS IN MPLS</small>
+                        )}
+                        {prospect.mailingInMinneapolis && (
+                          <small>MAILS FROM MPLS</small>
+                        )}
+                      </span>
+                    )}
                   </div>
 
-                  <span>{prospect.propertyCount}</span>
-                  <span>{prospect.totalUnits || "—"}</span>
+                  <span>{ownerTypeLabel(prospect.ownerType)}</span>
+                  <strong>{prospect.propertyCount}</strong>
 
                   <div>
-                    <strong>{formatLocations(prospect)}</strong>
-                    <span>
-                      {(prospect.counties || []).join(", ") || "Twin Cities"}
-                    </span>
+                    <strong>{formatCityBreakdown(prospect)}</strong>
                   </div>
+
+                  <span>{formatKnownUnits(prospect)}</span>
 
                   <span>
                     {prospect.longestHeldYears != null
@@ -588,6 +574,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
                   </span>
 
                   <span>{formatMoney(prospect.totalAssessedValue)}</span>
+                  <span>{prospect.mailingLocation || "—"}</span>
 
                   <span>
                     <span
@@ -615,8 +602,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
             <div className={styles.emptyState}>
               <strong>No owners matched this profile.</strong>
               <span>
-                Try a wider property-size range or a smaller portfolio
-                threshold.
+                Try a wider property range, another city, or more owner types.
               </span>
             </div>
           )}
