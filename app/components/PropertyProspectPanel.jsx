@@ -528,9 +528,8 @@ export default function PropertyProspectPanel({
 
             <div className={styles.propertyMailAddress}>
               <strong>
-                {prospect.taxNameRaw ||
-                  prospect.mailingAddress?.recipientName ||
-                  prospect.ownerNameRaw}
+                {prospect.mailingContactName ||
+                  "No person name found"}
               </strong>
               {(prospect.mailingAddress?.lines || []).length ? (
                 prospect.mailingAddress.lines.map((line) => (
