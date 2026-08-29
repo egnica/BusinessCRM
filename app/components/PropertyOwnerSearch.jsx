@@ -3,23 +3,24 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import styles from "../page.module.css";
 
+const SIZE_OPTIONS = [
+  { value: "2-4", label: "2–4 units", minUnits: "2", maxUnits: "4" },
+  { value: "2-8", label: "2–8 units", minUnits: "2", maxUnits: "8" },
+  { value: "2-20", label: "2–20 units", minUnits: "2", maxUnits: "20" },
+];
+
 const DEFAULT_FILTERS = {
   county: "Hennepin",
-  cities: [],
+  city: "",
+  propertySize: "2-4",
   minUnits: "2",
   maxUnits: "4",
-  minOwnershipYears: "20",
-  ownerTypes: ["individual", "couple", "llc"],
-  homestead: "any",
-  minAssessedValue: "",
-  maxAssessedValue: "",
-  builtBefore: "",
-  minPortfolioSize: "1",
 };
 
 function formatMoney(value) {
   const amount = Number(value);
   if (!Number.isFinite(amount) || amount <= 0) return "—";
+
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -29,6 +30,7 @@ function formatMoney(value) {
 
 function propertyAddress(property) {
   if (!property) return "No property address";
+
   return [
     property.street1,
     [property.city, property.state].filter(Boolean).join(", "),
@@ -44,27 +46,30 @@ function ownerTypeLabel(value) {
   return "Individual";
 }
 
+function preferredCity(county, cities) {
+  const preferred =
+    county === "Hennepin"
+      ? ["Minneapolis"]
+      : county === "Ramsey"
+        ? ["Saint Paul", "St Paul", "St. Paul"]
+        : [];
+
+  return (
+    preferred.map((name) => cities.find((city) => city === name)).find(Boolean) ||
+    cities[0] ||
+    ""
+  );
+}
+
 function buildSearchParams(filters, page) {
-  const params = new URLSearchParams({
+  return new URLSearchParams({
     county: filters.county,
-    minUnits: filters.minUnits || "2",
-    maxUnits: filters.maxUnits || "20",
-    minOwnershipYears: filters.minOwnershipYears || "0",
-    ownerTypes: filters.ownerTypes.join(","),
-    homestead: filters.homestead,
-    minAssessedValue: filters.minAssessedValue || "0",
-    maxAssessedValue: filters.maxAssessedValue || "0",
-    builtBefore: filters.builtBefore || "0",
-    minPortfolioSize: filters.minPortfolioSize || "1",
+    city: filters.city,
+    minUnits: filters.minUnits,
+    maxUnits: filters.maxUnits,
     page: String(page),
     pageSize: "25",
   });
-
-  if (filters.cities.length) {
-    params.set("cities", filters.cities.join(","));
-  }
-
-  return params;
 }
 
 export default function PropertyOwnerSearch({ onSaved }) {
@@ -87,6 +92,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
 
   const loadMetadata = useCallback(async (county) => {
     setCityLoading(true);
+
     try {
       const params = new URLSearchParams({ mode: "metadata", county });
       const res = await fetch(
@@ -94,13 +100,23 @@ export default function PropertyOwnerSearch({ onSaved }) {
         { cache: "no-store" },
       );
       const result = await res.json();
+
       if (!res.ok) {
         throw new Error(
           result.details || result.error || "Could not load cities.",
         );
       }
+
+      const nextCities = result.cities || [];
       setCounties(result.counties || ["Hennepin"]);
-      setCities(result.cities || []);
+      setCities(nextCities);
+
+      const nextCity = preferredCity(county, nextCities);
+      setFilters((current) => ({
+        ...current,
+        county,
+        city: nextCity,
+      }));
     } catch (error) {
       setMessage(error.message || "Could not load city options.");
     } finally {
@@ -109,6 +125,11 @@ export default function PropertyOwnerSearch({ onSaved }) {
   }, []);
 
   const runSearch = useCallback(async (page, activeFilters) => {
+    if (!activeFilters.city) {
+      setMessage("Choose a city before searching.");
+      return;
+    }
+
     setSearchLoading(true);
     setMessage("");
     setSelectedKeys(new Set());
@@ -120,6 +141,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
         { cache: "no-store" },
       );
       const result = await res.json();
+
       if (!res.ok) {
         throw new Error(
           result.details || result.error || "Property owner search failed.",
@@ -133,11 +155,8 @@ export default function PropertyOwnerSearch({ onSaved }) {
         totalPages: result.totalPages || 1,
         sourcePropertyCount: result.sourcePropertyCount || 0,
       });
-      setAppliedFilters({
-        ...activeFilters,
-        cities: [...activeFilters.cities],
-        ownerTypes: [...activeFilters.ownerTypes],
-      });
+
+      setAppliedFilters({ ...activeFilters });
       setHasSearched(true);
     } catch (error) {
       setHasSearched(true);
@@ -158,48 +177,37 @@ export default function PropertyOwnerSearch({ onSaved }) {
     loadMetadata(DEFAULT_FILTERS.county);
   }, [loadMetadata]);
 
-  function updateFilter(key, value) {
-    setFilters((current) => ({ ...current, [key]: value }));
-  }
-
-  async function handleCountyChange(value) {
-    setFilters((current) => ({
-      ...current,
-      county: value,
-      cities: [],
-    }));
+  async function handleCountyChange(county) {
     setCities([]);
-    await loadMetadata(value);
-  }
-
-  function toggleCity(city) {
     setFilters((current) => ({
       ...current,
-      cities: current.cities.includes(city)
-        ? current.cities.filter((item) => item !== city)
-        : [...current.cities, city],
+      county,
+      city: "",
     }));
+    setHasSearched(false);
+    setMessage("");
+    await loadMetadata(county);
   }
 
-  function toggleOwnerType(ownerType) {
-    setFilters((current) => {
-      const exists = current.ownerTypes.includes(ownerType);
-      const next = exists
-        ? current.ownerTypes.filter((item) => item !== ownerType)
-        : [...current.ownerTypes, ownerType];
+  function handlePropertySizeChange(value) {
+    const option = SIZE_OPTIONS.find((item) => item.value === value);
+    if (!option) return;
 
-      return {
-        ...current,
-        ownerTypes: next.length ? next : current.ownerTypes,
-      };
-    });
+    setFilters((current) => ({
+      ...current,
+      propertySize: option.value,
+      minUnits: option.minUnits,
+      maxUnits: option.maxUnits,
+    }));
   }
 
   function toggleResult(key) {
     setSelectedKeys((current) => {
       const next = new Set(current);
+
       if (next.has(key)) next.delete(key);
       else next.add(key);
+
       return next;
     });
   }
@@ -219,11 +227,13 @@ export default function PropertyOwnerSearch({ onSaved }) {
   function togglePageSelection() {
     setSelectedKeys((current) => {
       const next = new Set(current);
+
       if (allPageSelected) {
         selectablePageKeys.forEach((key) => next.delete(key));
       } else {
         selectablePageKeys.forEach((key) => next.add(key));
       }
+
       return next;
     });
   }
@@ -237,6 +247,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
           data.total +
           " filtered owners to Saved Prospects? This does not add them to the main CRM.",
       );
+
       if (!confirmed) return;
     }
 
@@ -269,7 +280,10 @@ export default function PropertyOwnerSearch({ onSaved }) {
               " per Add All action.)",
           );
         }
-        throw new Error(result.error || "Could not save prospects.");
+
+        throw new Error(
+          result.details || result.error || "Could not save prospects.",
+        );
       }
 
       setMessage(
@@ -283,6 +297,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
           result.updatedCount +
           " refreshed.",
       );
+
       await runSearch(data.page, appliedFilters);
       onSaved?.();
     } catch (error) {
@@ -293,8 +308,10 @@ export default function PropertyOwnerSearch({ onSaved }) {
   }
 
   function resetFilters() {
-    setFilters(DEFAULT_FILTERS);
-    setAppliedFilters(DEFAULT_FILTERS);
+    const reset = { ...DEFAULT_FILTERS };
+
+    setFilters(reset);
+    setAppliedFilters(reset);
     setSelectedKeys(new Set());
     setHasSearched(false);
     setMessage("");
@@ -305,6 +322,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
       totalPages: 1,
       sourcePropertyCount: 0,
     });
+
     loadMetadata(DEFAULT_FILTERS.county);
   }
 
@@ -314,8 +332,13 @@ export default function PropertyOwnerSearch({ onSaved }) {
         <div className={styles.propertyFilterHeading}>
           <div>
             <p className={styles.eyebrow}>Search filters</p>
-            <h2>Find owners worth reviewing</h2>
+            <h2>Find property owners</h2>
+            <p className={styles.propertyFilterDescription}>
+              Start broad and reliable. Years owned and other property details
+              are calculated after the parcel records come back.
+            </p>
           </div>
+
           <button
             type="button"
             className={styles.secondaryButton}
@@ -345,181 +368,46 @@ export default function PropertyOwnerSearch({ onSaved }) {
           </label>
 
           <label className={styles.propertyFilterField}>
-            <span>Minimum years owned</span>
+            <span>City / municipality</span>
             <select
-              value={filters.minOwnershipYears}
+              value={filters.city}
               onChange={(event) =>
-                updateFilter("minOwnershipYears", event.target.value)
+                setFilters((current) => ({
+                  ...current,
+                  city: event.target.value,
+                }))
               }
+              disabled={searchLoading || cityLoading}
             >
-              <option value="0">Any recorded sale date</option>
-              <option value="10">10+ years</option>
-              <option value="15">15+ years</option>
-              <option value="20">20+ years</option>
-              <option value="25">25+ years</option>
-              <option value="30">30+ years</option>
+              {cityLoading && <option value="">Loading cities…</option>}
+              {!cityLoading && !cities.length && (
+                <option value="">No cities available</option>
+              )}
+              {!cityLoading &&
+                cities.map((city) => (
+                  <option value={city} key={city}>
+                    {city}
+                  </option>
+                ))}
             </select>
           </label>
 
           <label className={styles.propertyFilterField}>
-            <span>Minimum units</span>
-            <input
-              type="number"
-              min="1"
-              value={filters.minUnits}
-              onChange={(event) =>
-                updateFilter("minUnits", event.target.value)
-              }
-            />
-          </label>
-
-          <label className={styles.propertyFilterField}>
-            <span>Maximum units</span>
-            <input
-              type="number"
-              min="1"
-              value={filters.maxUnits}
-              onChange={(event) =>
-                updateFilter("maxUnits", event.target.value)
-              }
-            />
-          </label>
-
-          <label className={styles.propertyFilterField}>
-            <span>Homestead</span>
+            <span>Property size</span>
             <select
-              value={filters.homestead}
+              value={filters.propertySize}
               onChange={(event) =>
-                updateFilter("homestead", event.target.value)
+                handlePropertySizeChange(event.target.value)
               }
+              disabled={searchLoading}
             >
-              <option value="any">Any</option>
-              <option value="non-homestead">Non-homestead only</option>
-              <option value="homestead">Homestead only</option>
+              {SIZE_OPTIONS.map((option) => (
+                <option value={option.value} key={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </label>
-
-          <label className={styles.propertyFilterField}>
-            <span>Minimum portfolio size</span>
-            <select
-              value={filters.minPortfolioSize}
-              onChange={(event) =>
-                updateFilter("minPortfolioSize", event.target.value)
-              }
-            >
-              <option value="1">Any</option>
-              <option value="2">2+ matching properties</option>
-              <option value="3">3+ matching properties</option>
-              <option value="5">5+ matching properties</option>
-            </select>
-          </label>
-
-          <label className={styles.propertyFilterField}>
-            <span>Minimum assessed value</span>
-            <input
-              type="number"
-              min="0"
-              step="50000"
-              placeholder="No minimum"
-              value={filters.minAssessedValue}
-              onChange={(event) =>
-                updateFilter("minAssessedValue", event.target.value)
-              }
-            />
-          </label>
-
-          <label className={styles.propertyFilterField}>
-            <span>Maximum assessed value</span>
-            <input
-              type="number"
-              min="0"
-              step="50000"
-              placeholder="No maximum"
-              value={filters.maxAssessedValue}
-              onChange={(event) =>
-                updateFilter("maxAssessedValue", event.target.value)
-              }
-            />
-          </label>
-
-          <label className={styles.propertyFilterField}>
-            <span>Built before</span>
-            <input
-              type="number"
-              min="1800"
-              max="2100"
-              placeholder="Any year"
-              value={filters.builtBefore}
-              onChange={(event) =>
-                updateFilter("builtBefore", event.target.value)
-              }
-            />
-          </label>
-        </div>
-
-        <div className={styles.propertyOwnerTypeFilter}>
-          <span>Owner type</span>
-          <div>
-            {[
-              ["individual", "Individual"],
-              ["couple", "Couple"],
-              ["llc", "LLC / Entity"],
-            ].map(([value, label]) => (
-              <label key={value}>
-                <input
-                  type="checkbox"
-                  checked={filters.ownerTypes.includes(value)}
-                  onChange={() => toggleOwnerType(value)}
-                />
-                {label}
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div className={styles.propertyCityFilter}>
-          <div className={styles.propertyCityHeader}>
-            <div>
-              <strong>Cities / municipalities</strong>
-              <span>
-                {filters.cities.length
-                  ? filters.cities.length + " selected"
-                  : "None selected = entire county"}
-              </span>
-            </div>
-            <div>
-              <button
-                type="button"
-                onClick={() => updateFilter("cities", [...cities])}
-                disabled={cityLoading}
-              >
-                Select All
-              </button>
-              <button
-                type="button"
-                onClick={() => updateFilter("cities", [])}
-              >
-                Clear
-              </button>
-            </div>
-          </div>
-
-          <div className={styles.propertyCityList}>
-            {cityLoading ? (
-              <span>Loading cities…</span>
-            ) : (
-              cities.map((city) => (
-                <label key={city}>
-                  <input
-                    type="checkbox"
-                    checked={filters.cities.includes(city)}
-                    onChange={() => toggleCity(city)}
-                  />
-                  {city}
-                </label>
-              ))
-            )}
-          </div>
         </div>
 
         <div className={styles.propertySearchActions}>
@@ -527,7 +415,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
             type="button"
             className={styles.primaryButton}
             onClick={() => runSearch(1, filters)}
-            disabled={searchLoading}
+            disabled={searchLoading || cityLoading || !filters.city}
           >
             {searchLoading ? "Searching…" : "Search Property Owners"}
           </button>
@@ -544,12 +432,12 @@ export default function PropertyOwnerSearch({ onSaved }) {
                   " owner" +
                   (data.total === 1 ? "" : "s") +
                   " matched"
-                : "Choose filters and run a search"}
+                : "Choose a city and search"}
             </h2>
             <p>
               {hasSearched
-                ? "Showing 25 at a time. Nothing is saved until you choose it."
-                : "The tool will not query MetroGIS until you click Search Property Owners."}
+                ? "Longer-held properties are ranked toward the top. Nothing is saved until you choose it."
+                : "Search results stay temporary until you add owners to Saved Prospects."}
             </p>
           </div>
 
@@ -562,6 +450,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
             >
               Add Selected ({selectedKeys.size})
             </button>
+
             <button
               type="button"
               className={styles.secondaryButton}
@@ -585,7 +474,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
 
         {searchLoading && (
           <p className={styles.newsletterStatus}>
-            Searching MetroGIS parcel records with your selected filters…
+            Searching MetroGIS parcel records…
           </p>
         )}
 
@@ -596,12 +485,12 @@ export default function PropertyOwnerSearch({ onSaved }) {
         {hasSearched && (
           <div className={styles.propertyResultSummary}>
             <span>
-              {data.sourcePropertyCount} qualifying parcel records screened
+              {data.sourcePropertyCount} parcel records screened
             </span>
             {data.total > 250 && (
-            <span>
-              Add All is limited to 250 owners. Refine the filters for a
-              more intentional saved list.
+              <span>
+                Add All is limited to 250 owners. Use Add Selected for a
+                focused prospect list.
               </span>
             )}
           </div>
@@ -619,9 +508,9 @@ export default function PropertyOwnerSearch({ onSaved }) {
               />
             </span>
             <span>Owner</span>
-            <span>Primary Property</span>
+            <span>Property</span>
             <span>Units</span>
-            <span>Years</span>
+            <span>Years Owned</span>
             <span>Portfolio</span>
             <span>Value</span>
             <span>State</span>
@@ -629,14 +518,15 @@ export default function PropertyOwnerSearch({ onSaved }) {
 
           {!hasSearched ? (
             <div className={styles.emptyState}>
-              <strong>Ready when you are.</strong>
+              <strong>Ready to search.</strong>
               <span>
-                Select a county and any filters you want, then run the search.
+                Pick a county, city, and property size, then run the search.
               </span>
             </div>
           ) : data.prospects.length ? (
             data.prospects.map((prospect) => {
               const unavailable = prospect.saved || prospect.inCrm;
+
               return (
                 <div
                   className={styles.propertyResultRow}
@@ -655,19 +545,24 @@ export default function PropertyOwnerSearch({ onSaved }) {
                       aria-label={"Select " + prospect.ownerNameRaw}
                     />
                   </span>
+
                   <div>
                     <strong>{prospect.ownerNameRaw}</strong>
                     <span>{ownerTypeLabel(prospect.ownerType)}</span>
                   </div>
+
                   <div>
                     <strong>
                       {propertyAddress(prospect.primaryProperty)}
                     </strong>
                     <span>
-                      {prospect.primaryProperty?.municipality ||
-                        prospect.primaryProperty?.county}
+                      {prospect.primaryProperty?.yearBuilt
+                        ? "Built " + prospect.primaryProperty.yearBuilt
+                        : prospect.primaryProperty?.municipality ||
+                          prospect.primaryProperty?.county}
                     </span>
                   </div>
+
                   <span>{prospect.primaryProperty?.numUnits || "—"}</span>
                   <span>
                     {prospect.primaryProperty?.ownershipYears ?? "—"}
@@ -700,8 +595,10 @@ export default function PropertyOwnerSearch({ onSaved }) {
             })
           ) : (
             <div className={styles.emptyState}>
-              <strong>No owners match these filters.</strong>
-              <span>Try widening the geography or ownership criteria.</span>
+              <strong>No owners matched this search.</strong>
+              <span>
+                Try the next property-size range or another municipality.
+              </span>
             </div>
           )}
         </div>
@@ -716,9 +613,11 @@ export default function PropertyOwnerSearch({ onSaved }) {
             >
               Previous
             </button>
+
             <span>
               Page {data.page} of {data.totalPages}
             </span>
+
             <button
               type="button"
               className={styles.secondaryButton}
