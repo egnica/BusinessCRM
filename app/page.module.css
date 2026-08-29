@@ -1512,3 +1512,615 @@
     flex-direction: column;
   }
 }
+
+
+/* Property Owner Outreach Workspace */
+
+.propertyWorkspaceHeader,
+.propertyFilterPanel,
+.propertyResultsPanel {
+  background: #ffffff;
+  border: 1px solid #e3e7ec;
+  border-radius: 16px;
+  box-shadow: 0 8px 28px rgba(17, 24, 39, 0.05);
+}
+
+.propertyWorkspaceHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 28px;
+  margin-bottom: 28px;
+  padding: 30px;
+}
+
+.propertyWorkspaceHeader h1 {
+  margin: 4px 0 8px;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.propertyWorkspaceHeader p:not(.eyebrow) {
+  margin: 0;
+  max-width: 760px;
+  color: #667085;
+  line-height: 1.55;
+}
+
+.propertyBackButton {
+  margin: 0 0 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #475467;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.propertyBackButton:hover {
+  color: #175cd3;
+}
+
+.propertyWorkspaceTabs {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #e4e7ec;
+  border-radius: 10px;
+  background: #f9fafb;
+}
+
+.propertyWorkspaceTabs button {
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  padding: 0.65rem 0.9rem;
+  color: #667085;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.propertyWorkspaceTabs .propertyTabActive {
+  background: #ffffff;
+  color: #101828;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.1);
+}
+
+.propertyFilterPanel,
+.propertyResultsPanel {
+  margin-bottom: 28px;
+  padding: 24px;
+}
+
+.propertyFilterHeading,
+.propertyResultsHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.propertyFilterHeading h2,
+.propertyResultsHeading h2 {
+  margin: 4px 0 0;
+  font-size: 1.4rem;
+  letter-spacing: -0.02em;
+}
+
+.propertyResultsHeading p {
+  margin: 6px 0 0;
+  color: #667085;
+  font-size: 0.86rem;
+}
+
+.propertyFilterGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.propertyFilterField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.propertyFilterField > span,
+.propertyOwnerTypeFilter > span {
+  color: #475467;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.propertyFilterField input,
+.propertyFilterField select,
+.propertySavedToolbar input,
+.propertySavedToolbar select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0.7rem 0.78rem;
+  color: #1d2939;
+  font: inherit;
+  font-size: 0.86rem;
+}
+
+.propertyFilterField input:focus,
+.propertyFilterField select:focus,
+.propertySavedToolbar input:focus,
+.propertySavedToolbar select:focus {
+  outline: none;
+  border-color: #84adff;
+  box-shadow: 0 0 0 3px rgba(21, 112, 239, 0.12);
+}
+
+.propertyOwnerTypeFilter {
+  margin-top: 18px;
+}
+
+.propertyOwnerTypeFilter > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 8px;
+}
+
+.propertyOwnerTypeFilter label,
+.propertyCityList label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #344054;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.propertyOwnerTypeFilter label {
+  padding: 0.5rem 0.68rem;
+  border: 1px solid #e4e7ec;
+  border-radius: 9px;
+  background: #f9fafb;
+}
+
+.propertyOwnerTypeFilter input,
+.propertyCityList input,
+.propertyResultsHeader input,
+.propertyResultRow input {
+  width: 16px;
+  height: 16px;
+}
+
+.propertyCityFilter {
+  margin-top: 18px;
+  border: 1px solid #e4e7ec;
+  border-radius: 11px;
+  overflow: hidden;
+}
+
+.propertyCityHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #eaecf0;
+  background: #f9fafb;
+}
+
+.propertyCityHeader > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.propertyCityHeader strong {
+  color: #344054;
+  font-size: 0.82rem;
+}
+
+.propertyCityHeader span {
+  color: #667085;
+  font-size: 0.74rem;
+}
+
+.propertyCityHeader > div:last-child {
+  display: flex;
+  gap: 6px;
+}
+
+.propertyCityHeader button,
+.propertyRowActions button {
+  border: 1px solid #d0d5dd;
+  border-radius: 7px;
+  background: #ffffff;
+  padding: 0.4rem 0.58rem;
+  color: #475467;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.propertyCityHeader button:hover,
+.propertyRowActions button:hover:not(:disabled) {
+  background: #f9fafb;
+}
+
+.propertyCityHeader button:disabled,
+.propertyRowActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.propertyCityList {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px 16px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 14px;
+}
+
+.propertySearchActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.propertyBulkActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.propertyResultSummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  margin: -6px 0 16px;
+  color: #667085;
+  font-size: 0.78rem;
+}
+
+.propertyResultsTable,
+.propertySavedTable {
+  margin: 0 -24px;
+  overflow-x: auto;
+  border-top: 1px solid #eaecf0;
+  border-bottom: 1px solid #eaecf0;
+}
+
+.propertyResultsHeader,
+.propertyResultRow {
+  min-width: 1080px;
+  display: grid;
+  grid-template-columns: 44px 1.25fr 1.65fr 0.45fr 0.5fr 0.55fr 0.75fr 0.65fr;
+  gap: 14px;
+  align-items: center;
+}
+
+.propertyResultsHeader {
+  padding: 11px 24px;
+  background: #f9fafb;
+  color: #667085;
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.propertyResultRow {
+  padding: 13px 24px;
+  border-top: 1px solid #eaecf0;
+  color: #475467;
+  font-size: 0.82rem;
+}
+
+.propertyResultRow > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.propertyResultRow strong {
+  overflow: hidden;
+  color: #344054;
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.propertyResultRow div > span {
+  overflow: hidden;
+  color: #667085;
+  font-size: 0.73rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.propertySourceBadge,
+.propertyStatusBadge,
+.propertyMailBadge {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.24rem 0.48rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.propertyNewBadge {
+  background: #f2f4f7;
+  color: #475467;
+}
+
+.propertySavedBadge {
+  background: #eff8ff;
+  color: #175cd3;
+}
+
+.propertyInCrmBadge {
+  background: #ecfdf3;
+  color: #027a48;
+}
+
+.propertyStatusBadge {
+  background: #f2f4f7;
+  color: #475467;
+}
+
+.propertyMailBadge {
+  background: #fffaeb;
+  color: #b54708;
+}
+
+.propertyPagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  padding-top: 18px;
+  color: #667085;
+  font-size: 0.8rem;
+}
+
+.propertySavedToolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 190px 180px auto;
+  gap: 9px;
+  margin-bottom: 18px;
+}
+
+.propertySavedHeader,
+.propertySavedRow {
+  min-width: 1120px;
+  display: grid;
+  grid-template-columns: 1.35fr 1.65fr 0.55fr 0.7fr 0.65fr 0.6fr 1.55fr;
+  gap: 14px;
+  align-items: center;
+}
+
+.propertySavedHeader {
+  padding: 11px 24px;
+  background: #f9fafb;
+  color: #667085;
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.propertySavedRow {
+  padding: 13px 24px;
+  border-top: 1px solid #eaecf0;
+  color: #475467;
+  font-size: 0.82rem;
+}
+
+.propertySavedRow > div:not(.propertyRowActions) {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.propertySavedRow > div strong {
+  overflow: hidden;
+  color: #344054;
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.propertySavedRow > div span {
+  color: #667085;
+  font-size: 0.73rem;
+}
+
+.propertyOwnerNameButton {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.propertyOwnerNameButton strong {
+  max-width: 100%;
+  overflow: hidden;
+  color: #101828;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.propertyOwnerNameButton span {
+  color: #667085;
+  font-size: 0.73rem;
+}
+
+.propertyOwnerNameButton:hover strong {
+  color: #175cd3;
+}
+
+.propertyRowActions,
+.propertyProspectActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.propertyReadOnlyValue {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  border: 1px solid #e4e7ec;
+  border-radius: 8px;
+  background: #f9fafb;
+  padding: 0.72rem 0.82rem;
+  color: #475467;
+  font-size: 0.86rem;
+}
+
+.propertyDetailCard {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #e4e7ec;
+  border-radius: 11px;
+  background: #f9fafb;
+}
+
+.propertyDetailCard > strong {
+  color: #344054;
+  font-size: 0.9rem;
+}
+
+.propertyDetailGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.propertyDetailGrid span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: #344054;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.propertyDetailGrid small {
+  color: #667085;
+  font-size: 0.68rem;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.propertyMailAddress {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px;
+  border: 1px solid #e4e7ec;
+  border-radius: 10px;
+  background: #f9fafb;
+  color: #667085;
+  font-size: 0.82rem;
+}
+
+.propertyMailAddress strong {
+  color: #344054;
+}
+
+@media (max-width: 1000px) {
+  .propertyFilterGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .propertyCityList {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .propertyWorkspaceHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .propertyWorkspaceTabs {
+    width: fit-content;
+  }
+}
+
+@media (max-width: 700px) {
+  .propertyWorkspaceHeader,
+  .propertyFilterPanel,
+  .propertyResultsPanel {
+    padding: 18px;
+  }
+
+  .propertyFilterGrid,
+  .propertyDetailGrid,
+  .propertySavedToolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .propertyCityList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .propertyFilterHeading,
+  .propertyResultsHeading,
+  .propertyCityHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .propertyWorkspaceTabs,
+  .propertyWorkspaceTabs button {
+    width: 100%;
+  }
+
+  .propertyWorkspaceTabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .propertyBulkActions,
+  .propertySearchActions,
+  .propertyProspectActions {
+    width: 100%;
+  }
+
+  .propertyBulkActions button,
+  .propertySearchActions button,
+  .propertyProspectActions button {
+    flex: 1 1 100%;
+  }
+
+  .propertyResultsTable,
+  .propertySavedTable {
+    margin-left: -18px;
+    margin-right: -18px;
+  }
+}
