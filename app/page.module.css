@@ -1628,15 +1628,11 @@
   font-size: 0.86rem;
 }
 
-.propertyFilterGrid {
+.propertyFinderGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: minmax(140px, 0.55fr) minmax(140px, 0.55fr) minmax(260px, 1.6fr);
   gap: 14px;
   align-items: end;
-}
-
-.propertyFilterGridLimited {
-  grid-template-columns: minmax(260px, 420px);
 }
 
 .propertyFilterField {
@@ -1783,18 +1779,6 @@
   padding: 14px;
 }
 
-.propertyFilterUnavailable {
-  max-width: 760px;
-  margin-top: 16px;
-  padding: 11px 13px;
-  border: 1px solid #e4e7ec;
-  border-radius: 9px;
-  background: #f9fafb;
-  color: #667085;
-  font-size: 0.8rem;
-  line-height: 1.45;
-}
-
 .propertySearchActions {
   display: flex;
   justify-content: flex-end;
@@ -1827,9 +1811,9 @@
 
 .propertyResultsHeader,
 .propertyResultRow {
-  min-width: 1080px;
+  min-width: 1320px;
   display: grid;
-  grid-template-columns: 44px 1.35fr 0.6fr 0.65fr 1.5fr 0.75fr 0.9fr 0.65fr;
+  grid-template-columns: 44px 1.35fr 0.82fr 0.58fr 1.55fr 0.72fr 0.78fr 0.92fr 1fr 0.62fr;
   gap: 14px;
   align-items: center;
 }
@@ -1872,6 +1856,28 @@
   font-size: 0.73rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.propertyOwnerSignals {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 4px;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: normal !important;
+}
+
+.propertyOwnerSignals small {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  padding: 0.16rem 0.35rem;
+  border-radius: 999px;
+  background: #f2f4f7;
+  color: #475467;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 
 .propertySourceBadge,
@@ -2095,8 +2101,12 @@
 }
 
 @media (max-width: 1000px) {
-  .propertyFilterGrid {
+  .propertyFinderGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .propertyFinderGrid .propertyFilterField:last-child {
+    grid-column: 1 / -1;
   }
 
   .propertyCityList {
@@ -2120,10 +2130,14 @@
     padding: 18px;
   }
 
-  .propertyFilterGrid,
+  .propertyFinderGrid,
   .propertyDetailGrid,
   .propertySavedToolbar {
     grid-template-columns: 1fr;
+  }
+
+  .propertyFinderGrid .propertyFilterField:last-child {
+    grid-column: auto;
   }
 
   .propertyCityList {
