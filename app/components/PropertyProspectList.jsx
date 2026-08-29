@@ -271,7 +271,9 @@ export default function PropertyProspectList({
               <span>
                 {prospect.metroLookup?.confirmedPropertyCount
                   ? `${prospect.metroLookup.confirmedPropertyCount} metro`
-                  : `${prospect.cityPropertyCount || prospect.propertyCount || prospect.properties?.length || 1} in ${prospect.searchCity || prospect.primaryProperty?.municipality || "city"}`}
+                  : prospect.metroPropertyCount
+                    ? `${prospect.metroPropertyCount} metro found`
+                    : `${prospect.cityPropertyCount || prospect.propertyCount || prospect.properties?.length || 1} in ${prospect.searchCity || prospect.primaryProperty?.municipality || "city"}`}
               </span>
 
               <span>
