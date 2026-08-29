@@ -1779,6 +1779,23 @@
   padding: 14px;
 }
 
+.propertyNameOnlyFilter {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  color: #344054;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.propertyNameOnlyFilter input {
+  width: 16px;
+  height: 16px;
+}
+
 .propertySearchActions {
   display: flex;
   justify-content: flex-end;
