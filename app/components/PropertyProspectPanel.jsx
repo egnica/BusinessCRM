@@ -175,7 +175,9 @@ export default function PropertyProspectPanel({
                   ? "LLC / Entity"
                   : prospect.ownerType === "couple"
                     ? "Couple"
-                    : "Individual"}
+                    : prospect.ownerType === "individual"
+                      ? "Individual"
+                      : "Owner"}
                 {prospect.propertyCount > 1
                   ? ` · ${prospect.propertyCount} properties`
                   : ""}
