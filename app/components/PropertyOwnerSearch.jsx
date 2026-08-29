@@ -69,6 +69,7 @@ function buildSearchParams(filters, page) {
 
 export default function PropertyOwnerSearch({ onSaved }) {
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [appliedFilters, setAppliedFilters] = useState(DEFAULT_FILTERS);
   const [counties, setCounties] = useState(["Hennepin"]);
   const [cities, setCities] = useState([]);
   const [cityLoading, setCityLoading] = useState(false);
@@ -124,6 +125,11 @@ export default function PropertyOwnerSearch({ onSaved }) {
         page: result.page || 1,
         totalPages: result.totalPages || 1,
         sourcePropertyCount: result.sourcePropertyCount || 0,
+      });
+      setAppliedFilters({
+        ...activeFilters,
+        cities: [...activeFilters.cities],
+        ownerTypes: [...activeFilters.ownerTypes],
       });
     } catch (error) {
       setMessage(error.message || "Property owner search failed.");
@@ -228,7 +234,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action,
-          filters,
+          filters: appliedFilters,
           keys:
             action === "saveSelected"
               ? [...selectedKeys]
@@ -262,7 +268,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
           result.updatedCount +
           " refreshed.",
       );
-      await runSearch(data.page, filters);
+      await runSearch(data.page, appliedFilters);
       onSaved?.();
     } catch (error) {
       setMessage(error.message || "Could not save prospects.");
@@ -653,7 +659,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
             <button
               type="button"
               className={styles.secondaryButton}
-              onClick={() => runSearch(data.page - 1, filters)}
+              onClick={() => runSearch(data.page - 1, appliedFilters)}
               disabled={searchLoading || data.page <= 1}
             >
               Previous
@@ -664,7 +670,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
             <button
               type="button"
               className={styles.secondaryButton}
-              onClick={() => runSearch(data.page + 1, filters)}
+              onClick={() => runSearch(data.page + 1, appliedFilters)}
               disabled={searchLoading || data.page >= data.totalPages}
             >
               Next
