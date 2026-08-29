@@ -29,18 +29,11 @@ function statusLabel(value) {
 }
 
 function mailingName(prospect) {
-  const name =
+  return (
     prospect.taxNameRaw ||
     prospect.mailingAddress?.recipientName ||
-    "";
-  const owner = prospect.ownerNameRaw || "";
-
-  if (!name) return "—";
-  if (name.trim().toLowerCase() === owner.trim().toLowerCase()) {
-    return "—";
-  }
-
-  return name;
+    "—"
+  );
 }
 
 export default function PropertyProspectList({
@@ -273,7 +266,7 @@ export default function PropertyProspectList({
                 onClick={() => onSelect?.(prospect)}
               >
                 <strong>{prospect.ownerNameRaw}</strong>
-                <span>{ownerTypeLabel(prospect.ownerType)}</span>
+                <span>Mailing: {mailingName(prospect)}</span>
               </button>
 
               <span>{mailingName(prospect)}</span>
