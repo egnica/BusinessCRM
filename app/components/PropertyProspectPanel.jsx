@@ -97,6 +97,29 @@ export default function PropertyProspectPanel({
     setMessage("");
 
     try {
+      const saveRes = await fetch(
+        `/api/property-prospects/${prospect._id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status,
+            notes,
+            primaryParcelId,
+          }),
+        },
+      );
+      const savedData = await saveRes.json();
+
+      if (!saveRes.ok) {
+        setMessage(savedData.error || "Could not save prospect before CRM promotion.");
+        return;
+      }
+
+      onUpdated?.(savedData.prospect);
+
       const res = await fetch(
         `/api/property-prospects/${prospect._id}/promote`,
         {
