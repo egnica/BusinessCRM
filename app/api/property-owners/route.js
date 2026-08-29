@@ -1,19 +1,15 @@
 import clientPromise from "@/lib/mongodb";
-import {
-  COUNTY_OPTIONS,
-  getCitiesForCounty,
-  searchPropertyOwners,
-} from "@/lib/propertyOwnerSearch";
+import { searchPropertyOwners } from "@/lib/propertyOwnerSearch";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function readFilters(searchParams) {
   return {
-    county: searchParams.get("county") || "Hennepin",
-    city: searchParams.get("city") || "",
+    geography: searchParams.get("geography") || "all",
     minUnits: searchParams.get("minUnits"),
     maxUnits: searchParams.get("maxUnits"),
+    minPortfolioSize: searchParams.get("minPortfolioSize"),
   };
 }
 
@@ -115,21 +111,6 @@ async function addSavedState(prospects) {
 export async function GET(request) {
   try {
     const url = new URL(request.url);
-    const mode = url.searchParams.get("mode");
-
-    if (mode === "metadata") {
-      const county = url.searchParams.get("county") || "Hennepin";
-      const cities = COUNTY_OPTIONS.includes(county)
-        ? await getCitiesForCounty(county)
-        : [];
-
-      return Response.json({
-        counties: COUNTY_OPTIONS,
-        county,
-        cities,
-      });
-    }
-
     const filters = readFilters(url.searchParams);
     const page = Number(url.searchParams.get("page")) || 1;
     const pageSize = Number(url.searchParams.get("pageSize")) || 25;
