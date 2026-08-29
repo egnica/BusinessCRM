@@ -176,7 +176,18 @@ async function saveProspects(prospects, filters) {
             coOwnerName: prospect.coOwnerName || "",
             mailingAddress,
             properties,
-            propertyCount: properties.length,
+            propertyCount: prospect.propertyCount || properties.length,
+            totalUnits: prospect.totalUnits || 0,
+            knownUnitPropertyCount: prospect.knownUnitPropertyCount || 0,
+            totalAssessedValue: prospect.totalAssessedValue || 0,
+            longestHeldYears: prospect.longestHeldYears ?? null,
+            mostRecentPurchaseYears: prospect.mostRecentPurchaseYears ?? null,
+            cityBreakdown: prospect.cityBreakdown || [],
+            locations: prospect.locations || [],
+            counties: prospect.counties || [],
+            mailingLocation: prospect.mailingLocation || "",
+            ownsInMinneapolis: Boolean(prospect.ownsInMinneapolis),
+            mailingInMinneapolis: Boolean(prospect.mailingInMinneapolis),
             primaryParcelId: currentPrimaryParcelId,
             primaryProperty,
             score: prospect.score,
@@ -281,45 +292,44 @@ export async function POST(request) {
       );
     }
 
-    const result = await searchPropertyOwners(filters, {
-      paginate: false,
-      maxOwners: 50000,
-      includeMailingAddress: true,
-    });
+    const keys = Array.isArray(body.keys)
+      ? body.keys.filter(Boolean)
+      : [];
 
-    let prospects = result.prospects;
-
-    if (action === "saveSelected") {
-      const keys = Array.isArray(body.keys)
-        ? body.keys.filter(Boolean)
-        : [];
-
-      if (!keys.length) {
-        return Response.json(
-          { error: "Select at least one owner to save" },
-          { status: 400 },
-        );
-      }
-
-      const selectedKeys = new Set(keys);
-      prospects = prospects.filter((prospect) =>
-        selectedKeys.has(prospect.propertyOutreachKey),
-      );
-    }
-
-    if (action === "saveFiltered" && result.total > MAX_SAVE_FILTERED) {
+    if (action === "saveSelected" && !keys.length) {
       return Response.json(
-        {
-          error:
-            "This filter returns too many owners to save at once. Narrow the filters first.",
-          total: result.total,
-          maxSaveFiltered: MAX_SAVE_FILTERED,
-        },
+        { error: "Select at least one owner to save" },
         { status: 400 },
       );
     }
 
-    const saved = await saveProspects(prospects, result.filters);
+    if (action === "saveFiltered") {
+      const summary = await searchPropertyOwners(filters, {
+        paginate: false,
+        maxOwners: 1,
+        includeDetails: false,
+      });
+
+      if (summary.total > MAX_SAVE_FILTERED) {
+        return Response.json(
+          {
+            error:
+              "This filter returns too many owners to save at once. Narrow the filters first.",
+            total: summary.total,
+            maxSaveFiltered: MAX_SAVE_FILTERED,
+          },
+          { status: 400 },
+        );
+      }
+    }
+
+    const result = await searchPropertyOwners(filters, {
+      paginate: false,
+      maxOwners: MAX_SAVE_FILTERED,
+      selectedKeys: action === "saveSelected" ? keys : undefined,
+    });
+
+    const saved = await saveProspects(result.prospects, result.filters);
 
     return Response.json({
       ...saved,
