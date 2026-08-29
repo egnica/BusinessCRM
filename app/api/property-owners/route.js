@@ -12,6 +12,8 @@ function readFilters(searchParams) {
     minProperties: searchParams.get("minProperties"),
     maxProperties: searchParams.get("maxProperties"),
     maxResults: searchParams.get("maxResults"),
+    onlyWithMailingName:
+      searchParams.get("onlyWithMailingName") === "true",
     city: searchParams.get("city") || "",
   };
 }
