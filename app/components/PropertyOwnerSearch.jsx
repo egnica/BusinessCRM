@@ -382,9 +382,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
             </h2>
             <p>
               {hasSearched
-                ? "These counts are only properties found inside " +
-                  cityLabel +
-                  "."
+                ? "City count is exact to the city search. Metro Properties Found uses exact owner name plus matching mailing address."
                 : "Start with Minneapolis and a range such as 2–8 properties."}
             </p>
           </div>
@@ -458,8 +456,10 @@ export default function PropertyOwnerSearch({ onSaved }) {
             </span>
             <span>Owner</span>
             <span>Properties in {cityLabel}</span>
+            <span>Metro Properties Found</span>
             <span>Longest Held</span>
-            <span>Est. Value</span>
+            <span>City Assessed Value</span>
+            <span>Metro Assessed Value</span>
             <span>Mailing</span>
             <span>Status</span>
           </div>
@@ -505,6 +505,17 @@ export default function PropertyOwnerSearch({ onSaved }) {
                     {prospect.cityPropertyCount || prospect.propertyCount}
                   </strong>
 
+                  <div>
+                    <strong>
+                      {prospect.metroPropertyCount ||
+                        prospect.cityPropertyCount ||
+                        prospect.propertyCount}
+                    </strong>
+                    {!prospect.metroIdentityConfirmed && (
+                      <span>city only · no mailing match</span>
+                    )}
+                  </div>
+
                   <span>
                     {prospect.longestHeldYears != null
                       ? prospect.longestHeldYears + " yrs"
@@ -512,6 +523,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
                   </span>
 
                   <span>{formatMoney(prospect.totalAssessedValue)}</span>
+                  <span>{formatMoney(prospect.metroAssessedValue)}</span>
                   <span>{prospect.mailingLocation || "—"}</span>
 
                   <span>
