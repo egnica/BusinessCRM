@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import CustomerPanel from "./components/CustomerPanel";
 import EmailDashboard from "./components/EmailDashboard";
 import NewsletterModal from "./components/NewsletterModal";
-import PropertyOwnerImport from "./components/PropertyOwnerImport";
+import PropertyOwnerWorkspace from "./components/PropertyOwnerWorkspace";
 import styles from "./page.module.css";
 
 const getDateOnly = (dateStr) => (dateStr ? String(dateStr).slice(0, 10) : "");
@@ -72,7 +72,7 @@ export default function Home() {
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [dateFilter, setDateFilter] = useState("all");
   const [projectFilter, setProjectFilter] = useState("all");
-  const [propertyImportOpen, setPropertyImportOpen] = useState(false);
+  const [workspace, setWorkspace] = useState("crm");
   const [newsletterOpen, setNewsletterOpen] = useState(false);
   const [emailHistoryOpen, setEmailHistoryOpen] = useState(false);
   const [emailHistoryRefresh, setEmailHistoryRefresh] = useState(0);
@@ -438,6 +438,15 @@ export default function Home() {
     ["none", "No Follow-up"],
   ];
 
+  if (workspace === "property-owners") {
+    return (
+      <PropertyOwnerWorkspace
+        onBack={() => setWorkspace("crm")}
+        onContactPromoted={refreshContacts}
+      />
+    );
+  }
+
   return (
     <main className={styles.pageShell}>
       <section className={styles.topSection}>
@@ -454,9 +463,9 @@ export default function Home() {
             <button
               type="button"
               className={styles.secondaryButton}
-              onClick={() => setPropertyImportOpen(true)}
+              onClick={() => setWorkspace("property-owners")}
             >
-              Find Property Owners
+              Property Owners
             </button>
             <button
               type="button"
@@ -1067,16 +1076,6 @@ export default function Home() {
         />
       )}
 
-      {propertyImportOpen && (
-        <PropertyOwnerImport
-          onClose={() => setPropertyImportOpen(false)}
-          onImported={async () => {
-            await refreshContacts();
-            setProjectFilter("property-owner-outreach");
-            setDateFilter("all");
-          }}
-        />
-      )}
 
       {customerToggle !== "" && customerSelected && (
         <CustomerPanel
