@@ -1811,9 +1811,9 @@
 
 .propertyResultsHeader,
 .propertyResultRow {
-  min-width: 1320px;
+  min-width: 1120px;
   display: grid;
-  grid-template-columns: 44px 1.35fr 0.82fr 0.58fr 1.55fr 0.72fr 0.78fr 0.92fr 1fr 0.62fr;
+  grid-template-columns: 44px 1.45fr 0.62fr 1.65fr 0.78fr 0.95fr 1fr 0.62fr;
   gap: 14px;
   align-items: center;
 }
