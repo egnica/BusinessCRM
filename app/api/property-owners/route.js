@@ -6,11 +6,10 @@ export const dynamic = "force-dynamic";
 
 function readFilters(searchParams) {
   return {
-    geography: searchParams.get("geography") || "all",
-    minUnits: searchParams.get("minUnits"),
-    maxUnits: searchParams.get("maxUnits"),
-    minPortfolioSize: searchParams.get("minPortfolioSize"),
-    maxPortfolioSize: searchParams.get("maxPortfolioSize"),
+    minProperties: searchParams.get("minProperties"),
+    maxProperties: searchParams.get("maxProperties"),
+    ownerTypes: searchParams.get("ownerTypes"),
+    city: searchParams.get("city") || "",
   };
 }
 
