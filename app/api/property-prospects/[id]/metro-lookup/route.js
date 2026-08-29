@@ -1,6 +1,9 @@
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
-import { lookupMetroPropertiesForProspect } from "@/lib/propertyOwnerSearch";
+import {
+  getMailingContactName,
+  lookupMetroPropertiesForProspect,
+} from "@/lib/propertyOwnerSearch";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,6 +11,7 @@ export const dynamic = "force-dynamic";
 function serializeProspect(prospect) {
   return {
     ...prospect,
+    mailingContactName: getMailingContactName(prospect),
     _id: prospect._id?.toString?.() || prospect._id,
     crmContactId:
       prospect.crmContactId?.toString?.() || prospect.crmContactId || "",
