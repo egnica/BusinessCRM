@@ -20,19 +20,13 @@ const SIZE_OPTIONS = [
   { value: "2-20", label: "2–20 units", minUnits: "2", maxUnits: "20" },
 ];
 
-const PORTFOLIO_OPTIONS = [
-  ["1", "Any portfolio size"],
-  ["2", "2+ matching properties"],
-  ["3", "3+ matching properties"],
-  ["5", "5+ matching properties"],
-];
-
 const DEFAULT_FILTERS = {
   geography: "all",
   propertySize: "2-4",
   minUnits: "2",
   maxUnits: "4",
-  minPortfolioSize: "1",
+  minPortfolioSize: "",
+  maxPortfolioSize: "",
 };
 
 function formatMoney(value) {
@@ -68,6 +62,7 @@ function buildSearchParams(filters, page) {
     minUnits: filters.minUnits,
     maxUnits: filters.maxUnits,
     minPortfolioSize: filters.minPortfolioSize,
+    maxPortfolioSize: filters.maxPortfolioSize,
     page: String(page),
     pageSize: "25",
   });
@@ -102,6 +97,20 @@ export default function PropertyOwnerSearch({ onSaved }) {
   }
 
   async function runSearch(page, activeFilters) {
+    const minPortfolio = Number(activeFilters.minPortfolioSize);
+    const maxPortfolio = Number(activeFilters.maxPortfolioSize);
+
+    if (
+      activeFilters.minPortfolioSize !== "" &&
+      activeFilters.maxPortfolioSize !== "" &&
+      Number.isFinite(minPortfolio) &&
+      Number.isFinite(maxPortfolio) &&
+      minPortfolio > maxPortfolio
+    ) {
+      setMessage("Portfolio minimum cannot be greater than the maximum.");
+      return;
+    }
+
     setSearchLoading(true);
     setMessage("");
     setSelectedKeys(new Set());
@@ -331,25 +340,46 @@ export default function PropertyOwnerSearch({ onSaved }) {
             </select>
           </label>
 
-          <label className={styles.propertyFilterField}>
+          <div className={styles.propertyFilterField}>
             <span>Portfolio size</span>
-            <select
-              value={filters.minPortfolioSize}
-              onChange={(event) =>
-                setFilters((current) => ({
-                  ...current,
-                  minPortfolioSize: event.target.value,
-                }))
-              }
-              disabled={searchLoading}
-            >
-              {PORTFOLIO_OPTIONS.map(([value, label]) => (
-                <option value={value} key={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
+            <div className={styles.propertyPortfolioRange}>
+              <label>
+                <small>Min</small>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="Any"
+                  value={filters.minPortfolioSize}
+                  onChange={(event) =>
+                    setFilters((current) => ({
+                      ...current,
+                      minPortfolioSize: event.target.value,
+                    }))
+                  }
+                  disabled={searchLoading}
+                />
+              </label>
+
+              <label>
+                <small>Max</small>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="Any"
+                  value={filters.maxPortfolioSize}
+                  onChange={(event) =>
+                    setFilters((current) => ({
+                      ...current,
+                      maxPortfolioSize: event.target.value,
+                    }))
+                  }
+                  disabled={searchLoading}
+                />
+              </label>
+            </div>
+          </div>
         </div>
 
         <p className={styles.propertyResultSummary}>
