@@ -24,10 +24,25 @@ function mergeProperties(existing = [], incoming = []) {
 
   for (const property of [...existing, ...incoming]) {
     if (!property?.parcelId) continue;
-    byParcel.set(property.parcelId, property);
+
+    const parcelKey =
+      property.parcelKey ||
+      (property.county
+        ? `${property.county}:${property.parcelId}`
+        : property.parcelId);
+
+    byParcel.set(parcelKey, {
+      ...property,
+      parcelKey,
+    });
   }
 
   return [...byParcel.values()].sort((a, b) => {
+    const yearsA = a.ownershipYears ?? -1;
+    const yearsB = b.ownershipYears ?? -1;
+
+    if (yearsB !== yearsA) return yearsB - yearsA;
+
     const scoreA = Number(a.prospectScore) || 0;
     const scoreB = Number(b.prospectScore) || 0;
     return scoreB - scoreA;
