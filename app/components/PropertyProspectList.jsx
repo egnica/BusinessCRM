@@ -38,6 +38,7 @@ export default function PropertyProspectList({
   const [status, setStatus] = useState("active");
   const [mailStatus, setMailStatus] = useState("all");
   const [query, setQuery] = useState("");
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   const loadProspects = useCallback(async () => {
     setLoading(true);
@@ -62,6 +63,7 @@ export default function PropertyProspectList({
       }
 
       setProspects(data.prospects || []);
+      setSelectedIds(new Set());
     } catch (error) {
       setMessage(error.message || "Could not load saved prospects.");
     } finally {
@@ -72,6 +74,33 @@ export default function PropertyProspectList({
   useEffect(() => {
     loadProspects();
   }, [loadProspects, refreshKey]);
+
+  function toggleProspect(prospectId) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(prospectId)) next.delete(prospectId);
+      else next.add(prospectId);
+      return next;
+    });
+  }
+
+  const allVisibleSelected =
+    prospects.length > 0 &&
+    prospects.every((prospect) => selectedIds.has(prospect._id));
+
+  function toggleAllVisible() {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+
+      if (allVisibleSelected) {
+        prospects.forEach((prospect) => next.delete(prospect._id));
+      } else {
+        prospects.forEach((prospect) => next.add(prospect._id));
+      }
+
+      return next;
+    });
+  }
 
   async function promoteProspect(prospect) {
     if (prospect.crmContactId) return;
@@ -171,12 +200,35 @@ export default function PropertyProspectList({
         </button>
       </div>
 
+      <div className={styles.propertySavedBulkBar}>
+        <span>
+          {selectedIds.size} selected
+        </span>
+        <button
+          type="button"
+          className={styles.secondaryButton}
+          disabled
+          title="PostGrid will be connected in Phase 2"
+        >
+          Send Letter to Selected
+        </button>
+      </div>
+
       {message && (
         <p className={styles.newsletterStatus}>{message}</p>
       )}
 
       <div className={styles.propertySavedTable}>
         <div className={styles.propertySavedHeader}>
+          <span>
+            <input
+              type="checkbox"
+              checked={allVisibleSelected}
+              onChange={toggleAllVisible}
+              disabled={!prospects.length}
+              aria-label="Select visible prospects"
+            />
+          </span>
           <span>Owner</span>
           <span>Target Property</span>
           <span>Portfolio</span>
@@ -189,6 +241,15 @@ export default function PropertyProspectList({
         {prospects.length ? (
           prospects.map((prospect) => (
             <div className={styles.propertySavedRow} key={prospect._id}>
+              <span>
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(prospect._id)}
+                  onChange={() => toggleProspect(prospect._id)}
+                  aria-label={"Select " + prospect.ownerNameRaw}
+                />
+              </span>
+
               <button
                 type="button"
                 className={styles.propertyOwnerNameButton}
