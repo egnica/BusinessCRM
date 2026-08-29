@@ -1630,7 +1630,7 @@
 
 .propertyFinderGrid {
   display: grid;
-  grid-template-columns: minmax(140px, 0.55fr) minmax(140px, 0.55fr) minmax(260px, 1.6fr);
+  grid-template-columns: minmax(220px, 1.35fr) repeat(3, minmax(140px, 0.7fr));
   gap: 14px;
   align-items: end;
 }
