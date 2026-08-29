@@ -1811,9 +1811,9 @@
 
 .propertyResultsHeader,
 .propertyResultRow {
-  min-width: 1120px;
+  min-width: 980px;
   display: grid;
-  grid-template-columns: 44px 1.45fr 0.62fr 1.65fr 0.78fr 0.95fr 1fr 0.62fr;
+  grid-template-columns: 44px 1.65fr 0.8fr 0.8fr 0.95fr 1fr 0.62fr;
   gap: 14px;
   align-items: center;
 }
@@ -2177,5 +2177,66 @@
   .propertySavedTable {
     margin-left: -18px;
     margin-right: -18px;
+  }
+}
+
+
+.propertyMetroSummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.propertyMetroSummary > div {
+  padding: 13px;
+  border: 1px solid #e4e7ec;
+  border-radius: 10px;
+  background: #f9fafb;
+}
+
+.propertyMetroSummary strong {
+  display: block;
+  color: #101828;
+  font-size: 1.2rem;
+}
+
+.propertyMetroSummary span {
+  color: #667085;
+  font-size: 0.73rem;
+  font-weight: 700;
+}
+
+.propertyMetroBreakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 10px 0 14px;
+}
+
+.propertyMetroBreakdown span {
+  display: inline-flex;
+  padding: 0.3rem 0.5rem;
+  border-radius: 999px;
+  background: #f2f4f7;
+  color: #475467;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.propertyPossibleMatch {
+  border-left: 3px solid #f79009;
+}
+
+.propertyLookupNote {
+  margin: 10px 0 0;
+  color: #667085;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 700px) {
+  .propertyMetroSummary {
+    grid-template-columns: 1fr;
   }
 }
