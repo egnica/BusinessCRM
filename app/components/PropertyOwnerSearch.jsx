@@ -455,6 +455,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
               />
             </span>
             <span>Owner</span>
+            <span>Mailing Name</span>
             <span>Properties in {cityLabel}</span>
             <span>Metro Properties Found</span>
             <span>Longest Held</span>
@@ -496,17 +497,12 @@ export default function PropertyOwnerSearch({ onSaved }) {
 
                   <div>
                     <strong>{prospect.ownerNameRaw}</strong>
-                    {prospect.mailingRecipientName &&
-                      prospect.mailingRecipientName.trim().toLowerCase() !==
-                        prospect.ownerNameRaw.trim().toLowerCase() && (
-                        <span>
-                          Mail to: {prospect.mailingRecipientName}
-                        </span>
-                      )}
                     {prospect.countsReconcile === false && (
                       <span>Property details need review</span>
                     )}
                   </div>
+
+                  <span>{prospect.mailingName || "—"}</span>
 
                   <strong>
                     {prospect.cityPropertyCount || prospect.propertyCount}
