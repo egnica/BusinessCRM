@@ -39,6 +39,7 @@ function buildContact(prospect, now) {
     property: primaryProperty,
     properties: prospect.properties || [],
     propertyOutreachKey: prospect.propertyOutreachKey,
+    propertyOutreachAliases: prospect.propertyOutreachAliases || [],
     propertyProspectId: prospect._id.toString(),
     propertyMailingAddressRaw: prospect.mailingAddress || null,
     rank: "",
@@ -88,8 +89,18 @@ export async function POST(_request, { params }) {
       return Response.json({ error: "Prospect not found" }, { status: 404 });
     }
 
+    const parcelIds = (prospect.properties || [])
+      .map((property) => property.parcelId)
+      .filter(Boolean);
+
     const existingContact = await contacts.findOne({
-      propertyOutreachKey: prospect.propertyOutreachKey,
+      $or: [
+        { propertyOutreachKey: prospect.propertyOutreachKey },
+        { propertyOutreachAliases: prospect.propertyOutreachKey },
+        ...(parcelIds.length
+          ? [{ "properties.parcelId": { $in: parcelIds } }]
+          : []),
+      ],
     });
 
     const now = new Date().toISOString();
