@@ -74,6 +74,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
   const [cities, setCities] = useState([]);
   const [cityLoading, setCityLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [message, setMessage] = useState("");
   const [selectedKeys, setSelectedKeys] = useState(new Set());
   const [data, setData] = useState({
@@ -116,7 +117,9 @@ export default function PropertyOwnerSearch({ onSaved }) {
       );
       const result = await res.json();
       if (!res.ok) {
-        throw new Error(result.error || "Property owner search failed.");
+        throw new Error(
+          result.details || result.error || "Property owner search failed.",
+        );
       }
 
       setData({
@@ -131,7 +134,9 @@ export default function PropertyOwnerSearch({ onSaved }) {
         cities: [...activeFilters.cities],
         ownerTypes: [...activeFilters.ownerTypes],
       });
+      setHasSearched(true);
     } catch (error) {
+      setHasSearched(true);
       setMessage(error.message || "Property owner search failed.");
     } finally {
       setSearchLoading(false);
@@ -140,8 +145,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
 
   useEffect(() => {
     loadMetadata(DEFAULT_FILTERS.county);
-    runSearch(1, DEFAULT_FILTERS);
-  }, [loadMetadata, runSearch]);
+  }, [loadMetadata]);
 
   function updateFilter(key, value) {
     setFilters((current) => ({ ...current, [key]: value }));
@@ -279,8 +283,18 @@ export default function PropertyOwnerSearch({ onSaved }) {
 
   function resetFilters() {
     setFilters(DEFAULT_FILTERS);
+    setAppliedFilters(DEFAULT_FILTERS);
+    setSelectedKeys(new Set());
+    setHasSearched(false);
+    setMessage("");
+    setData({
+      prospects: [],
+      total: 0,
+      page: 1,
+      totalPages: 1,
+      sourcePropertyCount: 0,
+    });
     loadMetadata(DEFAULT_FILTERS.county);
-    runSearch(1, DEFAULT_FILTERS);
   }
 
   return (
@@ -514,9 +528,18 @@ export default function PropertyOwnerSearch({ onSaved }) {
           <div>
             <p className={styles.eyebrow}>Temporary results</p>
             <h2>
-              {data.total} owner{data.total === 1 ? "" : "s"} matched
+              {hasSearched
+                ? data.total +
+                  " owner" +
+                  (data.total === 1 ? "" : "s") +
+                  " matched"
+                : "Choose filters and run a search"}
             </h2>
-            <p>Showing 25 at a time. Nothing is saved until you choose it.</p>
+            <p>
+              {hasSearched
+                ? "Showing 25 at a time. Nothing is saved until you choose it."
+                : "The tool will not query MetroGIS until you click Search Property Owners."}
+            </p>
           </div>
 
           <div className={styles.propertyBulkActions}>
@@ -533,7 +556,10 @@ export default function PropertyOwnerSearch({ onSaved }) {
               className={styles.secondaryButton}
               onClick={() => saveResults("saveFiltered")}
               disabled={
-                searchLoading || data.total === 0 || data.total > 250
+                searchLoading ||
+                !hasSearched ||
+                data.total === 0 ||
+                data.total > 250
               }
               title={
                 data.total > 250
@@ -550,17 +576,19 @@ export default function PropertyOwnerSearch({ onSaved }) {
           <p className={styles.newsletterStatus}>{message}</p>
         )}
 
-        <div className={styles.propertyResultSummary}>
-          <span>
-            {data.sourcePropertyCount} qualifying parcel records screened
-          </span>
-          {data.total > 250 && (
+        {hasSearched && (
+          <div className={styles.propertyResultSummary}>
+            <span>
+              {data.sourcePropertyCount} qualifying parcel records screened
+            </span>
+            {data.total > 250 && (
             <span>
               Add All is limited to 250 owners. Refine the filters for a
               more intentional saved list.
-            </span>
-          )}
-        </div>
+              </span>
+            )}
+          </div>
+        )}
 
         <div className={styles.propertyResultsTable}>
           <div className={styles.propertyResultsHeader}>
@@ -582,7 +610,14 @@ export default function PropertyOwnerSearch({ onSaved }) {
             <span>State</span>
           </div>
 
-          {data.prospects.length ? (
+          {!hasSearched ? (
+            <div className={styles.emptyState}>
+              <strong>Ready when you are.</strong>
+              <span>
+                Select a county and any filters you want, then run the search.
+              </span>
+            </div>
+          ) : data.prospects.length ? (
             data.prospects.map((prospect) => {
               const unavailable = prospect.saved || prospect.inCrm;
               return (
@@ -654,7 +689,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
           )}
         </div>
 
-        {data.totalPages > 1 && (
+        {hasSearched && data.totalPages > 1 && (
           <div className={styles.propertyPagination}>
             <button
               type="button"
