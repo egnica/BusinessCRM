@@ -130,3 +130,36 @@ export async function PATCH(request, { params }) {
     );
   }
 }
+
+
+export async function DELETE(_request, { params }) {
+  try {
+    const { id } = await params;
+
+    if (!ObjectId.isValid(id)) {
+      return Response.json({ error: "Invalid prospect ID" }, { status: 400 });
+    }
+
+    const client = await clientPromise;
+    const db = client.db("crm");
+    const result = await db
+      .collection("propertyProspects")
+      .deleteOne({ _id: new ObjectId(id) });
+
+    if (!result.deletedCount) {
+      return Response.json({ error: "Prospect not found" }, { status: 404 });
+    }
+
+    return Response.json({
+      deletedCount: 1,
+      deletedProspectId: id,
+    });
+  } catch (error) {
+    console.error("Property prospect delete error:", error);
+
+    return Response.json(
+      { error: "Failed to delete property prospect" },
+      { status: 500 },
+    );
+  }
+}
