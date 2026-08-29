@@ -151,9 +151,15 @@ export async function GET(request) {
     return Response.json({
       ...result,
       prospects: markedProspects.map((prospect) => {
+        const mailingRecipientName =
+          prospect.mailingAddress?.recipientName || "";
         const { mailingAddress: _mailingAddress, ...searchProspect } =
           prospect;
-        return searchProspect;
+
+        return {
+          ...searchProspect,
+          mailingRecipientName,
+        };
       }),
     });
   } catch (error) {
