@@ -3,17 +3,10 @@
 import { useMemo, useState } from "react";
 import styles from "../page.module.css";
 
-const OWNER_TYPE_OPTIONS = [
-  ["individual", "Individual"],
-  ["couple", "Couple / Partners"],
-  ["llc", "LLC / Entity"],
-];
-
 const DEFAULT_FILTERS = {
   minProperties: "2",
   maxProperties: "8",
   city: "",
-  ownerTypes: ["individual", "couple", "llc"],
 };
 
 function formatMoney(value) {
@@ -25,12 +18,6 @@ function formatMoney(value) {
     currency: "USD",
     maximumFractionDigits: 0,
   }).format(amount);
-}
-
-function ownerTypeLabel(value) {
-  if (value === "llc") return "LLC / Entity";
-  if (value === "couple") return "Couple / Partners";
-  return "Individual";
 }
 
 function formatCityBreakdown(prospect) {
@@ -46,25 +33,11 @@ function formatCityBreakdown(prospect) {
   return summary + (remaining > 0 ? ` · +${remaining} cities` : "");
 }
 
-function formatKnownUnits(prospect) {
-  const knownProperties = Number(prospect.knownUnitPropertyCount) || 0;
-  const totalUnits = Number(prospect.totalUnits) || 0;
-
-  if (!knownProperties || !totalUnits) return "—";
-
-  if (knownProperties < prospect.propertyCount) {
-    return `${totalUnits} known`;
-  }
-
-  return String(totalUnits);
-}
-
 function buildSearchParams(filters, page) {
   return new URLSearchParams({
     minProperties: filters.minProperties,
     maxProperties: filters.maxProperties,
     city: filters.city.trim(),
-    ownerTypes: filters.ownerTypes.join(","),
     page: String(page),
     pageSize: "25",
   });
@@ -84,20 +57,6 @@ export default function PropertyOwnerSearch({ onSaved }) {
     totalPages: 1,
     matchedPropertyCount: 0,
   });
-
-  function toggleOwnerType(value) {
-    setFilters((current) => {
-      const selected = new Set(current.ownerTypes);
-
-      if (selected.has(value)) selected.delete(value);
-      else selected.add(value);
-
-      return {
-        ...current,
-        ownerTypes: [...selected],
-      };
-    });
-  }
 
   function validateFilters(activeFilters) {
     const minProperties = Number(activeFilters.minProperties);
@@ -119,10 +78,6 @@ export default function PropertyOwnerSearch({ onSaved }) {
       minProperties > maxProperties
     ) {
       return "Property minimum cannot be greater than the maximum.";
-    }
-
-    if (!activeFilters.ownerTypes.length) {
-      return "Select at least one owner type.";
     }
 
     return "";
@@ -162,10 +117,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
         matchedPropertyCount:
           result.matchedPropertyCount || result.sourcePropertyCount || 0,
       });
-      setAppliedFilters({
-        ...activeFilters,
-        ownerTypes: [...activeFilters.ownerTypes],
-      });
+      setAppliedFilters({ ...activeFilters });
       setHasSearched(true);
     } catch (error) {
       setHasSearched(true);
@@ -289,10 +241,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
   }
 
   function resetFilters() {
-    const reset = {
-      ...DEFAULT_FILTERS,
-      ownerTypes: [...DEFAULT_FILTERS.ownerTypes],
-    };
+    const reset = { ...DEFAULT_FILTERS };
 
     setFilters(reset);
     setAppliedFilters(reset);
@@ -316,8 +265,8 @@ export default function PropertyOwnerSearch({ onSaved }) {
             <p className={styles.eyebrow}>Owner finder</p>
             <h2>Find residential property owners</h2>
             <p>
-              Search the seven-county Twin Cities metro by portfolio size and
-              owner type. Unit counts are shown when the county provides them.
+              Search the seven-county Twin Cities metro by number of properties,
+              with an optional city filter.
             </p>
           </div>
 
@@ -382,23 +331,6 @@ export default function PropertyOwnerSearch({ onSaved }) {
               disabled={searchLoading}
             />
           </label>
-        </div>
-
-        <div className={styles.propertyOwnerTypeFilter}>
-          <span>Owner type</span>
-          <div>
-            {OWNER_TYPE_OPTIONS.map(([value, label]) => (
-              <label key={value}>
-                <input
-                  type="checkbox"
-                  checked={filters.ownerTypes.includes(value)}
-                  onChange={() => toggleOwnerType(value)}
-                  disabled={searchLoading}
-                />
-                {label}
-              </label>
-            ))}
-          </div>
         </div>
 
         <div className={styles.propertySearchActions}>
@@ -503,10 +435,8 @@ export default function PropertyOwnerSearch({ onSaved }) {
               />
             </span>
             <span>Owner</span>
-            <span>Type</span>
             <span>Properties</span>
             <span>Property Cities</span>
-            <span>Known Units</span>
             <span>Longest Held</span>
             <span>Est. Value</span>
             <span>Mailing</span>
@@ -558,14 +488,15 @@ export default function PropertyOwnerSearch({ onSaved }) {
                     )}
                   </div>
 
-                  <span>{ownerTypeLabel(prospect.ownerType)}</span>
                   <strong>{prospect.propertyCount}</strong>
 
                   <div>
-                    <strong>{formatCityBreakdown(prospect)}</strong>
+                    <strong>
+                      {prospect.countsReconcile === false
+                        ? "Details unavailable"
+                        : formatCityBreakdown(prospect)}
+                    </strong>
                   </div>
-
-                  <span>{formatKnownUnits(prospect)}</span>
 
                   <span>
                     {prospect.longestHeldYears != null
@@ -602,7 +533,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
             <div className={styles.emptyState}>
               <strong>No owners matched this profile.</strong>
               <span>
-                Try a wider property range, another city, or more owner types.
+                Try a wider property range or another city.
               </span>
             </div>
           )}
