@@ -48,6 +48,7 @@ async function addSavedState(prospects) {
           propertyOutreachAliases: 1,
           properties: 1,
           crmContactId: 1,
+          mailingAddress: 1,
         },
       })
       .toArray(),
@@ -130,6 +131,7 @@ async function addSavedState(prospects) {
       inCrm: Boolean(crm || saved?.crmContactId),
       crmContactId:
         crm?._id?.toString() || saved?.crmContactId?.toString?.() || "",
+      savedMailingName: saved?.mailingAddress?.recipientName || "",
     };
   });
 }
@@ -151,14 +153,19 @@ export async function GET(request) {
     return Response.json({
       ...result,
       prospects: markedProspects.map((prospect) => {
-        const mailingRecipientName =
-          prospect.mailingAddress?.recipientName || "";
-        const { mailingAddress: _mailingAddress, ...searchProspect } =
-          prospect;
+        const mailingName =
+          prospect.savedMailingName ||
+          prospect.mailingAddress?.recipientName ||
+          "";
+        const {
+          mailingAddress: _mailingAddress,
+          savedMailingName: _savedMailingName,
+          ...searchProspect
+        } = prospect;
 
         return {
           ...searchProspect,
-          mailingRecipientName,
+          mailingName,
         };
       }),
     });
