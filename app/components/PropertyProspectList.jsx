@@ -150,6 +150,93 @@ export default function PropertyProspectList({
     }
   }
 
+  async function deleteProspect(prospect) {
+    const confirmed = window.confirm(
+      "Delete " +
+        prospect.ownerNameRaw +
+        " from Saved Prospects? This will not delete any CRM contact.",
+    );
+
+    if (!confirmed) return;
+
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const res = await fetch(
+        "/api/property-prospects/" + prospect._id,
+        { method: "DELETE" },
+      );
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Could not delete prospect.");
+      }
+
+      setProspects((current) =>
+        current.filter((item) => item._id !== prospect._id),
+      );
+      setSelectedIds((current) => {
+        const next = new Set(current);
+        next.delete(prospect._id);
+        return next;
+      });
+      setMessage("Deleted saved prospect.");
+    } catch (error) {
+      setMessage(error.message || "Could not delete prospect.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function deleteSelected() {
+    const ids = [...selectedIds];
+    if (!ids.length) return;
+
+    const confirmed = window.confirm(
+      "Delete " +
+        ids.length +
+        " selected saved prospect" +
+        (ids.length === 1 ? "" : "s") +
+        "? This will not delete any CRM contacts.",
+    );
+
+    if (!confirmed) return;
+
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const res = await fetch("/api/property-prospects", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Could not delete selected prospects.");
+      }
+
+      const deletedIds = new Set(ids);
+      setProspects((current) =>
+        current.filter((item) => !deletedIds.has(item._id)),
+      );
+      setSelectedIds(new Set());
+      setMessage(
+        "Deleted " +
+          data.deletedCount +
+          " saved prospect" +
+          (data.deletedCount === 1 ? "" : "s") +
+          ".",
+      );
+    } catch (error) {
+      setMessage(error.message || "Could not delete selected prospects.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <section className={styles.propertyResultsPanel}>
       <div className={styles.propertyResultsHeading}>
@@ -216,6 +303,14 @@ export default function PropertyProspectList({
           title="PostGrid will be connected in Phase 2"
         >
           Send Letter to Selected
+        </button>
+        <button
+          type="button"
+          className={styles.secondaryButton}
+          onClick={deleteSelected}
+          disabled={loading || selectedIds.size === 0}
+        >
+          Delete Selected
         </button>
       </div>
 
@@ -333,6 +428,13 @@ export default function PropertyProspectList({
                   disabled={Boolean(prospect.crmContactId)}
                 >
                   {prospect.crmContactId ? "In CRM" : "Add to CRM"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteProspect(prospect)}
+                  disabled={loading}
+                >
+                  Delete
                 </button>
               </div>
             </div>
