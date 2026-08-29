@@ -164,6 +164,16 @@ async function saveProspects(prospects, filters) {
             totalUnits: 0,
             knownUnitPropertyCount: 0,
             totalAssessedValue: prospect.totalAssessedValue || 0,
+            metroPropertyCount:
+              prospect.metroPropertyCount ||
+              prospect.cityPropertyCount ||
+              prospect.propertyCount ||
+              properties.length,
+            metroAssessedValue: prospect.metroAssessedValue || 0,
+            metroCityBreakdown: prospect.metroCityBreakdown || [],
+            metroIdentityConfirmed: Boolean(
+              prospect.metroIdentityConfirmed,
+            ),
             longestHeldYears: prospect.longestHeldYears ?? null,
             mostRecentPurchaseYears: prospect.mostRecentPurchaseYears ?? null,
             cityBreakdown: prospect.cityBreakdown || [],
