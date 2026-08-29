@@ -181,7 +181,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
       const confirmed = window.confirm(
         "Save all " +
           data.total +
-          " filtered owners to Saved Prospects? This does not add them to the main CRM.",
+          " returned owners to Saved Prospects? This does not add them to the main CRM.",
       );
 
       if (!confirmed) return;
@@ -411,11 +411,11 @@ export default function PropertyOwnerSearch({ onSaved }) {
               }
               title={
                 data.total > 250
-                  ? "Refine to 250 or fewer owners before using Add All Filtered."
+                  ? "Set Max Results to 250 or fewer before using Add All Returned."
                   : ""
               }
             >
-              Add All Filtered
+              Add All Returned
             </button>
           </div>
         </div>
