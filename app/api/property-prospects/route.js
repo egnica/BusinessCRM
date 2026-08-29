@@ -6,6 +6,10 @@ export const dynamic = "force-dynamic";
 
 const MAX_SAVE_FILTERED = 250;
 
+function escapeRegex(value) {
+  return String(value || "").replace(/[.*+?^$\{\}()|[\]\\]/g, "\\$&");
+}
+
 function serializeProspect(prospect) {
   return {
     ...prospect,
@@ -43,21 +47,49 @@ async function saveProspects(prospects, filters) {
   const db = client.db("crm");
   const collection = db.collection("propertyProspects");
   const keys = prospects.map((prospect) => prospect.propertyOutreachKey);
+  const parcelIds = prospects.flatMap((prospect) =>
+    (prospect.properties || [])
+      .map((property) => property.parcelId)
+      .filter(Boolean),
+  );
 
   const existingProspects = await collection
-    .find({ propertyOutreachKey: { $in: keys } })
+    .find({
+      $or: [
+        { propertyOutreachKey: { $in: keys } },
+        { propertyOutreachAliases: { $in: keys } },
+        { "properties.parcelId": { $in: parcelIds } },
+      ],
+    })
     .toArray();
 
-  const existingByKey = new Map(
-    existingProspects.map((prospect) => [
-      prospect.propertyOutreachKey,
-      prospect,
-    ]),
-  );
+  const existingByKey = new Map();
+  const existingByParcel = new Map();
+
+  for (const prospect of existingProspects) {
+    if (prospect.propertyOutreachKey) {
+      existingByKey.set(prospect.propertyOutreachKey, prospect);
+    }
+
+    for (const alias of prospect.propertyOutreachAliases || []) {
+      existingByKey.set(alias, prospect);
+    }
+
+    for (const property of prospect.properties || []) {
+      if (property.parcelId) {
+        existingByParcel.set(property.parcelId, prospect);
+      }
+    }
+  }
 
   const now = new Date().toISOString();
   const operations = prospects.map((prospect) => {
-    const existing = existingByKey.get(prospect.propertyOutreachKey);
+    const existing =
+      existingByKey.get(prospect.propertyOutreachKey) ||
+      (prospect.properties || [])
+        .map((property) => existingByParcel.get(property.parcelId))
+        .find(Boolean);
+
     const properties = mergeProperties(
       existing?.properties || [],
       prospect.properties || [],
@@ -84,11 +116,26 @@ async function saveProspects(prospects, filters) {
         ? existing.mailingAddress
         : prospect.mailingAddress;
 
+    const aliases = [
+      ...new Set([
+        ...(existing?.propertyOutreachAliases || []),
+        existing?.propertyOutreachKey,
+        prospect.propertyOutreachKey,
+      ].filter(Boolean)),
+    ];
+
+    const canonicalKey =
+      existing?.propertyOutreachKey || prospect.propertyOutreachKey;
+
     return {
       updateOne: {
-        filter: { propertyOutreachKey: prospect.propertyOutreachKey },
+        filter: existing
+          ? { _id: existing._id }
+          : { propertyOutreachKey: canonicalKey },
         update: {
           $set: {
+            propertyOutreachKey: canonicalKey,
+            propertyOutreachAliases: aliases,
             ownerNameRaw: prospect.ownerNameRaw,
             ownerMoreRaw: prospect.ownerMoreRaw,
             ownerType: prospect.ownerType,
@@ -151,12 +198,13 @@ export async function GET(request) {
     }
 
     if (query) {
+      const safeQuery = escapeRegex(query);
       filter.$or = [
-        { ownerNameRaw: { $regex: query, $options: "i" } },
-        { ownerMoreRaw: { $regex: query, $options: "i" } },
-        { "primaryProperty.street1": { $regex: query, $options: "i" } },
-        { "primaryProperty.city": { $regex: query, $options: "i" } },
-        { "properties.street1": { $regex: query, $options: "i" } },
+        { ownerNameRaw: { $regex: safeQuery, $options: "i" } },
+        { ownerMoreRaw: { $regex: safeQuery, $options: "i" } },
+        { "primaryProperty.street1": { $regex: safeQuery, $options: "i" } },
+        { "primaryProperty.city": { $regex: safeQuery, $options: "i" } },
+        { "properties.street1": { $regex: safeQuery, $options: "i" } },
       ];
     }
 
@@ -201,7 +249,7 @@ export async function POST(request) {
 
     const result = await searchPropertyOwners(filters, {
       paginate: false,
-      maxOwners: 5000,
+      maxOwners: 30000,
     });
 
     let prospects = result.prospects;
