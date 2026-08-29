@@ -8,7 +8,6 @@ function readFilters(searchParams) {
   return {
     minProperties: searchParams.get("minProperties"),
     maxProperties: searchParams.get("maxProperties"),
-    ownerTypes: searchParams.get("ownerTypes"),
     city: searchParams.get("city") || "",
   };
 }
