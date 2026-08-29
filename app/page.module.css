@@ -1630,8 +1630,13 @@
 
 .propertyFilterGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
+  align-items: end;
+}
+
+.propertyFilterGridLimited {
+  grid-template-columns: minmax(260px, 420px);
 }
 
 .propertyFilterField {
@@ -1669,24 +1674,6 @@
   outline: none;
   border-color: #84adff;
   box-shadow: 0 0 0 3px rgba(21, 112, 239, 0.12);
-}
-
-.propertyPortfolioRange {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.propertyPortfolioRange label {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.propertyPortfolioRange small {
-  color: #667085;
-  font-size: 0.7rem;
-  font-weight: 700;
 }
 
 .propertyOwnerTypeFilter {
@@ -1796,10 +1783,22 @@
   padding: 14px;
 }
 
+.propertyFilterUnavailable {
+  max-width: 760px;
+  margin-top: 16px;
+  padding: 11px 13px;
+  border: 1px solid #e4e7ec;
+  border-radius: 9px;
+  background: #f9fafb;
+  color: #667085;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
 .propertySearchActions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 18px;
+  margin-top: 20px;
 }
 
 .propertyBulkActions {
