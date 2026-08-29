@@ -26,6 +26,14 @@ function propertyAddress(property) {
     .join(" ");
 }
 
+function cityBreakdownLabel(items = []) {
+  if (!items.length) return "";
+
+  return items
+    .map((item) => `${item.city} ${item.count}`)
+    .join(" · ");
+}
+
 export default function PropertyProspectPanel({
   prospect,
   onClose,
@@ -84,6 +92,38 @@ export default function PropertyProspectPanel({
     }
   }
 
+  async function handleMetroLookup() {
+    setWorking(true);
+    setMessage("");
+
+    try {
+      const res = await fetch(
+        `/api/property-prospects/${prospect._id}/metro-lookup`,
+        { method: "POST" },
+      );
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMessage(
+          data.details || data.error || "Could not check metro properties.",
+        );
+        return;
+      }
+
+      setMessage(
+        `Metro check complete: ${data.metroLookup.confirmedPropertyCount} confirmed properties found` +
+          (data.metroLookup.possibleMatchCount
+            ? ` · ${data.metroLookup.possibleMatchCount} possible match${data.metroLookup.possibleMatchCount === 1 ? "" : "es"} to review.`
+            : "."),
+      );
+      onUpdated?.(data.prospect);
+    } catch {
+      setMessage("Could not check metro properties.");
+    } finally {
+      setWorking(false);
+    }
+  }
+
   async function handlePromote() {
     if (prospect.crmContactId) return;
 
@@ -114,7 +154,9 @@ export default function PropertyProspectPanel({
       const savedData = await saveRes.json();
 
       if (!saveRes.ok) {
-        setMessage(savedData.error || "Could not save prospect before CRM promotion.");
+        setMessage(
+          savedData.error || "Could not save prospect before CRM promotion.",
+        );
         return;
       }
 
@@ -153,6 +195,18 @@ export default function PropertyProspectPanel({
     prospect.primaryProperty ||
     prospect.properties?.[0];
 
+  const searchCity =
+    prospect.searchCity ||
+    selectedProperty?.municipality ||
+    selectedProperty?.city ||
+    "Search city";
+  const cityPropertyCount =
+    prospect.cityPropertyCount ||
+    prospect.propertyCount ||
+    prospect.properties?.length ||
+    0;
+  const metroLookup = prospect.metroLookup || null;
+
   return (
     <>
       <div
@@ -171,15 +225,9 @@ export default function PropertyProspectPanel({
               <p className={styles.eyebrow}>Saved property prospect</p>
               <h3>{prospect.ownerNameRaw}</h3>
               <p className={styles.panelSubtitle}>
-                {prospect.ownerType === "llc"
-                  ? "LLC / Entity"
-                  : prospect.ownerType === "couple"
-                    ? "Couple"
-                    : prospect.ownerType === "individual"
-                      ? "Individual"
-                      : "Owner"}
-                {prospect.propertyCount > 1
-                  ? ` · ${prospect.propertyCount} properties`
+                {cityPropertyCount} in {searchCity}
+                {metroLookup
+                  ? ` · ${metroLookup.confirmedPropertyCount} confirmed metro`
                   : ""}
               </p>
             </div>
@@ -201,7 +249,10 @@ export default function PropertyProspectPanel({
           <section className={styles.panelSection}>
             <div className={styles.panelSectionHeader}>
               <h4>Prospect Status</h4>
-              <p>Keep the working prospect list organized without moving it into the main CRM.</p>
+              <p>
+                Keep the working prospect list organized without moving it into
+                the main CRM.
+              </p>
             </div>
 
             <div className={styles.customerPanelGrid}>
@@ -230,7 +281,10 @@ export default function PropertyProspectPanel({
           <section className={styles.panelSection}>
             <div className={styles.panelSectionHeader}>
               <h4>Target Property</h4>
-              <p>Choose which property this outreach record should primarily reference.</p>
+              <p>
+                Choose which {searchCity} property this outreach record should
+                primarily reference.
+              </p>
             </div>
 
             <label className={styles.customerPanelField}>
@@ -240,7 +294,10 @@ export default function PropertyProspectPanel({
                 onChange={(event) => setPrimaryParcelId(event.target.value)}
               >
                 {(prospect.properties || []).map((property) => (
-                  <option value={property.parcelId} key={property.parcelId}>
+                  <option
+                    value={property.parcelId}
+                    key={property.parcelKey || property.parcelId}
+                  >
                     {propertyAddress(property)}
                   </option>
                 ))}
@@ -280,18 +337,21 @@ export default function PropertyProspectPanel({
             )}
           </section>
 
-          {(prospect.properties || []).length > 1 && (
+          {(prospect.properties || []).length > 0 && (
             <section className={styles.panelSection}>
               <div className={styles.panelSectionHeader}>
-                <h4>Matching Properties</h4>
-                <p>Other qualifying parcels associated with this owner in the saved research.</p>
+                <h4>{searchCity} Properties</h4>
+                <p>
+                  These are the parcels used for the original city-based owner
+                  count.
+                </p>
               </div>
 
               <div className={styles.propertyPortfolio}>
                 {(prospect.properties || []).map((property) => (
                   <div
                     className={styles.propertyPortfolioRow}
-                    key={property.parcelId}
+                    key={property.parcelKey || property.parcelId}
                   >
                     <div>
                       <strong>{propertyAddress(property)}</strong>
@@ -318,8 +378,152 @@ export default function PropertyProspectPanel({
 
           <section className={styles.panelSection}>
             <div className={styles.panelSectionHeader}>
+              <h4>Metro Portfolio Check</h4>
+              <p>
+                Search all seven counties for this specific saved owner. Only
+                same-name parcels with a matching mailing address are added to
+                the confirmed count.
+              </p>
+            </div>
+
+            <div className={styles.propertyProspectActions}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={handleMetroLookup}
+                disabled={working}
+              >
+                {working
+                  ? "Checking Metro…"
+                  : metroLookup
+                    ? "Refresh Metro Check"
+                    : "Check Metro Properties"}
+              </button>
+            </div>
+
+            {!metroLookup ? (
+              <p className={styles.propertyLookupNote}>
+                Same-name records with a different or missing mailing address
+                will be shown as possible matches instead of being counted
+                automatically.
+              </p>
+            ) : (
+              <>
+                <div className={styles.propertyMetroSummary}>
+                  <div>
+                    <strong>{cityPropertyCount}</strong>
+                    <span>{searchCity} properties</span>
+                  </div>
+                  <div>
+                    <strong>{metroLookup.confirmedPropertyCount}</strong>
+                    <span>confirmed metro properties</span>
+                  </div>
+                  <div>
+                    <strong>{metroLookup.possibleMatchCount}</strong>
+                    <span>possible matches to review</span>
+                  </div>
+                </div>
+
+                {metroLookup.confirmedCityBreakdown?.length > 0 && (
+                  <div className={styles.propertyMetroBreakdown}>
+                    {metroLookup.confirmedCityBreakdown.map((item) => (
+                      <span key={item.city}>
+                        {item.city} {item.count}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {metroLookup.additionalConfirmedProperties?.length > 0 && (
+                  <>
+                    <div className={styles.panelSectionHeader}>
+                      <h4>Confirmed Additional Properties</h4>
+                      <p>
+                        Exact owner name and matching saved mailing address.
+                      </p>
+                    </div>
+                    <div className={styles.propertyPortfolio}>
+                      {metroLookup.additionalConfirmedProperties.map(
+                        (property) => (
+                          <div
+                            className={styles.propertyPortfolioRow}
+                            key={property.parcelKey}
+                          >
+                            <div>
+                              <strong>{propertyAddress(property)}</strong>
+                              <span>
+                                {property.municipality || property.county}
+                              </span>
+                            </div>
+                            <div>
+                              <span>{property.matchReason}</span>
+                              <small>
+                                {formatMoney(property.assessedValue)}
+                              </small>
+                            </div>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {metroLookup.possibleProperties?.length > 0 && (
+                  <>
+                    <div className={styles.panelSectionHeader}>
+                      <h4>Possible Matches</h4>
+                      <p>
+                        These are not included in the confirmed metro count.
+                      </p>
+                    </div>
+                    <div className={styles.propertyPortfolio}>
+                      {metroLookup.possibleProperties.map((property) => (
+                        <div
+                          className={
+                            styles.propertyPortfolioRow +
+                            " " +
+                            styles.propertyPossibleMatch
+                          }
+                          key={property.parcelKey}
+                        >
+                          <div>
+                            <strong>{propertyAddress(property)}</strong>
+                            <span>
+                              {property.municipality || property.county}
+                            </span>
+                          </div>
+                          <div>
+                            <span>{property.matchReason}</span>
+                            <small>
+                              Mailing:{" "}
+                              {property.candidateMailingLocation || "unknown"}
+                            </small>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                <p className={styles.propertyLookupNote}>
+                  Last checked{" "}
+                  {metroLookup.checkedAt
+                    ? new Date(metroLookup.checkedAt).toLocaleString()
+                    : "recently"}
+                  . This reports MetroGIS parcels found and matched, not a
+                  guaranteed complete ownership total.
+                </p>
+              </>
+            )}
+          </section>
+
+          <section className={styles.panelSection}>
+            <div className={styles.panelSectionHeader}>
               <h4>Owner Mailing Address</h4>
-              <p>Public parcel mailing information saved only for owners you intentionally selected.</p>
+              <p>
+                This saved mailing address is also the identity check used for
+                confirmed metro matches.
+              </p>
             </div>
 
             <div className={styles.propertyMailAddress}>
@@ -332,7 +536,10 @@ export default function PropertyProspectPanel({
                   <span key={line}>{line}</span>
                 ))
               ) : (
-                <span>No mailing address available in the parcel record.</span>
+                <span>
+                  No mailing address available. Metro same-name results will
+                  remain possible matches rather than being auto-confirmed.
+                </span>
               )}
             </div>
           </section>
@@ -340,7 +547,10 @@ export default function PropertyProspectPanel({
           <section className={styles.panelSection}>
             <div className={styles.panelSectionHeader}>
               <h4>Notes</h4>
-              <p>Add research or context before deciding whether to contact the owner.</p>
+              <p>
+                Add research or context before deciding whether to contact the
+                owner.
+              </p>
             </div>
 
             <label className={styles.customerPanelField}>
@@ -357,7 +567,10 @@ export default function PropertyProspectPanel({
           <section className={styles.panelSection}>
             <div className={styles.panelSectionHeader}>
               <h4>Actions</h4>
-              <p>Physical mail will be enabled in Phase 2 after PostGrid is connected.</p>
+              <p>
+                Physical mail will be enabled in Phase 2 after PostGrid is
+                connected.
+              </p>
             </div>
 
             <div className={styles.propertyProspectActions}>
