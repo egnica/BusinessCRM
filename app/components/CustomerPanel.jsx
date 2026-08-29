@@ -38,9 +38,10 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
     const personName =
       `${customerSelected.firstName || ""} ${customerSelected.lastName || ""}`.trim();
     const name =
-      customerSelected.ownerType === "llc" && customerSelected.company?.name
+      customerSelected.ownerNameRaw ||
+      (customerSelected.ownerType === "llc" && customerSelected.company?.name
         ? customerSelected.company.name
-        : personName || customerSelected.company?.name || "this contact";
+        : personName || customerSelected.company?.name || "this contact");
 
     const confirmed = window.confirm(
       `Delete ${name}? This cannot be undone.`,
