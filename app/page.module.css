@@ -1614,6 +1614,14 @@
   letter-spacing: -0.02em;
 }
 
+.propertyFilterHeading p:not(.eyebrow) {
+  margin: 6px 0 0;
+  max-width: 720px;
+  color: #667085;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
 .propertyResultsHeading p {
   margin: 6px 0 0;
   color: #667085;
@@ -1804,7 +1812,7 @@
 .propertyResultRow {
   min-width: 1080px;
   display: grid;
-  grid-template-columns: 44px 1.25fr 1.65fr 0.45fr 0.5fr 0.55fr 0.75fr 0.65fr;
+  grid-template-columns: 44px 1.35fr 0.6fr 0.65fr 1.5fr 0.75fr 0.9fr 0.65fr;
   gap: 14px;
   align-items: center;
 }
