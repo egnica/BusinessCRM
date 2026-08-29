@@ -29,11 +29,7 @@ function statusLabel(value) {
 }
 
 function mailingName(prospect) {
-  return (
-    prospect.taxNameRaw ||
-    prospect.mailingAddress?.recipientName ||
-    "—"
-  );
+  return prospect.mailingContactName || "—";
 }
 
 export default function PropertyProspectList({
