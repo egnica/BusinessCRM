@@ -38,37 +38,83 @@ async function addSavedState(prospects) {
   const client = await clientPromise;
   const db = client.db("crm");
   const keys = prospects.map((prospect) => prospect.propertyOutreachKey);
+  const parcelIds = prospects.flatMap((prospect) =>
+    (prospect.properties || [])
+      .map((property) => property.parcelId)
+      .filter(Boolean),
+  );
+
+  const lookup = {
+    $or: [
+      { propertyOutreachKey: { $in: keys } },
+      { propertyOutreachAliases: { $in: keys } },
+      { "properties.parcelId": { $in: parcelIds } },
+    ],
+  };
 
   const [savedProspects, crmContacts] = await Promise.all([
     db
       .collection("propertyProspects")
-      .find(
-        { propertyOutreachKey: { $in: keys } },
-        { projection: { propertyOutreachKey: 1, crmContactId: 1 } },
-      )
+      .find(lookup, {
+        projection: {
+          propertyOutreachKey: 1,
+          propertyOutreachAliases: 1,
+          properties: 1,
+          crmContactId: 1,
+        },
+      })
       .toArray(),
     db
       .collection("contacts")
-      .find(
-        { propertyOutreachKey: { $in: keys } },
-        { projection: { propertyOutreachKey: 1, _id: 1 } },
-      )
+      .find(lookup, {
+        projection: {
+          propertyOutreachKey: 1,
+          propertyOutreachAliases: 1,
+          properties: 1,
+          _id: 1,
+        },
+      })
       .toArray(),
   ]);
 
-  const savedByKey = new Map(
-    savedProspects.map((prospect) => [
-      prospect.propertyOutreachKey,
-      prospect,
-    ]),
-  );
-  const crmByKey = new Map(
-    crmContacts.map((contact) => [contact.propertyOutreachKey, contact]),
-  );
+  function buildMaps(records) {
+    const byKey = new Map();
+    const byParcel = new Map();
+
+    for (const record of records) {
+      if (record.propertyOutreachKey) {
+        byKey.set(record.propertyOutreachKey, record);
+      }
+
+      for (const alias of record.propertyOutreachAliases || []) {
+        byKey.set(alias, record);
+      }
+
+      for (const property of record.properties || []) {
+        if (property.parcelId) {
+          byParcel.set(property.parcelId, record);
+        }
+      }
+    }
+
+    return { byKey, byParcel };
+  }
+
+  const savedMaps = buildMaps(savedProspects);
+  const crmMaps = buildMaps(crmContacts);
 
   return prospects.map((prospect) => {
-    const saved = savedByKey.get(prospect.propertyOutreachKey);
-    const crm = crmByKey.get(prospect.propertyOutreachKey);
+    const saved =
+      savedMaps.byKey.get(prospect.propertyOutreachKey) ||
+      (prospect.properties || [])
+        .map((property) => savedMaps.byParcel.get(property.parcelId))
+        .find(Boolean);
+
+    const crm =
+      crmMaps.byKey.get(prospect.propertyOutreachKey) ||
+      (prospect.properties || [])
+        .map((property) => crmMaps.byParcel.get(property.parcelId))
+        .find(Boolean);
 
     return {
       ...prospect,
