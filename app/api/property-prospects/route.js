@@ -1,5 +1,8 @@
 import clientPromise from "@/lib/mongodb";
-import { searchPropertyOwners } from "@/lib/propertyOwnerSearch";
+import {
+  getMailingContactName,
+  searchPropertyOwners,
+} from "@/lib/propertyOwnerSearch";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,6 +16,7 @@ function escapeRegex(value) {
 function serializeProspect(prospect) {
   return {
     ...prospect,
+    mailingContactName: getMailingContactName(prospect),
     _id: prospect._id?.toString?.() || prospect._id,
     crmContactId:
       prospect.crmContactId?.toString?.() || prospect.crmContactId || "",
@@ -151,8 +155,15 @@ async function saveProspects(prospects, filters) {
             taxNameRaw:
               prospect.taxNameRaw ||
               existing?.taxNameRaw ||
-              mailingAddress?.recipientName ||
               "",
+            mailingContactName: getMailingContactName({
+              mailingContactName: prospect.mailingContactName,
+              taxNameRaw:
+                prospect.taxNameRaw ||
+                existing?.taxNameRaw ||
+                "",
+              mailingAddress,
+            }),
             ownerType: prospect.ownerType,
             coOwnerName: prospect.coOwnerName || "",
             mailingAddress,
