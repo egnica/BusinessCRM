@@ -28,6 +28,21 @@ function statusLabel(value) {
   return "New";
 }
 
+function mailingName(prospect) {
+  const name =
+    prospect.taxNameRaw ||
+    prospect.mailingAddress?.recipientName ||
+    "";
+  const owner = prospect.ownerNameRaw || "";
+
+  if (!name) return "—";
+  if (name.trim().toLowerCase() === owner.trim().toLowerCase()) {
+    return "—";
+  }
+
+  return name;
+}
+
 export default function PropertyProspectList({
   refreshKey,
   onSelect,
@@ -231,6 +246,7 @@ export default function PropertyProspectList({
             />
           </span>
           <span>Owner</span>
+          <span>Mailing Name</span>
           <span>Target Property</span>
           <span>Portfolio</span>
           <span>Status</span>
@@ -259,6 +275,8 @@ export default function PropertyProspectList({
                 <strong>{prospect.ownerNameRaw}</strong>
                 <span>{ownerTypeLabel(prospect.ownerType)}</span>
               </button>
+
+              <span>{mailingName(prospect)}</span>
 
               <div>
                 <strong>{propertyAddress(prospect.primaryProperty)}</strong>
