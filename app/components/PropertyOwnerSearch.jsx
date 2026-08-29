@@ -94,7 +94,11 @@ export default function PropertyOwnerSearch({ onSaved }) {
         { cache: "no-store" },
       );
       const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Could not load cities.");
+      if (!res.ok) {
+        throw new Error(
+          result.details || result.error || "Could not load cities.",
+        );
+      }
       setCounties(result.counties || ["Hennepin"]);
       setCities(result.cities || []);
     } catch (error) {
@@ -137,6 +141,13 @@ export default function PropertyOwnerSearch({ onSaved }) {
       setHasSearched(true);
     } catch (error) {
       setHasSearched(true);
+      setData({
+        prospects: [],
+        total: 0,
+        page: 1,
+        totalPages: 1,
+        sourcePropertyCount: 0,
+      });
       setMessage(error.message || "Property owner search failed.");
     } finally {
       setSearchLoading(false);
@@ -572,7 +583,13 @@ export default function PropertyOwnerSearch({ onSaved }) {
           </div>
         </div>
 
-        {message && (
+        {searchLoading && (
+          <p className={styles.newsletterStatus}>
+            Searching MetroGIS parcel records with your selected filters…
+          </p>
+        )}
+
+        {!searchLoading && message && (
           <p className={styles.newsletterStatus}>{message}</p>
         )}
 
