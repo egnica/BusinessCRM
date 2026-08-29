@@ -397,7 +397,7 @@ export default function PropertyOwnerSearch({ onSaved }) {
 
         {searchLoading && (
           <p className={styles.newsletterStatus}>
-            Grouping residential ownership across the Twin Cities metro…
+            Grouping property ownership across the Twin Cities metro…
           </p>
         )}
 
