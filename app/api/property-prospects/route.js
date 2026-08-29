@@ -19,36 +19,6 @@ function serializeProspect(prospect) {
   };
 }
 
-function mergeProperties(existing = [], incoming = []) {
-  const byParcel = new Map();
-
-  for (const property of [...existing, ...incoming]) {
-    if (!property?.parcelId) continue;
-
-    const parcelKey =
-      property.parcelKey ||
-      (property.county
-        ? `${property.county}:${property.parcelId}`
-        : property.parcelId);
-
-    byParcel.set(parcelKey, {
-      ...property,
-      parcelKey,
-    });
-  }
-
-  return [...byParcel.values()].sort((a, b) => {
-    const yearsA = a.ownershipYears ?? -1;
-    const yearsB = b.ownershipYears ?? -1;
-
-    if (yearsB !== yearsA) return yearsB - yearsA;
-
-    const scoreA = Number(a.prospectScore) || 0;
-    const scoreB = Number(b.prospectScore) || 0;
-    return scoreB - scoreA;
-  });
-}
-
 async function saveProspects(prospects, filters) {
   if (!prospects.length) {
     return {
@@ -124,10 +94,16 @@ async function saveProspects(prospects, filters) {
         )
         .find(Boolean);
 
-    const properties = mergeProperties(
-      existing?.properties || [],
-      prospect.properties || [],
-    );
+    const properties = (prospect.properties || [])
+      .filter((property) => property?.parcelId)
+      .map((property) => ({
+        ...property,
+        parcelKey:
+          property.parcelKey ||
+          (property.county
+            ? `${property.county}:${property.parcelId}`
+            : property.parcelId),
+      }));
 
     const currentPrimaryParcelId =
       existing?.primaryParcelId &&
@@ -175,10 +151,18 @@ async function saveProspects(prospects, filters) {
             ownerType: prospect.ownerType,
             coOwnerName: prospect.coOwnerName || "",
             mailingAddress,
+            searchCity: prospect.searchCity || filters.city || "",
+            cityPropertyCount:
+              prospect.cityPropertyCount ||
+              prospect.propertyCount ||
+              properties.length,
             properties,
-            propertyCount: prospect.propertyCount || properties.length,
-            totalUnits: prospect.totalUnits || 0,
-            knownUnitPropertyCount: prospect.knownUnitPropertyCount || 0,
+            propertyCount:
+              prospect.cityPropertyCount ||
+              prospect.propertyCount ||
+              properties.length,
+            totalUnits: 0,
+            knownUnitPropertyCount: 0,
             totalAssessedValue: prospect.totalAssessedValue || 0,
             longestHeldYears: prospect.longestHeldYears ?? null,
             mostRecentPurchaseYears: prospect.mostRecentPurchaseYears ?? null,
@@ -186,7 +170,6 @@ async function saveProspects(prospects, filters) {
             locations: prospect.locations || [],
             counties: prospect.counties || [],
             mailingLocation: prospect.mailingLocation || "",
-            ownsInMinneapolis: Boolean(prospect.ownsInMinneapolis),
             mailingInMinneapolis: Boolean(prospect.mailingInMinneapolis),
             primaryParcelId: currentPrimaryParcelId,
             primaryProperty,
