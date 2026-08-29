@@ -8,6 +8,7 @@ const DEFAULT_FILTERS = {
   minProperties: "2",
   maxProperties: "8",
   maxResults: "100",
+  onlyWithMailingName: false,
 };
 
 function formatMoney(value) {
@@ -27,6 +28,7 @@ function buildSearchParams(filters, page) {
     minProperties: filters.minProperties,
     maxProperties: filters.maxProperties,
     maxResults: filters.maxResults,
+    onlyWithMailingName: String(Boolean(filters.onlyWithMailingName)),
     page: String(page),
     pageSize: "25",
   });
@@ -356,6 +358,21 @@ export default function PropertyOwnerSearch({ onSaved }) {
           </label>
         </div>
 
+        <label className={styles.propertyNameOnlyFilter}>
+          <input
+            type="checkbox"
+            checked={filters.onlyWithMailingName}
+            onChange={(event) =>
+              setFilters((current) => ({
+                ...current,
+                onlyWithMailingName: event.target.checked,
+              }))
+            }
+            disabled={searchLoading}
+          />
+          <span>Only show owners with a person name attached</span>
+        </label>
+
         <div className={styles.propertySearchActions}>
           <button
             type="button"
@@ -433,6 +450,9 @@ export default function PropertyOwnerSearch({ onSaved }) {
             <span>
               {data.matchedPropertyCount.toLocaleString("en-US")} properties
               represented in {cityLabel} · max {appliedFilters.maxResults} owners
+              {appliedFilters.onlyWithMailingName
+                ? " · person name required"
+                : ""}
             </span>
             {data.total > 250 && (
               <span>
