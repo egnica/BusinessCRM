@@ -17,7 +17,8 @@ function propertyAddress(property) {
 function ownerTypeLabel(value) {
   if (value === "llc") return "LLC / Entity";
   if (value === "couple") return "Couple";
-  return "Individual";
+  if (value === "individual") return "Individual";
+  return "Owner";
 }
 
 function statusLabel(value) {
