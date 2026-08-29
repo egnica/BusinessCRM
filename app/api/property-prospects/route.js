@@ -1,3 +1,4 @@
+import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import {
   getMailingContactName,
@@ -351,6 +352,46 @@ export async function POST(request) {
     return Response.json(
       {
         error: "Failed to save property prospects",
+        details: error.message,
+      },
+      { status: 500 },
+    );
+  }
+}
+
+
+export async function DELETE(request) {
+  try {
+    const body = await request.json();
+    const ids = Array.isArray(body.ids)
+      ? [...new Set(body.ids.filter((id) => ObjectId.isValid(id)))]
+      : [];
+
+    if (!ids.length) {
+      return Response.json(
+        { error: "Select at least one saved prospect to delete" },
+        { status: 400 },
+      );
+    }
+
+    const client = await clientPromise;
+    const db = client.db("crm");
+    const result = await db
+      .collection("propertyProspects")
+      .deleteMany({
+        _id: { $in: ids.map((id) => new ObjectId(id)) },
+      });
+
+    return Response.json({
+      deletedCount: result.deletedCount || 0,
+      requestedCount: ids.length,
+    });
+  } catch (error) {
+    console.error("Property prospects bulk delete error:", error);
+
+    return Response.json(
+      {
+        error: "Failed to delete saved property prospects",
         details: error.message,
       },
       { status: 500 },
