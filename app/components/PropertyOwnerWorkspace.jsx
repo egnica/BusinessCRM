@@ -25,6 +25,14 @@ export default function PropertyOwnerWorkspace({
     setSavedRefreshKey((value) => value + 1);
   }
 
+  function handleMailed(updatedProspect) {
+    setLetterProspect(updatedProspect);
+    setSelectedProspect((current) =>
+      current?._id === updatedProspect?._id ? updatedProspect : current,
+    );
+    setSavedRefreshKey((value) => value + 1);
+  }
+
   function handlePromoted(prospectId, contactId) {
     setSelectedProspect((current) =>
       current?._id === prospectId
@@ -98,6 +106,7 @@ export default function PropertyOwnerWorkspace({
         <LetterComposerModal
           prospect={letterProspect}
           onClose={() => setLetterProspect(null)}
+          onMailed={handleMailed}
         />
       )}
     </main>
