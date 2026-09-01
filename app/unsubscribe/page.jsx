@@ -1,13 +1,15 @@
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import { verifyUnsubscribeToken } from "@/lib/unsubscribe";
+import UnsubscribeForm from "./UnsubscribeForm";
 import styles from "./unsubscribe.module.css";
 
 export const dynamic = "force-dynamic";
 
 export default async function UnsubscribePage({ searchParams }) {
   const params = await searchParams;
-  const decoded = verifyUnsubscribeToken(params?.token);
+  const token = params?.token || "";
+  const decoded = verifyUnsubscribeToken(token);
 
   if (
     !decoded ||
@@ -17,8 +19,9 @@ export default async function UnsubscribePage({ searchParams }) {
     return (
       <main className={styles.page}>
         <section className={styles.card}>
+          <p className={styles.eyebrow}>Email preferences</p>
           <h1>Unable to unsubscribe</h1>
-          <p>This unsubscribe link is invalid or has expired.</p>
+          <p>This unsubscribe link is invalid.</p>
         </section>
       </main>
     );
@@ -26,16 +29,15 @@ export default async function UnsubscribePage({ searchParams }) {
 
   const client = await clientPromise;
   const db = client.db("crm");
-  const contactId = new ObjectId(decoded.contactId);
-  const sendId = new ObjectId(decoded.sendId);
-  const now = new Date();
-
-  const contact = await db.collection("contacts").findOne({ _id: contactId });
+  const contact = await db.collection("contacts").findOne({
+    _id: new ObjectId(decoded.contactId),
+  });
 
   if (!contact) {
     return (
       <main className={styles.page}>
         <section className={styles.card}>
+          <p className={styles.eyebrow}>Email preferences</p>
           <h1>Unable to unsubscribe</h1>
           <p>We could not find this contact.</p>
         </section>
@@ -43,51 +45,24 @@ export default async function UnsubscribePage({ searchParams }) {
     );
   }
 
-  await db.collection("contacts").updateOne(
-    { _id: contactId },
-    {
-      $set: {
-        emailStatus: "unsubscribed",
-        unsubscribedAt: now,
-        updatedAt: now,
-      },
-    },
-  );
-
-  const recipientUpdate = await db.collection("newsletterRecipients").updateOne(
-    {
-      sendId,
-      contactId,
-      unsubscribedAt: null,
-    },
-    {
-      $set: {
-        status: "unsubscribed",
-        unsubscribedAt: now,
-        updatedAt: now,
-      },
-    },
-  );
-
-  if (recipientUpdate.modifiedCount > 0) {
-    await db.collection("newsletterSends").updateOne(
-      { _id: sendId },
-      {
-        $inc: { unsubscribeCount: 1 },
-        $set: { updatedAt: now },
-      },
-    );
-  }
-
   return (
     <main className={styles.page}>
       <section className={styles.card}>
-        <p className={styles.eyebrow}>Email preferences</p>
-        <h1>You’re unsubscribed.</h1>
-        <p>
-          {contact.firstName ? `${contact.firstName}, you` : "You"} will no longer
-          receive newsletter emails from this list.
-        </p>
+        {contact.emailStatus === "unsubscribed" ? (
+          <>
+            <p className={styles.eyebrow}>Email preferences</p>
+            <h1>You’re already unsubscribed.</h1>
+            <p>
+              {contact.firstName ? `${contact.firstName}, you` : "You"} will
+              not receive newsletter emails from this list.
+            </p>
+          </>
+        ) : (
+          <UnsubscribeForm
+            token={token}
+            firstName={contact.firstName || ""}
+          />
+        )}
       </section>
     </main>
   );
