@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { copyPropertyProspectAiContext } from "@/lib/propertyProspectAiContext";
 import styles from "../page.module.css";
 
 function formatMoney(value) {
@@ -122,6 +123,33 @@ export default function PropertyProspectPanel({
       setMessage("Could not check metro properties.");
     } finally {
       setWorking(false);
+    }
+  }
+
+  async function handleCopyAiContext() {
+    setMessage("");
+
+    const selectedProperty =
+      (prospect.properties || []).find(
+        (property) => property.parcelId === primaryParcelId,
+      ) ||
+      prospect.primaryProperty ||
+      prospect.properties?.[0];
+
+    const aiProspect = {
+      ...prospect,
+      notes,
+      primaryParcelId,
+      primaryProperty: selectedProperty,
+    };
+
+    try {
+      await copyPropertyProspectAiContext(aiProspect);
+      setMessage(
+        "AI context copied. Paste it into a chat to draft this owner's letter.",
+      );
+    } catch {
+      setMessage("Could not copy AI context to the clipboard.");
     }
   }
 
@@ -586,6 +614,15 @@ export default function PropertyProspectPanel({
                 disabled={working}
               >
                 Send Letter
+              </button>
+
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={handleCopyAiContext}
+                disabled={working}
+              >
+                Copy AI Context
               </button>
 
               <button
