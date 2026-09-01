@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,17 @@ function buildLetterHtml(bodyHtml) {
     "</div>",
     "</html>",
   ].join("");
+}
+
+function createProofHash({ prospectId, to, from, bodyHtml }) {
+  const payload = JSON.stringify({
+    prospectId: clean(prospectId),
+    to,
+    from,
+    bodyHtml: clean(bodyHtml),
+  });
+
+  return createHash("sha256").update(payload).digest("hex");
 }
 
 function authHeader(apiKey) {
@@ -194,6 +206,12 @@ export async function POST(request) {
     }
 
     const finalHtml = buildLetterHtml(submittedBodyHtml);
+    const proofHash = createProofHash({
+      prospectId: body.prospectId,
+      to,
+      from,
+      bodyHtml: submittedBodyHtml,
+    });
 
     if (finalHtml.length > 10000) {
       return Response.json(
@@ -220,6 +238,7 @@ export async function POST(request) {
       metadata: {
         source: "crm_property_owner",
         prospect_id: clean(body.prospectId).slice(0, 500),
+        proof_hash: proofHash,
       },
     };
 
@@ -236,6 +255,7 @@ export async function POST(request) {
     return Response.json({
       letterId: created.id,
       status: created.status,
+      proofHash,
       testMode: true,
     });
   } catch (error) {
