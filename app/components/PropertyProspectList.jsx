@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { copyPropertyProspectAiContext } from "@/lib/propertyProspectAiContext";
 import styles from "../page.module.css";
 
 function propertyAddress(property) {
@@ -112,6 +113,21 @@ export default function PropertyProspectList({
 
       return next;
     });
+  }
+
+  async function copyAiContext(prospect) {
+    setMessage("");
+
+    try {
+      await copyPropertyProspectAiContext(prospect);
+      setMessage(
+        "AI context copied for " +
+          (prospect.mailingContactName || prospect.ownerNameRaw) +
+          ". Paste it into a chat to draft the letter.",
+      );
+    } catch {
+      setMessage("Could not copy AI context to the clipboard.");
+    }
   }
 
   async function promoteProspect(prospect) {
@@ -426,6 +442,12 @@ export default function PropertyProspectList({
                   onClick={() => onSendLetter?.(prospect)}
                 >
                   Send Letter
+                </button>
+                <button
+                  type="button"
+                  onClick={() => copyAiContext(prospect)}
+                >
+                  Copy AI Context
                 </button>
                 <button
                   type="button"
