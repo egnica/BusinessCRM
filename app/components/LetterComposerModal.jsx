@@ -238,9 +238,7 @@ export default function LetterComposerModal({ prospect, onClose, onMailed }) {
           entry?.liveLetterId,
       );
 
-    if (existingLiveMail) {
-      setLiveMail(existingLiveMail);
-    }
+    setLiveMail(existingLiveMail || null);
   }, [proof?.letterId, prospect?.mailHistory]);
 
   useEffect(() => {
@@ -586,6 +584,7 @@ export default function LetterComposerModal({ prospect, onClose, onMailed }) {
         onMailed?.(data.prospect);
       }
     } catch (error) {
+      setShowLiveConfirm(false);
       setMessage(error.message || "Could not submit the live letter.");
     } finally {
       setSendingLive(false);
