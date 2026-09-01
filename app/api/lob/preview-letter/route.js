@@ -80,46 +80,70 @@ async function readLobResponse(response) {
   return data;
 }
 
-async function waitForProof(letterId, apiKey, initialLetter) {
-  let letter = initialLetter;
-
-  for (let attempt = 0; attempt < 12; attempt += 1) {
-    if (letter?.status === "rendered" || letter?.status === "failed") {
-      return letter;
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    const response = await lobFetch("/letters/" + letterId, apiKey, {
-      method: "GET",
-    });
-    letter = await readLobResponse(response);
-  }
-
-  if (letter?.status === "rendered") {
-    const response = await lobFetch("/letters/" + letterId, apiKey, {
-      method: "GET",
-    });
-    return readLobResponse(response);
-  }
-
-  return letter;
-}
-
-export async function GET() {
+export async function GET(request) {
   try {
     const rawApiKey = process.env.LOB_TEST_API_KEY || "";
     const apiKey = rawApiKey.trim();
 
+    if (!rawApiKey) {
+      return Response.json(
+        {
+          configured: false,
+          prefix: "missing",
+          length: 0,
+          trimmedLength: 0,
+          hasLeadingOrTrailingWhitespace: false,
+          lobAuthStatus: null,
+          lobAuthOk: false,
+          lobMessage: "LOB_TEST_API_KEY is not configured.",
+        },
+        { status: 500 },
+      );
+    }
+
+    const url = new URL(request.url);
+    const letterId = clean(url.searchParams.get("letterId"));
+
+    if (letterId) {
+      const response = await lobFetch("/letters/" + encodeURIComponent(letterId), apiKey, {
+        method: "GET",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return Response.json(
+          {
+            error:
+              data?.error?.message ||
+              data?.message ||
+              "Could not retrieve Lob letter status.",
+            statusCode: response.status,
+          },
+          { status: response.status },
+        );
+      }
+
+      return Response.json({
+        letterId: data.id,
+        status: data.status,
+        url: data.status === "rendered" ? data.url || "" : "",
+        thumbnails: data.status === "rendered" ? data.thumbnails || [] : [],
+        failureReason:
+          data?.failure_reason?.message ||
+          data?.failure_reason?.detail ||
+          "",
+        testMode: true,
+      });
+    }
+
     const diagnostic = {
-      configured: Boolean(rawApiKey),
+      configured: true,
       prefix: rawApiKey.startsWith("test_pub_")
         ? "test_pub_"
         : rawApiKey.startsWith("test_")
           ? "test_"
-          : rawApiKey
-            ? "other"
-            : "missing",
+          : "other",
       length: rawApiKey.length,
       trimmedLength: apiKey.length,
       hasLeadingOrTrailingWhitespace: rawApiKey !== apiKey,
@@ -127,10 +151,6 @@ export async function GET() {
       lobAuthOk: false,
       lobMessage: "",
     };
-
-    if (!rawApiKey) {
-      return Response.json(diagnostic, { status: 500 });
-    }
 
     const response = await lobFetch("/addresses", apiKey, {
       method: "GET",
@@ -157,26 +177,12 @@ export async function GET() {
       status: response.ok ? 200 : 502,
     });
   } catch (error) {
-    console.error("Lob diagnostic error:", error);
+    console.error("Lob diagnostic/status error:", error);
 
     return Response.json(
       {
-        configured: Boolean(process.env.LOB_TEST_API_KEY),
-        prefix: process.env.LOB_TEST_API_KEY?.startsWith("test_pub_")
-          ? "test_pub_"
-          : process.env.LOB_TEST_API_KEY?.startsWith("test_")
-            ? "test_"
-            : process.env.LOB_TEST_API_KEY
-              ? "other"
-              : "missing",
-        length: process.env.LOB_TEST_API_KEY?.length || 0,
-        trimmedLength: process.env.LOB_TEST_API_KEY?.trim?.().length || 0,
-        hasLeadingOrTrailingWhitespace:
-          Boolean(process.env.LOB_TEST_API_KEY) &&
-          process.env.LOB_TEST_API_KEY !== process.env.LOB_TEST_API_KEY.trim(),
-        lobAuthStatus: null,
-        lobAuthOk: false,
-        lobMessage: error.message || "Diagnostic request failed.",
+        error: "Failed to check Lob status.",
+        details: error.message,
       },
       { status: 500 },
     );
@@ -207,6 +213,7 @@ export async function POST(request) {
     const body = await request.json();
     const to = normalizeAddress(body.to);
     const from = normalizeAddress(body.from);
+    const submittedBodyHtml = clean(body.bodyHtml);
 
     validateAddress(to, "Recipient");
     validateAddress(from, "Return");
@@ -215,7 +222,7 @@ export async function POST(request) {
       description: "CRM property owner test proof",
       to,
       from,
-      file: buildLetterHtml(body.bodyHtml),
+      file: buildLetterHtml(submittedBodyHtml),
       color: false,
       double_sided: false,
       address_placement: "top_first_page",
@@ -236,26 +243,11 @@ export async function POST(request) {
     });
 
     const created = await readLobResponse(createResponse);
-    const letter = await waitForProof(created.id, apiKey, created);
-
-    if (letter?.status === "failed") {
-      return Response.json(
-        {
-          error: "Lob could not render the letter proof.",
-          details:
-            letter?.failure_reason?.message ||
-            letter?.failure_reason?.detail ||
-            "Check the letter HTML and addresses.",
-        },
-        { status: 422 },
-      );
-    }
 
     return Response.json({
-      letterId: letter.id,
-      status: letter.status,
-      url: letter.url || "",
-      thumbnails: letter.thumbnails || [],
+      letterId: created.id,
+      status: created.status,
+      submittedHtmlLength: submittedBodyHtml.length,
       testMode: true,
     });
   } catch (error) {
