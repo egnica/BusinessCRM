@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import CustomerPanel from "./components/CustomerPanel";
 import EmailDashboard from "./components/EmailDashboard";
+import IntroEmailModal from "./components/IntroEmailModal";
 import NewsletterModal from "./components/NewsletterModal";
 import PropertyOwnerWorkspace from "./components/PropertyOwnerWorkspace";
 import styles from "./page.module.css";
@@ -35,6 +36,12 @@ const formatDate = (dateStr) => {
     day: "numeric",
     year: "numeric",
   });
+};
+
+const getIntroEmailStatus = (contact) => {
+  if (contact?.introEmail?.status) return contact.introEmail.status;
+  if (contact?.introEmail?.sent) return "sent";
+  return "pending";
 };
 
 const getContactDisplayName = (contact) => {
@@ -74,6 +81,7 @@ export default function Home() {
   const [projectFilter, setProjectFilter] = useState("all");
   const [workspace, setWorkspace] = useState("crm");
   const [newsletterOpen, setNewsletterOpen] = useState(false);
+  const [introEmailContactId, setIntroEmailContactId] = useState("");
   const [emailHistoryOpen, setEmailHistoryOpen] = useState(false);
   const [emailHistoryRefresh, setEmailHistoryRefresh] = useState(0);
 
@@ -273,6 +281,45 @@ export default function Home() {
   };
 
   const customerSelected = contacts.find((item) => item._id == customerToggle);
+  const introEmailContact = contacts.find(
+    (item) => item._id == introEmailContactId,
+  );
+
+  async function handleCancelIntro(contact) {
+    if (!contact?._id) return;
+
+    const name = getContactDisplayName(contact);
+    const confirmed = window.confirm(
+      `Cancel the introduction email for ${name}?`,
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`/api/contacts/${contact._id}/intro-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancel" }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        window.alert(data.error || "Could not cancel the introduction email.");
+        return;
+      }
+
+      setContacts((prev) =>
+        prev.map((item) =>
+          item._id === contact._id
+            ? { ...item, introEmail: data.introEmail }
+            : item,
+        ),
+      );
+    } catch (error) {
+      console.error("Cancel intro email error:", error);
+      window.alert("Could not cancel the introduction email.");
+    }
+  }
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -326,8 +373,10 @@ export default function Home() {
       notes: "",
       emailStatus: "subscribed",
       introEmail: {
+        status: "pending",
         sent: false,
         sentAt: null,
+        cancelledAt: null,
       },
       lastContact: {
         date: null,
@@ -906,6 +955,7 @@ export default function Home() {
             <span>Rank</span>
             <span>Last Contact</span>
             <span>Next Follow-up</span>
+            <span>Intro</span>
             <span>Links</span>
           </div>
 
@@ -919,6 +969,7 @@ export default function Home() {
                 future: "Scheduled",
                 none: "No follow-up",
               }[status];
+              const introStatus = getIntroEmailStatus(contact);
 
               return (
                 <div
@@ -1008,6 +1059,59 @@ export default function Home() {
                     </small>
                   </div>
 
+                  <div className={styles.introEmailCell}>
+                    {introStatus === "sent" ? (
+                      <>
+                        <span
+                          className={
+                            styles.introEmailBadge + " " + styles.introEmailSent
+                          }
+                        >
+                          Intro Sent
+                        </span>
+                        <small>{formatDate(contact.introEmail?.sentAt)}</small>
+                      </>
+                    ) : introStatus === "cancelled" ? (
+                      <span
+                        className={
+                          styles.introEmailBadge +
+                          " " +
+                          styles.introEmailCancelled
+                        }
+                      >
+                        Cancelled
+                      </span>
+                    ) : (
+                      <div className={styles.introEmailRowActions}>
+                        <button
+                          type="button"
+                          className={styles.introSendButton}
+                          onClick={() => setIntroEmailContactId(contact._id)}
+                          disabled={
+                            !contact.email ||
+                            contact.emailStatus !== "subscribed"
+                          }
+                          title={
+                            !contact.email
+                              ? "Add an email address first"
+                              : contact.emailStatus !== "subscribed"
+                                ? "Contact is not subscribed"
+                                : "Preview and send introduction email"
+                          }
+                        >
+                          Send Intro
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.introCancelButton}
+                          onClick={() => handleCancelIntro(contact)}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   <div className={styles.socials}>
                     {contact.company?.website && (
                       <a
@@ -1081,6 +1185,22 @@ export default function Home() {
         />
       )}
 
+      {introEmailContactId !== "" && introEmailContact && (
+        <IntroEmailModal
+          contact={introEmailContact}
+          onClose={() => setIntroEmailContactId("")}
+          onSent={(introEmail) => {
+            setContacts((prev) =>
+              prev.map((contact) =>
+                contact._id === introEmailContact._id
+                  ? { ...contact, introEmail }
+                  : contact,
+              ),
+            );
+            setIntroEmailContactId("");
+          }}
+        />
+      )}
 
       {customerToggle !== "" && customerSelected && (
         <CustomerPanel
