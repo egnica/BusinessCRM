@@ -133,28 +133,54 @@ export default function LetterComposerModal({ prospect, onClose }) {
     () => (prospect?._id ? `crmLobLetterDraft:${prospect._id}` : ""),
     [prospect?._id],
   );
+  const proofKey = useMemo(
+    () => (prospect?._id ? `crmLobLetterProof:${prospect._id}` : ""),
+    [prospect?._id],
+  );
 
   const [toAddress, setToAddress] = useState(parsedTo);
   const [fromAddress, setFromAddress] = useState(EMPTY_FROM);
   const [bodyHtml, setBodyHtml] = useState("");
   const [working, setWorking] = useState(false);
+  const [checkingProof, setCheckingProof] = useState(false);
   const [message, setMessage] = useState("");
-  const [preview, setPreview] = useState(null);
+  const [proof, setProof] = useState(null);
+
+  function persistProof(nextProof) {
+    setProof(nextProof);
+
+    if (!proofKey) return;
+
+    try {
+      if (nextProof) {
+        window.localStorage.setItem(proofKey, JSON.stringify(nextProof));
+      } else {
+        window.localStorage.removeItem(proofKey);
+      }
+    } catch {
+      // Proof persistence is a convenience only.
+    }
+  }
 
   useEffect(() => {
     setToAddress(parsedTo);
     setMessage("");
-    setPreview(null);
 
     try {
       const savedDraft = draftKey
         ? window.localStorage.getItem(draftKey)
         : "";
       setBodyHtml(savedDraft || "");
+
+      const savedProof = proofKey
+        ? window.localStorage.getItem(proofKey)
+        : "";
+      setProof(savedProof ? JSON.parse(savedProof) : null);
     } catch {
       setBodyHtml("");
+      setProof(null);
     }
-  }, [draftKey, parsedTo, prospect?._id]);
+  }, [draftKey, parsedTo, proofKey, prospect?._id]);
 
   useEffect(() => {
     try {
@@ -167,9 +193,84 @@ export default function LetterComposerModal({ prospect, onClose }) {
     }
   }, []);
 
+  useEffect(() => {
+    if (
+      !proof?.letterId ||
+      proof.status === "rendered" ||
+      proof.status === "failed"
+    ) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    let timeoutId;
+
+    async function pollProof() {
+      try {
+        const response = await fetch(
+          "/api/lob/preview-letter?letterId=" +
+            encodeURIComponent(proof.letterId),
+          { cache: "no-store" },
+        );
+        const data = await response.json();
+
+        if (cancelled) return;
+
+        if (!response.ok) {
+          setMessage(
+            data.details ||
+              data.error ||
+              "Could not check Lob proof status.",
+          );
+          timeoutId = window.setTimeout(pollProof, 10000);
+          return;
+        }
+
+        const nextProof = {
+          ...proof,
+          ...data,
+          lastCheckedAt: new Date().toISOString(),
+        };
+
+        persistProof(nextProof);
+
+        if (data.status === "rendered" && data.url) {
+          setMessage("Lob PDF proof is ready. Nothing was mailed.");
+          return;
+        }
+
+        if (data.status === "failed") {
+          setMessage(
+            data.failureReason ||
+              "Lob could not render this test letter.",
+          );
+          return;
+        }
+
+        setMessage(
+          `Lob accepted the letter. Proof status: ${data.status || "processing"}. The CRM will keep checking automatically.`,
+        );
+        timeoutId = window.setTimeout(pollProof, 5000);
+      } catch (error) {
+        if (cancelled) return;
+        setMessage(
+          (error.message || "Could not check Lob proof status.") +
+            " The CRM will try again automatically.",
+        );
+        timeoutId = window.setTimeout(pollProof, 10000);
+      }
+    }
+
+    timeoutId = window.setTimeout(pollProof, 2500);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [proof?.letterId, proof?.status]);
+
   function updateTo(name, value) {
     setToAddress((current) => ({ ...current, [name]: value }));
-    setPreview(null);
   }
 
   function updateFrom(name, value) {
@@ -187,12 +288,10 @@ export default function LetterComposerModal({ prospect, onClose }) {
 
       return next;
     });
-    setPreview(null);
   }
 
   function updateBodyHtml(value) {
     setBodyHtml(value);
-    setPreview(null);
     setMessage("");
 
     if (!draftKey) return;
@@ -235,9 +334,59 @@ export default function LetterComposerModal({ prospect, onClose }) {
       fromAddress.address_zip,
   );
 
+  const proofMatchesDraft = Boolean(
+    proof?.bodyHtmlSnapshot &&
+      proof.bodyHtmlSnapshot === trimmedBodyHtml,
+  );
+
+  async function checkProofStatus() {
+    if (!proof?.letterId) return;
+
+    setCheckingProof(true);
+    setMessage("Checking Lob proof status…");
+
+    try {
+      const response = await fetch(
+        "/api/lob/preview-letter?letterId=" +
+          encodeURIComponent(proof.letterId),
+        { cache: "no-store" },
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.details || data.error || "Could not check Lob proof status.",
+        );
+      }
+
+      const nextProof = {
+        ...proof,
+        ...data,
+        lastCheckedAt: new Date().toISOString(),
+      };
+
+      persistProof(nextProof);
+
+      if (data.status === "rendered" && data.url) {
+        setMessage("Lob PDF proof is ready. Nothing was mailed.");
+      } else if (data.status === "failed") {
+        setMessage(
+          data.failureReason || "Lob could not render this test letter.",
+        );
+      } else {
+        setMessage(
+          `Lob proof status: ${data.status || "processing"}. The CRM will keep checking automatically.`,
+        );
+      }
+    } catch (error) {
+      setMessage(error.message || "Could not check Lob proof status.");
+    } finally {
+      setCheckingProof(false);
+    }
+  }
+
   async function generateProof() {
     setMessage("");
-    setPreview(null);
 
     if (!hasRequiredTo) {
       setMessage("Complete the recipient mailing address before previewing.");
@@ -285,63 +434,25 @@ export default function LetterComposerModal({ prospect, onClose }) {
         );
       }
 
+      const nextProof = {
+        letterId: data.letterId,
+        status: data.status || "processed",
+        url: "",
+        thumbnails: [],
+        submittedHtmlLength: data.submittedHtmlLength,
+        finalHtmlLength: data.finalHtmlLength,
+        bodyHtmlSnapshot: trimmedBodyHtml,
+        createdAt: new Date().toISOString(),
+        lastCheckedAt: null,
+        testMode: true,
+      };
+
+      persistProof(nextProof);
       setMessage(
-        "Lob accepted the test letter. Rendering proof…" +
-          ` Body: ${data.submittedHtmlLength} chars · Final Lob HTML: ${data.finalHtmlLength} chars.`,
-      );
-
-      let finalProof = null;
-
-      for (let attempt = 0; attempt < 30; attempt += 1) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-
-        const statusResponse = await fetch(
-          "/api/lob/preview-letter?letterId=" +
-            encodeURIComponent(data.letterId),
-          { cache: "no-store" },
-        );
-        const statusData = await statusResponse.json();
-
-        if (!statusResponse.ok) {
-          throw new Error(
-            statusData.details ||
-              statusData.error ||
-              "Could not check Lob proof status.",
-          );
-        }
-
-        if (statusData.status === "failed") {
-          throw new Error(
-            statusData.failureReason || "Lob could not render the letter proof.",
-          );
-        }
-
-        if (statusData.status === "rendered" && statusData.url) {
-          finalProof = {
-            ...statusData,
-            submittedHtmlLength: data.submittedHtmlLength,
-            finalHtmlLength: data.finalHtmlLength,
-          };
-          break;
-        }
-
-        setMessage(
-          `Rendering proof… Lob status: ${statusData.status || "processing"} · Body: ${data.submittedHtmlLength} chars · Final Lob HTML: ${data.finalHtmlLength} chars.`,
-        );
-      }
-
-      if (!finalProof) {
-        throw new Error(
-          "Lob accepted the letter, but the PDF was still rendering after about a minute. Try Preview again.",
-        );
-      }
-
-      setPreview(finalProof);
-      setMessage(
-        `Lob test proof rendered. Nothing was mailed. Body: ${finalProof.submittedHtmlLength} chars · Final Lob HTML: ${finalProof.finalHtmlLength} chars.`,
+        `Lob accepted test letter ${data.letterId}. Proof status: ${nextProof.status}. The CRM will keep checking automatically; you can close this window and come back later.`,
       );
     } catch (error) {
-      setMessage(error.message || "Could not generate Lob proof.");
+      setMessage(error.message || "Could not create Lob test letter.");
     } finally {
       setWorking(false);
     }
@@ -357,8 +468,9 @@ export default function LetterComposerModal({ prospect, onClose }) {
             <p className={styles.eyebrow}>Lob test workflow</p>
             <h2>Create Letter</h2>
             <p>
-              Write the letter in the CRM, verify the local HTML, then generate
-              Lob's actual test PDF proof. Nothing can be mailed from this build.
+              Write the letter in the CRM, verify the local HTML, then create a
+              Lob test proof. Lob rendering continues independently after the
+              request is accepted.
             </p>
           </div>
 
@@ -450,9 +562,9 @@ export default function LetterComposerModal({ prospect, onClose }) {
                 <div>
                   <h3>Local Letter Preview</h3>
                   <p>
-                    This shows the exact HTML structure we will submit as Lob's
-                    <code> file </code> value. Lob will overlay the mailing
-                    addresses in the reserved top area.
+                    This shows the exact HTML structure submitted as Lob's
+                    <code> file </code> value. Lob overlays the mailing addresses
+                    in the reserved top area.
                   </p>
                 </div>
               </div>
@@ -466,43 +578,70 @@ export default function LetterComposerModal({ prospect, onClose }) {
             </section>
           )}
 
-          {message && <p className={styles.status}>{message}</p>}
-
-          {preview?.url && (
+          {proof?.letterId && (
             <section className={styles.proofCard}>
               <div className={styles.proofHeader}>
                 <div>
-                  <h3>Lob PDF Proof</h3>
+                  <h3>Lob Proof Status</h3>
                   <p>
-                    Test letter {preview.letterId} · {preview.status || "rendered"}
-                    {Number.isFinite(preview.submittedHtmlLength)
-                      ? ` · body ${preview.submittedHtmlLength} chars`
+                    Test letter {proof.letterId} · {proof.status || "processing"}
+                    {Number.isFinite(proof.submittedHtmlLength)
+                      ? ` · body ${proof.submittedHtmlLength} chars`
                       : ""}
-                    {Number.isFinite(preview.finalHtmlLength)
-                      ? ` · final ${preview.finalHtmlLength} chars`
+                    {Number.isFinite(proof.finalHtmlLength)
+                      ? ` · final ${proof.finalHtmlLength} chars`
                       : ""}
                   </p>
+                  {!proofMatchesDraft && (
+                    <p>
+                      This Lob proof belongs to an earlier version of the draft.
+                      Create a new proof when you want Lob to render the current text.
+                    </p>
+                  )}
                 </div>
-                <a href={preview.url} target="_blank" rel="noreferrer">
-                  Open PDF in New Tab
-                </a>
+
+                <button
+                  type="button"
+                  className={styles.clearDraftButton}
+                  onClick={checkProofStatus}
+                  disabled={checkingProof || working}
+                >
+                  {checkingProof ? "Checking…" : "Check Proof Status"}
+                </button>
               </div>
 
-              <iframe
-                className={styles.proofFrame}
-                src={preview.url + "#zoom=page-width"}
-                title="Lob letter PDF proof"
-              />
+              {proof.status === "rendered" && proof.url ? (
+                <>
+                  <div className={styles.proofHeader}>
+                    <span />
+                    <a href={proof.url} target="_blank" rel="noreferrer">
+                      Open PDF in New Tab
+                    </a>
+                  </div>
+                  <iframe
+                    className={styles.proofFrame}
+                    src={proof.url + "#zoom=page-width"}
+                    title="Lob letter PDF proof"
+                  />
+                </>
+              ) : (
+                <p className={styles.status}>
+                  Lob is still processing this proof. You do not need to create
+                  another test letter. The CRM will keep checking while this
+                  window is open, and this letter ID is saved if you come back later.
+                </p>
+              )}
             </section>
           )}
+
+          {message && <p className={styles.status}>{message}</p>}
         </div>
 
         <footer className={styles.footer}>
           <div>
             <strong>Test mode only</strong>
             <span>
-              Live mailing is disabled. Preview requires complete addresses and
-              non-empty letter HTML.
+              Live mailing is disabled. Creating a proof does not mail anything.
             </span>
           </div>
 
@@ -516,7 +655,11 @@ export default function LetterComposerModal({ prospect, onClose }) {
               onClick={generateProof}
               disabled={working}
             >
-              {working ? "Rendering Lob Proof…" : "Preview with Lob"}
+              {working
+                ? "Creating Lob Proof…"
+                : proofMatchesDraft
+                  ? "Create New Lob Proof"
+                  : "Preview with Lob"}
             </button>
             <button
               type="button"
