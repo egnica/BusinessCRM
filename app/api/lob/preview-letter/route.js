@@ -76,7 +76,6 @@ async function lobFetch(path, apiKey, options = {}) {
     cache: "no-store",
     headers: {
       Authorization: authHeader(apiKey),
-      "Lob-Version": "2024-01-01",
       ...(options.headers || {}),
     },
   });
@@ -232,7 +231,6 @@ export async function POST(request) {
       address_placement: "top_first_page",
       mail_type: "usps_standard",
       use_type: "marketing",
-      size: "us_letter",
       metadata: {
         source: "crm_property_owner",
         prospect_id: clean(body.prospectId).slice(0, 500),
