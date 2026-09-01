@@ -15,28 +15,57 @@ export default function NewsletterModal({
   const [previewHtml, setPreviewHtml] = useState("");
   const [status, setStatus] = useState("");
   const [working, setWorking] = useState(false);
+  const [config, setConfig] = useState({
+    loading: true,
+    configured: false,
+    resendConfigured: false,
+    unsubscribeConfigured: false,
+    fromEmail: "",
+  });
 
   useEffect(() => {
     const saved = window.localStorage.getItem("newsletterTestEmail");
     if (saved) setTestEmail(saved);
 
-    async function loadTemplates() {
+    async function loadNewsletterSetup() {
       try {
-        const res = await fetch("/api/newsletters/templates");
-        const data = await res.json();
-        const loaded = data.templates || [];
+        const [templatesRes, configRes] = await Promise.all([
+          fetch("/api/newsletters/templates", { cache: "no-store" }),
+          fetch("/api/newsletters/status", { cache: "no-store" }),
+        ]);
+
+        const templatesData = await templatesRes.json();
+        const configData = await configRes.json();
+
+        if (!templatesRes.ok) {
+          throw new Error("Could not load email templates.");
+        }
+
+        if (!configRes.ok) {
+          throw new Error("Could not check newsletter configuration.");
+        }
+
+        const loaded = templatesData.templates || [];
         setTemplates(loaded);
+        setConfig({
+          loading: false,
+          configured: Boolean(configData.configured),
+          resendConfigured: Boolean(configData.resendConfigured),
+          unsubscribeConfigured: Boolean(configData.unsubscribeConfigured),
+          fromEmail: configData.fromEmail || "",
+        });
 
         if (loaded[0]) {
           setTemplateId(loaded[0].id);
           setSubject(loaded[0].subject || "");
         }
-      } catch {
-        setStatus("Could not load email templates.");
+      } catch (error) {
+        setConfig((current) => ({ ...current, loading: false }));
+        setStatus(error.message || "Could not load newsletter setup.");
       }
     }
 
-    loadTemplates();
+    loadNewsletterSetup();
   }, []);
 
   const selectedTemplate = useMemo(
@@ -78,6 +107,11 @@ export default function NewsletterModal({
   }
 
   async function handleTestSend() {
+    if (!config.resendConfigured) {
+      setStatus("Resend is not configured yet.");
+      return;
+    }
+
     if (!testEmail.trim()) {
       setStatus("Enter a test recipient email.");
       return;
@@ -114,6 +148,11 @@ export default function NewsletterModal({
   }
 
   async function handleSendAll() {
+    if (!config.configured) {
+      setStatus("Newsletter sending is not fully configured yet.");
+      return;
+    }
+
     if (!recipientCount) {
       setStatus("There are no subscribed contacts with email addresses.");
       return;
@@ -208,6 +247,29 @@ export default function NewsletterModal({
             />
           </label>
 
+          <div
+            className={
+              styles.newsletterConfigStatus +
+              " " +
+              (config.configured
+                ? styles.newsletterConfigReady
+                : styles.newsletterConfigNeedsSetup)
+            }
+          >
+            <strong>
+              {config.loading
+                ? "Checking email setup…"
+                : config.configured
+                  ? "Email system ready"
+                  : "Email setup incomplete"}
+            </strong>
+            <span>
+              {config.fromEmail
+                ? "Sending from " + config.fromEmail
+                : "Sender address not detected"}
+            </span>
+          </div>
+
           <div className={styles.newsletterRecipientSummary}>
             <strong>{recipientCount}</strong>
             <span>subscribed contacts with email addresses</span>
@@ -227,7 +289,7 @@ export default function NewsletterModal({
               type="button"
               className={styles.secondaryButton}
               onClick={handleTestSend}
-              disabled={working || !templateId}
+              disabled={working || !templateId || !config.resendConfigured}
             >
               Send Test
             </button>
@@ -246,7 +308,12 @@ export default function NewsletterModal({
               type="button"
               className={styles.primaryButton}
               onClick={handleSendAll}
-              disabled={working || !templateId || recipientCount === 0}
+              disabled={
+                working ||
+                !templateId ||
+                recipientCount === 0 ||
+                !config.configured
+              }
             >
               {working ? "Working..." : "Send to " + recipientCount + " contacts"}
             </button>
