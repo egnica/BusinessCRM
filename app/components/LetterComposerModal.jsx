@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import {
+  PROPERTY_LETTER_TEMPLATES,
+  getPropertyLetterTemplate,
+} from "../data/propertyLetterTemplates";
 import styles from "./LetterComposerModal.module.css";
 
 const EMPTY_FROM = {
@@ -81,6 +85,12 @@ function buildLobHtml(bodyHtml) {
   ].join("");
 }
 
+function getProofLabel(status) {
+  if (status === "rendered") return "Ready";
+  if (status === "failed") return "Failed";
+  return "Rendering";
+}
+
 function AddressFields({ value, onChange, prefix }) {
   const field = (name) => ({
     value: value[name] || "",
@@ -137,9 +147,14 @@ export default function LetterComposerModal({ prospect, onClose }) {
     () => (prospect?._id ? `crmLobLetterProof:${prospect._id}` : ""),
     [prospect?._id],
   );
+  const templateKey = useMemo(
+    () => (prospect?._id ? `crmLobLetterTemplate:${prospect._id}` : ""),
+    [prospect?._id],
+  );
 
   const [toAddress, setToAddress] = useState(parsedTo);
   const [fromAddress, setFromAddress] = useState(EMPTY_FROM);
+  const [templateId, setTemplateId] = useState("blank");
   const [bodyHtml, setBodyHtml] = useState("");
   const [working, setWorking] = useState(false);
   const [checkingProof, setCheckingProof] = useState(false);
@@ -158,7 +173,7 @@ export default function LetterComposerModal({ prospect, onClose }) {
         window.localStorage.removeItem(proofKey);
       }
     } catch {
-      // Proof persistence is a convenience only.
+      // Local persistence is a convenience only.
     }
   }
 
@@ -170,17 +185,22 @@ export default function LetterComposerModal({ prospect, onClose }) {
       const savedDraft = draftKey
         ? window.localStorage.getItem(draftKey)
         : "";
-      setBodyHtml(savedDraft || "");
-
+      const savedTemplateId = templateKey
+        ? window.localStorage.getItem(templateKey)
+        : "";
       const savedProof = proofKey
         ? window.localStorage.getItem(proofKey)
         : "";
+
+      setBodyHtml(savedDraft || "");
+      setTemplateId(savedTemplateId || "blank");
       setProof(savedProof ? JSON.parse(savedProof) : null);
     } catch {
       setBodyHtml("");
+      setTemplateId("blank");
       setProof(null);
     }
-  }, [draftKey, parsedTo, proofKey, prospect?._id]);
+  }, [draftKey, parsedTo, proofKey, prospect?._id, templateKey]);
 
   useEffect(() => {
     try {
@@ -220,7 +240,7 @@ export default function LetterComposerModal({ prospect, onClose }) {
           setMessage(
             data.details ||
               data.error ||
-              "Could not check Lob proof status.",
+              "Could not check the mailing proof.",
           );
           timeoutId = window.setTimeout(pollProof, 10000);
           return;
@@ -235,26 +255,23 @@ export default function LetterComposerModal({ prospect, onClose }) {
         persistProof(nextProof);
 
         if (data.status === "rendered" && data.url) {
-          setMessage("Lob PDF proof is ready. Nothing was mailed.");
+          setMessage("Mailing proof ready. Nothing was mailed.");
           return;
         }
 
         if (data.status === "failed") {
           setMessage(
             data.failureReason ||
-              "Lob could not render this test letter.",
+              "Lob could not render this mailing proof.",
           );
           return;
         }
 
-        setMessage(
-          `Lob accepted the letter. Proof status: ${data.status || "processing"}. The CRM will keep checking automatically.`,
-        );
         timeoutId = window.setTimeout(pollProof, 5000);
       } catch (error) {
         if (cancelled) return;
         setMessage(
-          (error.message || "Could not check Lob proof status.") +
+          (error.message || "Could not check the mailing proof.") +
             " The CRM will try again automatically.",
         );
         timeoutId = window.setTimeout(pollProof, 10000);
@@ -307,8 +324,26 @@ export default function LetterComposerModal({ prospect, onClose }) {
     }
   }
 
+  function selectTemplate(nextTemplateId) {
+    const template = getPropertyLetterTemplate(nextTemplateId);
+    setTemplateId(template.id);
+
+    try {
+      if (templateKey) {
+        window.localStorage.setItem(templateKey, template.id);
+      }
+    } catch {
+      // Template persistence is a convenience only.
+    }
+
+    if (!bodyHtml.trim() && template.html) {
+      updateBodyHtml(template.html);
+    }
+  }
+
   function clearDraft() {
     updateBodyHtml("");
+    persistProof(null);
     setMessage("Draft cleared.");
   }
 
@@ -339,11 +374,14 @@ export default function LetterComposerModal({ prospect, onClose }) {
       proof.bodyHtmlSnapshot === trimmedBodyHtml,
   );
 
+  const proofLabel = getProofLabel(proof?.status);
+  const nearHtmlLimit = finalLobHtml.length >= 9000;
+
   async function checkProofStatus() {
     if (!proof?.letterId) return;
 
     setCheckingProof(true);
-    setMessage("Checking Lob proof status…");
+    setMessage("Checking mailing proof…");
 
     try {
       const response = await fetch(
@@ -355,7 +393,7 @@ export default function LetterComposerModal({ prospect, onClose }) {
 
       if (!response.ok) {
         throw new Error(
-          data.details || data.error || "Could not check Lob proof status.",
+          data.details || data.error || "Could not check the mailing proof.",
         );
       }
 
@@ -368,18 +406,16 @@ export default function LetterComposerModal({ prospect, onClose }) {
       persistProof(nextProof);
 
       if (data.status === "rendered" && data.url) {
-        setMessage("Lob PDF proof is ready. Nothing was mailed.");
+        setMessage("Mailing proof ready. Nothing was mailed.");
       } else if (data.status === "failed") {
         setMessage(
-          data.failureReason || "Lob could not render this test letter.",
+          data.failureReason || "Lob could not render this mailing proof.",
         );
       } else {
-        setMessage(
-          `Lob proof status: ${data.status || "processing"}. The CRM will keep checking automatically.`,
-        );
+        setMessage("Mailing proof is still rendering.");
       }
     } catch (error) {
-      setMessage(error.message || "Could not check Lob proof status.");
+      setMessage(error.message || "Could not check the mailing proof.");
     } finally {
       setCheckingProof(false);
     }
@@ -389,24 +425,22 @@ export default function LetterComposerModal({ prospect, onClose }) {
     setMessage("");
 
     if (!hasRequiredTo) {
-      setMessage("Complete the recipient mailing address before previewing.");
+      setMessage("Complete the recipient mailing address first.");
       return;
     }
 
     if (!hasRequiredFrom) {
-      setMessage("Complete the return address before previewing.");
+      setMessage("Complete the return address first.");
       return;
     }
 
     if (!trimmedBodyHtml) {
-      setMessage("Add letter content before previewing.");
+      setMessage("Add letter content before generating a proof.");
       return;
     }
 
     if (finalLobHtml.length > 10000) {
-      setMessage(
-        "The finished Lob HTML is over 10,000 characters. Shorten the letter before previewing.",
-      );
+      setMessage("This letter is too large for Lob's inline HTML limit.");
       return;
     }
 
@@ -430,29 +464,26 @@ export default function LetterComposerModal({ prospect, onClose }) {
 
       if (!response.ok) {
         throw new Error(
-          data.details || data.error || "Could not create Lob test letter.",
+          data.details || data.error || "Could not create the mailing proof.",
         );
       }
 
-      const nextProof = {
+      persistProof({
         letterId: data.letterId,
         status: data.status || "processed",
         url: "",
         thumbnails: [],
-        submittedHtmlLength: data.submittedHtmlLength,
-        finalHtmlLength: data.finalHtmlLength,
         bodyHtmlSnapshot: trimmedBodyHtml,
         createdAt: new Date().toISOString(),
         lastCheckedAt: null,
         testMode: true,
-      };
+      });
 
-      persistProof(nextProof);
       setMessage(
-        `Lob accepted test letter ${data.letterId}. Proof status: ${nextProof.status}. The CRM will keep checking automatically; you can close this window and come back later.`,
+        "Lob accepted the test letter. The mailing proof is rendering and will appear here when ready.",
       );
     } catch (error) {
-      setMessage(error.message || "Could not create Lob test letter.");
+      setMessage(error.message || "Could not create the mailing proof.");
     } finally {
       setWorking(false);
     }
@@ -465,12 +496,14 @@ export default function LetterComposerModal({ prospect, onClose }) {
       <section className={styles.modal} aria-label="Create property owner letter">
         <header className={styles.header}>
           <div>
-            <p className={styles.eyebrow}>Lob test workflow</p>
+            <div className={styles.titleRow}>
+              <p className={styles.eyebrow}>Property Owner Outreach</p>
+              <span className={styles.testBadge}>Test mode</span>
+            </div>
             <h2>Create Letter</h2>
             <p>
-              Write the letter in the CRM, verify the local HTML, then create a
-              Lob test proof. Lob rendering continues independently after the
-              request is accepted.
+              Write the letter, review the page, then generate the actual Lob
+              mailing proof before live sending is enabled.
             </p>
           </div>
 
@@ -485,10 +518,7 @@ export default function LetterComposerModal({ prospect, onClose }) {
               <div className={styles.cardHeading}>
                 <div>
                   <h3>Mail To</h3>
-                  <p>
-                    Prefilled from the saved owner mailing address. Review it
-                    before proofing.
-                  </p>
+                  <p>From this prospect's saved mailing address.</p>
                 </div>
               </div>
               <AddressFields value={toAddress} onChange={updateTo} prefix="To" />
@@ -498,7 +528,7 @@ export default function LetterComposerModal({ prospect, onClose }) {
               <div className={styles.cardHeading}>
                 <div>
                   <h3>Return Address</h3>
-                  <p>Saved in this browser so you only need to enter it once.</p>
+                  <p>Remembered on this browser.</p>
                 </div>
               </div>
               <AddressFields
@@ -509,140 +539,162 @@ export default function LetterComposerModal({ prospect, onClose }) {
             </section>
           </div>
 
-          <section className={styles.card}>
-            <div className={styles.editorHeader}>
-              <div>
-                <h3>Letter HTML</h3>
-                <p>
-                  This draft is saved automatically for this prospect. Lob's
-                  documented 3-inch address space is added when the letter is sent.
-                </p>
-              </div>
+          <div className={styles.composeGrid}>
+            <section className={styles.card}>
+              <div className={styles.editorHeader}>
+                <div>
+                  <h3>Write</h3>
+                  <p>Your draft saves automatically for this prospect.</p>
+                </div>
 
-              <div className={styles.editorControls}>
                 <label className={styles.templateField}>
                   <span>Template</span>
-                  <select value="blank" disabled>
-                    <option value="blank">Blank Letter</option>
+                  <select
+                    value={templateId}
+                    onChange={(event) => selectTemplate(event.target.value)}
+                  >
+                    {PROPERTY_LETTER_TEMPLATES.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.name}
+                      </option>
+                    ))}
                   </select>
                 </label>
+              </div>
 
+              <textarea
+                className={styles.htmlEditor}
+                value={bodyHtml}
+                onChange={(event) => updateBodyHtml(event.target.value)}
+                rows={20}
+                spellCheck={false}
+                placeholder={'<p>Dear Allen and Crystal,</p>\n\n<p>I wanted to reach out...</p>\n\n<p>Best,<br>Nick</p>'}
+              />
+
+              <div className={styles.editorFooter}>
+                <span>Draft saved automatically</span>
+                {nearHtmlLimit && (
+                  <span className={styles.warningText}>
+                    Approaching Lob's 10,000-character HTML limit
+                  </span>
+                )}
                 <button
                   type="button"
-                  className={styles.clearDraftButton}
+                  className={styles.textButton}
                   onClick={clearDraft}
                   disabled={working || !bodyHtml}
                 >
-                  Clear Draft
+                  Clear
                 </button>
               </div>
-            </div>
+            </section>
 
-            <textarea
-              className={styles.htmlEditor}
-              value={bodyHtml}
-              onChange={(event) => updateBodyHtml(event.target.value)}
-              rows={18}
-              spellCheck={false}
-              placeholder={'<p>Dear Allen and Crystal,</p>\n\n<p>I wanted to reach out...</p>\n\n<p>Best,<br>Nick</p>'}
-            />
-
-            <div className={styles.editorMetrics}>
-              <span>Body: {trimmedBodyHtml.length.toLocaleString()} characters</span>
-              <span>
-                Final Lob HTML: {finalLobHtml.length.toLocaleString()} / 10,000
-              </span>
-              <span>{draftKey ? "Draft auto-saved for this prospect" : ""}</span>
-            </div>
-          </section>
-
-          {trimmedBodyHtml && (
-            <section className={styles.localPreviewCard}>
-              <div className={styles.proofHeader}>
+            <section className={styles.previewCard}>
+              <div className={styles.cardHeading}>
                 <div>
-                  <h3>Local Letter Preview</h3>
+                  <h3>Letter Preview</h3>
                   <p>
-                    This shows the exact HTML structure submitted as Lob's
-                    <code> file </code> value. Lob overlays the mailing addresses
-                    in the reserved top area.
+                    Lob adds the mailing addresses in the reserved top area.
                   </p>
                 </div>
               </div>
 
-              <iframe
-                className={styles.localPreviewFrame}
-                srcDoc={finalLobHtml}
-                sandbox=""
-                title="Local letter HTML preview"
-              />
+              {trimmedBodyHtml ? (
+                <iframe
+                  className={styles.localPreviewFrame}
+                  srcDoc={finalLobHtml}
+                  sandbox=""
+                  title="Letter preview"
+                />
+              ) : (
+                <div className={styles.emptyPreview}>
+                  <strong>Your letter preview will appear here.</strong>
+                  <span>Start writing on the left.</span>
+                </div>
+              )}
             </section>
-          )}
+          </div>
 
           {proof?.letterId && (
             <section className={styles.proofCard}>
-              <div className={styles.proofHeader}>
+              <div className={styles.proofTopRow}>
                 <div>
-                  <h3>Lob Proof Status</h3>
+                  <div className={styles.proofTitleRow}>
+                    <h3>Mailing Proof</h3>
+                    <span
+                      className={
+                        proof.status === "rendered"
+                          ? styles.statusReady
+                          : proof.status === "failed"
+                            ? styles.statusFailed
+                            : styles.statusRendering
+                      }
+                    >
+                      {proofLabel}
+                    </span>
+                  </div>
+
                   <p>
-                    Test letter {proof.letterId} · {proof.status || "processing"}
-                    {Number.isFinite(proof.submittedHtmlLength)
-                      ? ` · body ${proof.submittedHtmlLength} chars`
-                      : ""}
-                    {Number.isFinite(proof.finalHtmlLength)
-                      ? ` · final ${proof.finalHtmlLength} chars`
-                      : ""}
+                    {proof.status === "rendered"
+                      ? "Lob finished the printable PDF proof."
+                      : proof.status === "failed"
+                        ? "Lob could not render this proof."
+                        : "Lob is preparing the printable PDF. You can close this window and come back later."}
                   </p>
+
                   {!proofMatchesDraft && (
-                    <p>
-                      This Lob proof belongs to an earlier version of the draft.
-                      Create a new proof when you want Lob to render the current text.
+                    <p className={styles.proofNotice}>
+                      Your draft has changed since this proof was created.
                     </p>
                   )}
                 </div>
 
                 <button
                   type="button"
-                  className={styles.clearDraftButton}
+                  className={styles.secondaryButton}
                   onClick={checkProofStatus}
                   disabled={checkingProof || working}
                 >
-                  {checkingProof ? "Checking…" : "Check Proof Status"}
+                  {checkingProof ? "Checking…" : "Check Status"}
                 </button>
               </div>
 
               {proof.status === "rendered" && proof.url ? (
                 <>
-                  <div className={styles.proofHeader}>
-                    <span />
+                  <iframe
+                    className={styles.proofFrame}
+                    src={proof.url + "#zoom=page-width"}
+                    title="Lob mailing proof"
+                  />
+                  <div className={styles.proofActions}>
                     <a href={proof.url} target="_blank" rel="noreferrer">
                       Open PDF in New Tab
                     </a>
                   </div>
-                  <iframe
-                    className={styles.proofFrame}
-                    src={proof.url + "#zoom=page-width"}
-                    title="Lob letter PDF proof"
-                  />
                 </>
-              ) : (
-                <p className={styles.status}>
-                  Lob is still processing this proof. You do not need to create
-                  another test letter. The CRM will keep checking while this
-                  window is open, and this letter ID is saved if you come back later.
+              ) : proof.status === "failed" ? (
+                <p className={styles.proofError}>
+                  {proof.failureReason || "The proof could not be rendered."}
                 </p>
+              ) : (
+                <div className={styles.renderingState}>
+                  <span className={styles.spinner} aria-hidden="true" />
+                  <div>
+                    <strong>Rendering mailing proof</strong>
+                    <span>The CRM is checking Lob automatically.</span>
+                  </div>
+                </div>
               )}
             </section>
           )}
 
-          {message && <p className={styles.status}>{message}</p>}
+          {message && <p className={styles.statusMessage}>{message}</p>}
         </div>
 
         <footer className={styles.footer}>
-          <div>
-            <strong>Test mode only</strong>
-            <span>
-              Live mailing is disabled. Creating a proof does not mail anything.
-            </span>
+          <div className={styles.footerNote}>
+            <strong>Test mode</strong>
+            <span>No physical mail can be sent from this build.</span>
           </div>
 
           <div className={styles.footerActions}>
@@ -656,16 +708,16 @@ export default function LetterComposerModal({ prospect, onClose }) {
               disabled={working}
             >
               {working
-                ? "Creating Lob Proof…"
+                ? "Creating Proof…"
                 : proofMatchesDraft
-                  ? "Create New Lob Proof"
-                  : "Preview with Lob"}
+                  ? "Create New Proof"
+                  : "Generate Lob Proof"}
             </button>
             <button
               type="button"
               className={styles.liveButton}
               disabled
-              title="Live mail will be enabled only after the test proof workflow is approved."
+              title="Live mail will be enabled after the test workflow is approved."
             >
               Confirm & Mail
             </button>
