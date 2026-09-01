@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "node scripts/generate-email-template-index.mjs && next dev",
+    "build": "node scripts/generate-email-template-index.mjs && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "email-templates": "node scripts/generate-email-template-index.mjs"
   },
   "dependencies": {
     "mongodb": "^7.1.1",
