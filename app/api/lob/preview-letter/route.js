@@ -1,0 +1,207 @@
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const LOB_API_BASE = "https://api.lob.com/v1";
+
+function clean(value) {
+  return value == null ? "" : String(value).trim();
+}
+
+function normalizeAddress(address = {}) {
+  return {
+    name: clean(address.name),
+    address_line1: clean(address.address_line1),
+    address_line2: clean(address.address_line2) || undefined,
+    address_city: clean(address.address_city),
+    address_state: clean(address.address_state).toUpperCase(),
+    address_zip: clean(address.address_zip),
+    address_country: clean(address.address_country) || "US",
+  };
+}
+
+function validateAddress(address, label) {
+  const required = [
+    "name",
+    "address_line1",
+    "address_city",
+    "address_state",
+    "address_zip",
+  ];
+
+  const missing = required.filter((field) => !address[field]);
+
+  if (missing.length) {
+    throw new Error(
+      label + " address is missing: " + missing.join(", "),
+    );
+  }
+}
+
+function buildLetterHtml(bodyHtml) {
+  const content = clean(bodyHtml) || "<p>&nbsp;</p>";
+
+  return [
+    "<!doctype html>",
+    '<html lang="en">',
+    "<head>",
+    '<meta charset="utf-8">',
+    "<style>",
+    "@page { size: 8.5in 11in; margin: 0.65in 0.75in 0.75in; }",
+    "html, body { padding: 0; }",
+    "body { margin: 0; color: #111827; font-family: Georgia, 'Times New Roman', serif; font-size: 11.5pt; line-height: 1.55; }",
+    ".lob-address-space { height: 2.25in; }",
+    ".letter-content { width: 100%; }",
+    ".letter-content p { margin: 0 0 0.95em; }",
+    ".letter-content ul, .letter-content ol { margin: 0 0 0.95em 1.25em; padding: 0; }",
+    ".letter-content a { color: inherit; }",
+    "</style>",
+    "</head>",
+    "<body>",
+    '<div class="lob-address-space" aria-hidden="true"></div>',
+    '<main class="letter-content">',
+    content,
+    "</main>",
+    "</body>",
+    "</html>",
+  ].join("");
+}
+
+function authHeader(apiKey) {
+  return "Basic " + Buffer.from(apiKey + ":").toString("base64");
+}
+
+async function lobFetch(path, apiKey, options = {}) {
+  return fetch(LOB_API_BASE + path, {
+    ...options,
+    cache: "no-store",
+    headers: {
+      Authorization: authHeader(apiKey),
+      "Lob-Version": "2024-01-01",
+      ...(options.headers || {}),
+    },
+  });
+}
+
+async function readLobResponse(response) {
+  const data = await response.json();
+
+  if (!response.ok) {
+    const message =
+      data?.error?.message ||
+      data?.error?.status_code ||
+      data?.message ||
+      "Lob request failed.";
+
+    throw new Error(message);
+  }
+
+  return data;
+}
+
+async function waitForProof(letterId, apiKey, initialLetter) {
+  let letter = initialLetter;
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    if (letter?.url || letter?.status === "failed") {
+      return letter;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 700));
+
+    const response = await lobFetch("/letters/" + letterId, apiKey, {
+      method: "GET",
+    });
+    letter = await readLobResponse(response);
+  }
+
+  return letter;
+}
+
+export async function POST(request) {
+  try {
+    const apiKey = process.env.LOB_TEST_API_KEY;
+
+    if (!apiKey) {
+      return Response.json(
+        { error: "LOB_TEST_API_KEY is not configured." },
+        { status: 500 },
+      );
+    }
+
+    if (!apiKey.startsWith("test_")) {
+      return Response.json(
+        {
+          error:
+            "LOB_TEST_API_KEY must be a Lob test key. Live mailing is intentionally disabled here.",
+        },
+        { status: 500 },
+      );
+    }
+
+    const body = await request.json();
+    const to = normalizeAddress(body.to);
+    const from = normalizeAddress(body.from);
+
+    validateAddress(to, "Recipient");
+    validateAddress(from, "Return");
+
+    const payload = {
+      description: "CRM property owner test proof",
+      to,
+      from,
+      file: buildLetterHtml(body.bodyHtml),
+      color: false,
+      double_sided: false,
+      address_placement: "top_first_page",
+      mail_type: "usps_standard",
+      use_type: "marketing",
+      size: "us_letter",
+      metadata: {
+        source: "crm_property_owner",
+        prospect_id: clean(body.prospectId).slice(0, 500),
+      },
+    };
+
+    const createResponse = await lobFetch("/letters", apiKey, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const created = await readLobResponse(createResponse);
+    const letter = await waitForProof(created.id, apiKey, created);
+
+    if (letter?.status === "failed") {
+      return Response.json(
+        {
+          error: "Lob could not render the letter proof.",
+          details:
+            letter?.failure_reason?.message ||
+            letter?.failure_reason?.detail ||
+            "Check the letter HTML and addresses.",
+        },
+        { status: 422 },
+      );
+    }
+
+    return Response.json({
+      letterId: letter.id,
+      status: letter.status,
+      url: letter.url || "",
+      thumbnails: letter.thumbnails || [],
+      testMode: true,
+    });
+  } catch (error) {
+    console.error("Lob preview error:", error);
+
+    return Response.json(
+      {
+        error: "Failed to generate Lob test proof.",
+        details: error.message,
+      },
+      { status: 500 },
+    );
+  }
+}
