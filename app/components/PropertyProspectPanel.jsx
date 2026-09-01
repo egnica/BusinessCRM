@@ -273,7 +273,11 @@ export default function PropertyProspectPanel({
               <div className={styles.customerPanelField}>
                 <span>Mail Status</span>
                 <div className={styles.propertyReadOnlyValue}>
-                  {prospect.mailStatus === "mailed" ? "Mailed" : "Unmailed"}
+                  {prospect.mailStatus === "mailed"
+                    ? "Mailed"
+                    : prospect.mailStatus === "submitted"
+                      ? "Submitted"
+                      : "Unmailed"}
                 </div>
               </div>
             </div>
@@ -569,8 +573,8 @@ export default function PropertyProspectPanel({
             <div className={styles.panelSectionHeader}>
               <h4>Actions</h4>
               <p>
-                Create a custom letter and generate a Lob test proof before
-                enabling live mail.
+                Create a custom letter, generate a Lob test proof, then
+                explicitly confirm the live mailing.
               </p>
             </div>
 
