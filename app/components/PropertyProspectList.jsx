@@ -36,6 +36,7 @@ export default function PropertyProspectList({
   refreshKey,
   onSelect,
   onPromoted,
+  onSendLetter,
 }) {
   const [prospects, setProspects] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -300,7 +301,7 @@ export default function PropertyProspectList({
           type="button"
           className={styles.secondaryButton}
           disabled
-          title="PostGrid will be connected in Phase 2"
+          title="Bulk letter sending will be added after the individual Lob workflow is validated."
         >
           Send Letter to Selected
         </button>
@@ -417,8 +418,7 @@ export default function PropertyProspectList({
                 </button>
                 <button
                   type="button"
-                  disabled
-                  title="PostGrid will be connected in Phase 2"
+                  onClick={() => onSendLetter?.(prospect)}
                 >
                   Send Letter
                 </button>
