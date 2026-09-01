@@ -193,6 +193,7 @@ export default function NewsletterModal({
         return;
       }
 
+      setTestSent(false);
       setStatus(
         "Send complete: " +
           data.sentCount +
@@ -210,7 +211,10 @@ export default function NewsletterModal({
 
   return (
     <>
-      <div className={styles.newsletterBackdrop} onClick={onClose} />
+      <div
+        className={styles.newsletterBackdrop}
+        onClick={working ? undefined : onClose}
+      />
       <section
         className={styles.newsletterModal}
         role="dialog"
@@ -226,6 +230,7 @@ export default function NewsletterModal({
             type="button"
             className={styles.secondaryButton}
             onClick={onClose}
+            disabled={working}
           >
             Close
           </button>
