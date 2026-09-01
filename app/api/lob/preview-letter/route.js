@@ -38,13 +38,9 @@ function validateAddress(address, label) {
 }
 
 function buildLetterHtml(bodyHtml) {
-  const content = clean(bodyHtml) || "<p>&nbsp;</p>";
-
   return [
-    '<html style="padding-top: 3in; margin: 0.65in 0.75in 0.75in;">',
-    '<div style="font-family: Georgia, Times New Roman, serif; font-size: 11.5pt; line-height: 1.55; color: #111827;">',
-    content,
-    "</div>",
+    '<html style="padding-top: 3in; margin: .5in;">',
+    bodyHtml,
     "</html>",
   ].join("");
 }
@@ -191,7 +187,8 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const apiKey = process.env.LOB_TEST_API_KEY;
+    const rawApiKey = process.env.LOB_TEST_API_KEY || "";
+    const apiKey = rawApiKey.trim();
 
     if (!apiKey) {
       return Response.json(
@@ -200,11 +197,11 @@ export async function POST(request) {
       );
     }
 
-    if (!apiKey.startsWith("test_")) {
+    if (!apiKey.startsWith("test_") || apiKey.startsWith("test_pub_")) {
       return Response.json(
         {
           error:
-            "LOB_TEST_API_KEY must be a Lob test key. Live mailing is intentionally disabled here.",
+            "LOB_TEST_API_KEY must be a Lob Test Secret API Key. Publishable and live keys are not allowed here.",
         },
         { status: 500 },
       );
@@ -218,11 +215,34 @@ export async function POST(request) {
     validateAddress(to, "Recipient");
     validateAddress(from, "Return");
 
+    if (!submittedBodyHtml) {
+      return Response.json(
+        {
+          error: "Add letter content before previewing.",
+        },
+        { status: 400 },
+      );
+    }
+
+    const finalHtml = buildLetterHtml(submittedBodyHtml);
+
+    if (finalHtml.length > 10000) {
+      return Response.json(
+        {
+          error:
+            "This letter is too large for Lob's inline HTML input. Keep the finished HTML under 10,000 characters.",
+          submittedHtmlLength: submittedBodyHtml.length,
+          finalHtmlLength: finalHtml.length,
+        },
+        { status: 400 },
+      );
+    }
+
     const payload = {
       description: "CRM property owner test proof",
       to,
       from,
-      file: buildLetterHtml(submittedBodyHtml),
+      file: finalHtml,
       color: false,
       double_sided: false,
       address_placement: "top_first_page",
@@ -248,6 +268,7 @@ export async function POST(request) {
       letterId: created.id,
       status: created.status,
       submittedHtmlLength: submittedBodyHtml.length,
+      finalHtmlLength: finalHtml.length,
       testMode: true,
     });
   } catch (error) {
