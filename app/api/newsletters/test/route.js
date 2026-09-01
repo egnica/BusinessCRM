@@ -1,5 +1,9 @@
 import { Resend } from "resend";
 import { getEmailTemplate } from "@/lib/emailTemplates";
+import {
+  getNewsletterConfigStatus,
+  getNewsletterFromAddress,
+} from "@/lib/newsletterConfig";
 
 export async function POST(req) {
   try {
@@ -18,7 +22,9 @@ export async function POST(req) {
       return Response.json({ error: "Template not found" }, { status: 404 });
     }
 
-    if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
+    const config = getNewsletterConfigStatus();
+
+    if (!config.resendConfigured) {
       return Response.json(
         { error: "Resend environment variables are not configured" },
         { status: 500 },
@@ -27,7 +33,7 @@ export async function POST(req) {
 
     const resend = new Resend(process.env.RESEND_API_KEY);
     const { data, error } = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL,
+      from: getNewsletterFromAddress(),
       to: email,
       subject: subject?.trim() || template.subject,
       html: template.render({
@@ -47,6 +53,7 @@ export async function POST(req) {
     return Response.json({
       message: "Test email sent",
       id: data?.id || null,
+      from: config.fromEmail,
     });
   } catch (error) {
     console.error("Newsletter test error:", error);
