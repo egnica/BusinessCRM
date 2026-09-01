@@ -117,6 +117,83 @@ async function waitForProof(letterId, apiKey, initialLetter) {
   return letter;
 }
 
+export async function GET() {
+  try {
+    const rawApiKey = process.env.LOB_TEST_API_KEY || "";
+    const apiKey = rawApiKey.trim();
+
+    const diagnostic = {
+      configured: Boolean(rawApiKey),
+      prefix: rawApiKey.startsWith("test_pub_")
+        ? "test_pub_"
+        : rawApiKey.startsWith("test_")
+          ? "test_"
+          : rawApiKey
+            ? "other"
+            : "missing",
+      length: rawApiKey.length,
+      trimmedLength: apiKey.length,
+      hasLeadingOrTrailingWhitespace: rawApiKey !== apiKey,
+      lobAuthStatus: null,
+      lobAuthOk: false,
+      lobMessage: "",
+    };
+
+    if (!rawApiKey) {
+      return Response.json(diagnostic, { status: 500 });
+    }
+
+    const response = await lobFetch("/addresses", apiKey, {
+      method: "GET",
+    });
+
+    diagnostic.lobAuthStatus = response.status;
+    diagnostic.lobAuthOk = response.ok;
+
+    let data = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+    if (!response.ok) {
+      diagnostic.lobMessage =
+        data?.error?.message ||
+        data?.message ||
+        "Lob rejected the authentication request.";
+    }
+
+    return Response.json(diagnostic, {
+      status: response.ok ? 200 : 502,
+    });
+  } catch (error) {
+    console.error("Lob diagnostic error:", error);
+
+    return Response.json(
+      {
+        configured: Boolean(process.env.LOB_TEST_API_KEY),
+        prefix: process.env.LOB_TEST_API_KEY?.startsWith("test_pub_")
+          ? "test_pub_"
+          : process.env.LOB_TEST_API_KEY?.startsWith("test_")
+            ? "test_"
+            : process.env.LOB_TEST_API_KEY
+              ? "other"
+              : "missing",
+        length: process.env.LOB_TEST_API_KEY?.length || 0,
+        trimmedLength: process.env.LOB_TEST_API_KEY?.trim?.().length || 0,
+        hasLeadingOrTrailingWhitespace:
+          Boolean(process.env.LOB_TEST_API_KEY) &&
+          process.env.LOB_TEST_API_KEY !== process.env.LOB_TEST_API_KEY.trim(),
+        lobAuthStatus: null,
+        lobAuthOk: false,
+        lobMessage: error.message || "Diagnostic request failed.",
+      },
+      { status: 500 },
+    );
+  }
+}
+
 export async function POST(request) {
   try {
     const apiKey = process.env.LOB_TEST_API_KEY;
