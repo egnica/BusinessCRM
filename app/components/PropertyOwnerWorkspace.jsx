@@ -4,6 +4,7 @@ import { useState } from "react";
 import PropertyOwnerSearch from "./PropertyOwnerSearch";
 import PropertyProspectList from "./PropertyProspectList";
 import PropertyProspectPanel from "./PropertyProspectPanel";
+import LetterComposerModal from "./LetterComposerModal";
 import styles from "../page.module.css";
 
 export default function PropertyOwnerWorkspace({
@@ -13,6 +14,7 @@ export default function PropertyOwnerWorkspace({
   const [tab, setTab] = useState("find");
   const [savedRefreshKey, setSavedRefreshKey] = useState(0);
   const [selectedProspect, setSelectedProspect] = useState(null);
+  const [letterProspect, setLetterProspect] = useState(null);
 
   function handleSaved() {
     setSavedRefreshKey((value) => value + 1);
@@ -78,6 +80,7 @@ export default function PropertyOwnerWorkspace({
           refreshKey={savedRefreshKey}
           onSelect={setSelectedProspect}
           onPromoted={handlePromoted}
+          onSendLetter={setLetterProspect}
         />
       )}
 
@@ -87,6 +90,7 @@ export default function PropertyOwnerWorkspace({
           onClose={() => setSelectedProspect(null)}
           onUpdated={handlePanelUpdated}
           onPromoted={handlePromoted}
+          onSendLetter={setLetterProspect}
         />
       )}
     </main>
