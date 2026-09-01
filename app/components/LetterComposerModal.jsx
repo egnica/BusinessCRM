@@ -192,15 +192,76 @@ export default function LetterComposerModal({ prospect, onClose }) {
 
       if (!response.ok) {
         throw new Error(
-          data.details || data.error || "Could not generate Lob proof.",
+          data.details || data.error || "Could not create Lob test letter.",
         );
       }
 
-      setPreview(data);
       setMessage(
-        data.url
-          ? "Lob test proof generated. Nothing was mailed."
-          : "Lob accepted the test letter, but the PDF is still rendering. Try Preview again in a moment.",
+        "Lob accepted the test letter. Rendering proof…" +
+          (Number.isFinite(data.submittedHtmlLength)
+            ? " HTML submitted: " + data.submittedHtmlLength + " characters."
+            : ""),
+      );
+
+      let finalProof = null;
+
+      for (let attempt = 0; attempt < 30; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        const statusResponse = await fetch(
+          "/api/lob/preview-letter?letterId=" +
+            encodeURIComponent(data.letterId),
+          { cache: "no-store" },
+        );
+        const statusData = await statusResponse.json();
+
+        if (!statusResponse.ok) {
+          throw new Error(
+            statusData.details ||
+              statusData.error ||
+              "Could not check Lob proof status.",
+          );
+        }
+
+        if (statusData.status === "failed") {
+          throw new Error(
+            statusData.failureReason || "Lob could not render the letter proof.",
+          );
+        }
+
+        if (statusData.status === "rendered" && statusData.url) {
+          finalProof = {
+            ...statusData,
+            submittedHtmlLength: data.submittedHtmlLength,
+          };
+          break;
+        }
+
+        setMessage(
+          "Rendering proof… Lob status: " +
+            (statusData.status || "processing") +
+            (Number.isFinite(data.submittedHtmlLength)
+              ? " · HTML submitted: " +
+                data.submittedHtmlLength +
+                " characters."
+              : ""),
+        );
+      }
+
+      if (!finalProof) {
+        throw new Error(
+          "Lob accepted the letter, but the PDF was still rendering after about a minute. Try Preview again.",
+        );
+      }
+
+      setPreview(finalProof);
+      setMessage(
+        "Lob test proof rendered. Nothing was mailed." +
+          (Number.isFinite(finalProof.submittedHtmlLength)
+            ? " HTML submitted: " +
+              finalProof.submittedHtmlLength +
+              " characters."
+            : ""),
       );
     } catch (error) {
       setMessage(error.message || "Could not generate Lob proof.");
@@ -317,6 +378,9 @@ export default function LetterComposerModal({ prospect, onClose }) {
                   <h3>Lob PDF Proof</h3>
                   <p>
                     Test letter {preview.letterId} · {preview.status || "rendered"}
+                    {Number.isFinite(preview.submittedHtmlLength)
+                      ? ` · ${preview.submittedHtmlLength} HTML characters submitted`
+                      : ""}
                   </p>
                 </div>
                 <a href={preview.url} target="_blank" rel="noreferrer">
