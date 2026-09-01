@@ -1079,7 +1079,7 @@ export default function Home() {
                           styles.introEmailCancelled
                         }
                       >
-                        Cancelled
+                        Intro Cancelled
                       </span>
                     ) : (
                       <div className={styles.introEmailRowActions}>
@@ -1106,7 +1106,7 @@ export default function Home() {
                           className={styles.introCancelButton}
                           onClick={() => handleCancelIntro(contact)}
                         >
-                          Cancel
+                          Cancel Intro
                         </button>
                       </div>
                     )}
