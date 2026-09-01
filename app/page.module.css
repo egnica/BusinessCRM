@@ -673,6 +673,34 @@
   color: #667085;
 }
 
+.introEmailPending {
+  background: #fffaeb;
+  color: #b54708;
+}
+
+.introPanelStatusRow {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.introRestoreButton {
+  border: 1px solid #d0d5dd;
+  border-radius: 7px;
+  background: #ffffff;
+  padding: 0.42rem 0.58rem;
+  color: #344054;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.introRestoreButton:hover {
+  background: #f9fafb;
+}
+
 .socials {
   display: flex;
   gap: 7px;
