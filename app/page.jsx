@@ -157,7 +157,7 @@ export default function Home() {
     () =>
       contacts.filter(
         (contact) =>
-          contact.email && contact.emailStatus !== "unsubscribed",
+          contact.email && contact.emailStatus === "subscribed",
       ).length,
     [contacts],
   );
