@@ -155,10 +155,15 @@ export default function Home() {
 
   const subscribedEmailCount = useMemo(
     () =>
-      contacts.filter(
-        (contact) =>
-          contact.email && contact.emailStatus === "subscribed",
-      ).length,
+      new Set(
+        contacts
+          .filter(
+            (contact) =>
+              contact.email && contact.emailStatus === "subscribed",
+          )
+          .map((contact) => String(contact.email).trim().toLowerCase())
+          .filter(Boolean),
+      ).size,
     [contacts],
   );
 
