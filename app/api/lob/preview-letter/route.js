@@ -100,17 +100,24 @@ async function readLobResponse(response) {
 async function waitForProof(letterId, apiKey, initialLetter) {
   let letter = initialLetter;
 
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    if (letter?.url || letter?.status === "failed") {
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    if (letter?.status === "rendered" || letter?.status === "failed") {
       return letter;
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 700));
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
     const response = await lobFetch("/letters/" + letterId, apiKey, {
       method: "GET",
     });
     letter = await readLobResponse(response);
+  }
+
+  if (letter?.status === "rendered") {
+    const response = await lobFetch("/letters/" + letterId, apiKey, {
+      method: "GET",
+    });
+    return readLobResponse(response);
   }
 
   return letter;
