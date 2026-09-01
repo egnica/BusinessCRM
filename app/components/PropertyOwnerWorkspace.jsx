@@ -93,6 +93,13 @@ export default function PropertyOwnerWorkspace({
           onSendLetter={setLetterProspect}
         />
       )}
+
+      {letterProspect && (
+        <LetterComposerModal
+          prospect={letterProspect}
+          onClose={() => setLetterProspect(null)}
+        />
+      )}
     </main>
   );
 }
