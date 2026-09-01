@@ -5,6 +5,7 @@ import {
   PROPERTY_LETTER_TEMPLATES,
   getPropertyLetterTemplate,
 } from "../data/propertyLetterTemplates";
+import HtmlCodeEditor from "./HtmlCodeEditor";
 import styles from "./LetterComposerModal.module.css";
 
 const EMPTY_FROM = {
@@ -80,7 +81,9 @@ function parseMailingAddress(prospect) {
 function buildLobHtml(bodyHtml) {
   return [
     '<html style="padding-top: 3in; margin: .5in;">',
+    '<div style="font-family: Georgia, Times New Roman, serif; font-size: 11pt; line-height: 1.45; overflow-wrap: break-word;">',
     bodyHtml.trim(),
+    "</div>",
     "</html>",
   ].join("");
 }
@@ -562,12 +565,10 @@ export default function LetterComposerModal({ prospect, onClose }) {
                 </label>
               </div>
 
-              <textarea
-                className={styles.htmlEditor}
+              <HtmlCodeEditor
                 value={bodyHtml}
-                onChange={(event) => updateBodyHtml(event.target.value)}
-                rows={20}
-                spellCheck={false}
+                onChange={updateBodyHtml}
+                disabled={working}
                 placeholder={'<p>Dear Allen and Crystal,</p>\n\n<p>I wanted to reach out...</p>\n\n<p>Best,<br>Nick</p>'}
               />
 
