@@ -1134,6 +1134,17 @@
   align-items: end;
 }
 
+.newsletterSendGuard {
+  margin: -6px 0 0;
+  color: #667085;
+  font-size: 0.78rem;
+}
+
+.newsletterSendGuardReady {
+  color: #027a48;
+  font-weight: 700;
+}
+
 .newsletterActions {
   display: flex;
   justify-content: flex-end;
