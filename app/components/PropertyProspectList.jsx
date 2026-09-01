@@ -32,6 +32,12 @@ function mailingName(prospect) {
   return prospect.mailingContactName || "—";
 }
 
+function mailStatusLabel(value) {
+  if (value === "submitted") return "Submitted";
+  if (value === "mailed") return "Mailed";
+  return "Unmailed";
+}
+
 export default function PropertyProspectList({
   refreshKey,
   onSelect,
@@ -280,6 +286,7 @@ export default function PropertyProspectList({
         >
           <option value="all">All mail statuses</option>
           <option value="unmailed">Unmailed</option>
+          <option value="submitted">Submitted</option>
           <option value="mailed">Mailed</option>
         </select>
 
@@ -387,9 +394,7 @@ export default function PropertyProspectList({
 
               <span>
                 <span className={styles.propertyMailBadge}>
-                  {prospect.mailStatus === "mailed"
-                    ? "Mailed"
-                    : "Unmailed"}
+                  {mailStatusLabel(prospect.mailStatus)}
                 </span>
               </span>
 
