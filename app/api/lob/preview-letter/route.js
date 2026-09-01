@@ -81,17 +81,18 @@ export async function GET(request) {
     const rawApiKey = process.env.LOB_TEST_API_KEY || "";
     const apiKey = rawApiKey.trim();
 
-    if (!rawApiKey) {
+    if (!apiKey) {
+      return Response.json(
+        { error: "LOB_TEST_API_KEY is not configured." },
+        { status: 500 },
+      );
+    }
+
+    if (!apiKey.startsWith("test_") || apiKey.startsWith("test_pub_")) {
       return Response.json(
         {
-          configured: false,
-          prefix: "missing",
-          length: 0,
-          trimmedLength: 0,
-          hasLeadingOrTrailingWhitespace: false,
-          lobAuthStatus: null,
-          lobAuthOk: false,
-          lobMessage: "LOB_TEST_API_KEY is not configured.",
+          error:
+            "LOB_TEST_API_KEY must be a Lob Test Secret API Key.",
         },
         { status: 500 },
       );
@@ -100,84 +101,50 @@ export async function GET(request) {
     const url = new URL(request.url);
     const letterId = clean(url.searchParams.get("letterId"));
 
-    if (letterId) {
-      const response = await lobFetch("/letters/" + encodeURIComponent(letterId), apiKey, {
-        method: "GET",
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        return Response.json(
-          {
-            error:
-              data?.error?.message ||
-              data?.message ||
-              "Could not retrieve Lob letter status.",
-            statusCode: response.status,
-          },
-          { status: response.status },
-        );
-      }
-
-      return Response.json({
-        letterId: data.id,
-        status: data.status,
-        url: data.status === "rendered" ? data.url || "" : "",
-        thumbnails: data.status === "rendered" ? data.thumbnails || [] : [],
-        failureReason:
-          data?.failure_reason?.message ||
-          data?.failure_reason?.detail ||
-          "",
-        testMode: true,
-      });
+    if (!letterId) {
+      return Response.json(
+        { error: "letterId is required." },
+        { status: 400 },
+      );
     }
 
-    const diagnostic = {
-      configured: true,
-      prefix: rawApiKey.startsWith("test_pub_")
-        ? "test_pub_"
-        : rawApiKey.startsWith("test_")
-          ? "test_"
-          : "other",
-      length: rawApiKey.length,
-      trimmedLength: apiKey.length,
-      hasLeadingOrTrailingWhitespace: rawApiKey !== apiKey,
-      lobAuthStatus: null,
-      lobAuthOk: false,
-      lobMessage: "",
-    };
+    const response = await lobFetch(
+      "/letters/" + encodeURIComponent(letterId),
+      apiKey,
+      { method: "GET" },
+    );
 
-    const response = await lobFetch("/addresses", apiKey, {
-      method: "GET",
-    });
-
-    diagnostic.lobAuthStatus = response.status;
-    diagnostic.lobAuthOk = response.ok;
-
-    let data = null;
-    try {
-      data = await response.json();
-    } catch {
-      data = null;
-    }
+    const data = await response.json();
 
     if (!response.ok) {
-      diagnostic.lobMessage =
-        data?.error?.message ||
-        data?.message ||
-        "Lob rejected the authentication request.";
+      return Response.json(
+        {
+          error:
+            data?.error?.message ||
+            data?.message ||
+            "Could not retrieve Lob letter status.",
+        },
+        { status: response.status },
+      );
     }
 
-    return Response.json(diagnostic, {
-      status: response.ok ? 200 : 502,
+    return Response.json({
+      letterId: data.id,
+      status: data.status,
+      url: data.status === "rendered" ? data.url || "" : "",
+      thumbnails: data.status === "rendered" ? data.thumbnails || [] : [],
+      failureReason:
+        data?.failure_reason?.message ||
+        data?.failure_reason?.detail ||
+        "",
+      testMode: true,
     });
   } catch (error) {
-    console.error("Lob diagnostic/status error:", error);
+    console.error("Lob proof status error:", error);
 
     return Response.json(
       {
-        error: "Failed to check Lob status.",
+        error: "Failed to check Lob proof status.",
         details: error.message,
       },
       { status: 500 },
@@ -267,8 +234,6 @@ export async function POST(request) {
     return Response.json({
       letterId: created.id,
       status: created.status,
-      submittedHtmlLength: submittedBodyHtml.length,
-      finalHtmlLength: finalHtml.length,
       testMode: true,
     });
   } catch (error) {
