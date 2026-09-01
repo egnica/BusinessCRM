@@ -1,6 +1,13 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import styles from "./HtmlCodeEditor.module.css";
 
 const VOID_TAGS = new Set([
@@ -43,11 +50,55 @@ export default function HtmlCodeEditor({
 }) {
   const textareaRef = useRef(null);
   const gutterRef = useRef(null);
+  const mirrorRef = useRef(null);
+  const [lineHeights, setLineHeights] = useState([]);
 
-  const lineNumbers = useMemo(() => {
-    const count = Math.max(1, value.split("\n").length);
-    return Array.from({ length: count }, (_, index) => index + 1);
-  }, [value]);
+  const lines = useMemo(() => value.split("\n"), [value]);
+
+  const lineNumbers = useMemo(
+    () => Array.from({ length: Math.max(1, lines.length) }, (_, index) => index + 1),
+    [lines.length],
+  );
+
+  const measureWrappedLines = useCallback(() => {
+    const mirror = mirrorRef.current;
+    if (!mirror) return;
+
+    const nextHeights = Array.from(mirror.children).map(
+      (element) => element.getBoundingClientRect().height,
+    );
+
+    setLineHeights((current) => {
+      if (
+        current.length === nextHeights.length &&
+        current.every((height, index) => height === nextHeights[index])
+      ) {
+        return current;
+      }
+
+      return nextHeights;
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    measureWrappedLines();
+  }, [lines, measureWrappedLines]);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+
+    if (!textarea || typeof ResizeObserver === "undefined") {
+      return undefined;
+    }
+
+    const observer = new ResizeObserver(() => {
+      measureWrappedLines();
+    });
+
+    observer.observe(textarea);
+
+    return () => observer.disconnect();
+  }, [measureWrappedLines]);
 
   function handleKeyDown(event) {
     const textarea = textareaRef.current;
@@ -128,13 +179,22 @@ export default function HtmlCodeEditor({
     <div className={styles.editorShell}>
       <div className={styles.toolbar} aria-hidden="true">
         <span>HTML</span>
-        <span>Tab = indent · tags close automatically</span>
+        <span>Soft wrap · Tab = indent · tags close automatically</span>
       </div>
 
       <div className={styles.editorBody}>
         <div className={styles.gutter} ref={gutterRef} aria-hidden="true">
-          {lineNumbers.map((line) => (
-            <span key={line}>{line}</span>
+          {lineNumbers.map((line, index) => (
+            <span
+              key={line}
+              style={
+                lineHeights[index]
+                  ? { height: `${lineHeights[index]}px` }
+                  : undefined
+              }
+            >
+              {line}
+            </span>
           ))}
         </div>
 
@@ -151,7 +211,20 @@ export default function HtmlCodeEditor({
           autoCapitalize="off"
           autoCorrect="off"
           rows={20}
+          wrap="soft"
         />
+
+        <div
+          className={styles.measure}
+          ref={mirrorRef}
+          aria-hidden="true"
+        >
+          {(lines.length ? lines : [""]).map((line, index) => (
+            <div className={styles.measureLine} key={index}>
+              {line || "\u00A0"}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
