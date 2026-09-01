@@ -15,6 +15,7 @@ export default function NewsletterModal({
   const [previewHtml, setPreviewHtml] = useState("");
   const [status, setStatus] = useState("");
   const [working, setWorking] = useState(false);
+  const [testSent, setTestSent] = useState(false);
   const [config, setConfig] = useState({
     loading: true,
     configured: false,
@@ -76,6 +77,7 @@ export default function NewsletterModal({
   function handleTemplateChange(value) {
     setTemplateId(value);
     setPreviewHtml("");
+    setTestSent(false);
     const next = templates.find((template) => template.id === value);
     if (next) setSubject(next.subject || "");
   }
@@ -139,6 +141,7 @@ export default function NewsletterModal({
         return;
       }
 
+      setTestSent(true);
       setStatus("Test email sent to " + testEmail.trim() + ".");
     } catch {
       setStatus("Test email failed.");
@@ -148,6 +151,11 @@ export default function NewsletterModal({
   }
 
   async function handleSendAll() {
+    if (!testSent) {
+      setStatus("Send a successful test email before sending to the full list.");
+      return;
+    }
+
     if (!config.configured) {
       setStatus("Newsletter sending is not fully configured yet.");
       return;
@@ -242,7 +250,10 @@ export default function NewsletterModal({
             <span>Subject</span>
             <input
               value={subject}
-              onChange={(e) => setSubject(e.target.value)}
+              onChange={(e) => {
+                setSubject(e.target.value);
+                setTestSent(false);
+              }}
               placeholder="Email subject"
             />
           </label>
@@ -295,6 +306,18 @@ export default function NewsletterModal({
             </button>
           </div>
 
+          <p
+            className={
+              styles.newsletterSendGuard +
+              " " +
+              (testSent ? styles.newsletterSendGuardReady : "")
+            }
+          >
+            {testSent
+              ? "Test sent successfully. Bulk send is unlocked."
+              : "Send a successful test before bulk sending."}
+          </p>
+
           <div className={styles.newsletterActions}>
             <button
               type="button"
@@ -312,10 +335,15 @@ export default function NewsletterModal({
                 working ||
                 !templateId ||
                 recipientCount === 0 ||
-                !config.configured
+                !config.configured ||
+                !testSent
               }
             >
-              {working ? "Working..." : "Send to " + recipientCount + " contacts"}
+              {working
+                ? "Working..."
+                : !testSent
+                  ? "Send test first"
+                  : "Send to " + recipientCount + " contacts"}
             </button>
           </div>
 
