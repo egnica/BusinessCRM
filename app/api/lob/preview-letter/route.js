@@ -40,7 +40,9 @@ function validateAddress(address, label) {
 function buildLetterHtml(bodyHtml) {
   return [
     '<html style="padding-top: 3in; margin: .5in;">',
+    '<div style="font-family: Georgia, Times New Roman, serif; font-size: 11pt; line-height: 1.45; overflow-wrap: break-word;">',
     bodyHtml,
+    "</div>",
     "</html>",
   ].join("");
 }
