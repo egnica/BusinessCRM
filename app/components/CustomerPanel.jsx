@@ -6,6 +6,10 @@ import styles from "../page.module.css";
 function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
   const [calendarFormOpen, setCalendarFormOpen] = useState(false);
 
+  const introEmailStatus =
+    customerSelected.introEmail?.status ||
+    (customerSelected.introEmail?.sent ? "sent" : "pending");
+
   const updateContact = (patch) => {
     setContacts((prev) =>
       prev.map((contact) =>
@@ -97,6 +101,32 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
       setCustomerToggle("");
     } catch (error) {
       console.error("Failed to save contact:", error);
+    }
+  }
+
+  async function handleRestoreIntro() {
+    if (!customerSelected?._id || introEmailStatus !== "cancelled") return;
+
+    try {
+      const res = await fetch(
+        `/api/contacts/${customerSelected._id}/intro-email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "restore" }),
+        },
+      );
+      const data = await res.json();
+
+      if (!res.ok) {
+        window.alert(data.error || "Could not restore the introduction email.");
+        return;
+      }
+
+      updateContact({ introEmail: data.introEmail });
+    } catch (error) {
+      console.error("Restore intro email error:", error);
+      window.alert("Could not restore the introduction email.");
     }
   }
 
@@ -635,26 +665,52 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
                 </select>
               </label>
 
-              <label className={styles.checkboxField}>
-                <input
-                  type="checkbox"
-                  checked={Boolean(customerSelected.introEmail?.sent)}
-                  onChange={(e) =>
-                    updateNested("introEmail", { sent: e.target.checked })
-                  }
-                />
-                Intro email sent
-              </label>
+              <div className={styles.customerPanelField}>
+                <span>Introduction Email</span>
+                <div className={styles.introPanelStatusRow}>
+                  <span
+                    className={
+                      styles.introEmailBadge +
+                      " " +
+                      (introEmailStatus === "sent"
+                        ? styles.introEmailSent
+                        : introEmailStatus === "cancelled"
+                          ? styles.introEmailCancelled
+                          : styles.introEmailPending)
+                    }
+                  >
+                    {introEmailStatus === "sent"
+                      ? "Sent"
+                      : introEmailStatus === "cancelled"
+                        ? "Cancelled"
+                        : "Pending"}
+                  </span>
+
+                  {introEmailStatus === "cancelled" && (
+                    <button
+                      type="button"
+                      className={styles.introRestoreButton}
+                      onClick={handleRestoreIntro}
+                    >
+                      Restore Intro
+                    </button>
+                  )}
+                </div>
+              </div>
 
               <label className={styles.customerPanelField}>
-                <span>Intro Email Sent At</span>
+                <span>Intro Email Activity</span>
                 <input
                   type="text"
-                  value={customerSelected.introEmail?.sentAt || ""}
-                  onChange={(e) =>
-                    updateNested("introEmail", { sentAt: e.target.value })
+                  value={
+                    introEmailStatus === "sent"
+                      ? customerSelected.introEmail?.sentAt || ""
+                      : introEmailStatus === "cancelled"
+                        ? customerSelected.introEmail?.cancelledAt || ""
+                        : ""
                   }
-                  placeholder="Timestamp or date"
+                  readOnly
+                  placeholder="Not sent yet"
                 />
               </label>
 
