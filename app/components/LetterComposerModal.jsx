@@ -100,6 +100,79 @@ function AddressFields({ value, onChange, prefix }) {
     onChange: (event) => onChange(name, event.target.value),
   });
 
+  async function sendLiveLetter() {
+    if (!canSendLive || !proof?.letterId) return;
+
+    setSendingLive(true);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/lob/send-letter", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prospectId: prospect?._id || "",
+          proofLetterId: proof.letterId,
+          to: toAddress,
+          from: fromAddress,
+          bodyHtml: trimmedBodyHtml,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.details || data.error || "Could not submit the live letter.",
+        );
+      }
+
+      const submittedMail = {
+        environment: "live",
+        proofLetterId: proof.letterId,
+        liveLetterId: data.liveLetterId,
+        submittedAt: data.submittedAt || new Date().toISOString(),
+        sendDate: data.sendDate || "",
+        lobStatus: data.lobStatus || "",
+      };
+
+      setLiveMail(submittedMail);
+      setShowLiveConfirm(false);
+      setMessage(
+        data.alreadySubmitted
+          ? "This proof was already submitted to Lob. No duplicate letter was created."
+          : "Live letter submitted to Lob.",
+      );
+
+      if (data.prospect) {
+        onMailed?.(data.prospect);
+      }
+    } catch (error) {
+      setMessage(error.message || "Could not submit the live letter.");
+    } finally {
+      setSendingLive(false);
+    }
+  }
+
+  function formatConfirmationAddress(address) {
+    return [
+      address?.name,
+      address?.address_line1,
+      address?.address_line2,
+      [
+        address?.address_city,
+        address?.address_state,
+        address?.address_zip,
+      ]
+        .filter(Boolean)
+        .join(" "),
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+
   return (
     <div className={styles.addressGrid}>
       <label className={styles.fullWidth}>
@@ -140,7 +213,7 @@ function AddressFields({ value, onChange, prefix }) {
   );
 }
 
-export default function LetterComposerModal({ prospect, onClose }) {
+export default function LetterComposerModal({ prospect, onClose, onMailed }) {
   const parsedTo = useMemo(() => parseMailingAddress(prospect), [prospect]);
   const draftKey = useMemo(
     () => (prospect?._id ? `crmLobLetterDraft:${prospect._id}` : ""),
@@ -161,8 +234,11 @@ export default function LetterComposerModal({ prospect, onClose }) {
   const [bodyHtml, setBodyHtml] = useState("");
   const [working, setWorking] = useState(false);
   const [checkingProof, setCheckingProof] = useState(false);
+  const [sendingLive, setSendingLive] = useState(false);
+  const [showLiveConfirm, setShowLiveConfirm] = useState(false);
   const [message, setMessage] = useState("");
   const [proof, setProof] = useState(null);
+  const [liveMail, setLiveMail] = useState(null);
 
   function persistProof(nextProof) {
     setProof(nextProof);
@@ -198,10 +274,14 @@ export default function LetterComposerModal({ prospect, onClose }) {
       setBodyHtml(savedDraft || "");
       setTemplateId(savedTemplateId || "blank");
       setProof(savedProof ? JSON.parse(savedProof) : null);
+      setLiveMail(null);
+      setShowLiveConfirm(false);
     } catch {
       setBodyHtml("");
       setTemplateId("blank");
       setProof(null);
+      setLiveMail(null);
+      setShowLiveConfirm(false);
     }
   }, [draftKey, parsedTo, proofKey, prospect?._id, templateKey]);
 
@@ -215,6 +295,26 @@ export default function LetterComposerModal({ prospect, onClose }) {
       // Ignore invalid browser-local address data.
     }
   }, []);
+
+  useEffect(() => {
+    if (!proof?.letterId) {
+      setLiveMail(null);
+      return;
+    }
+
+    const existingLiveMail = [...(prospect?.mailHistory || [])]
+      .reverse()
+      .find(
+        (entry) =>
+          entry?.environment === "live" &&
+          entry?.proofLetterId === proof.letterId &&
+          entry?.liveLetterId,
+      );
+
+    if (existingLiveMail) {
+      setLiveMail(existingLiveMail);
+    }
+  }, [proof?.letterId, prospect?.mailHistory]);
 
   useEffect(() => {
     if (
@@ -372,12 +472,28 @@ export default function LetterComposerModal({ prospect, onClose }) {
       fromAddress.address_zip,
   );
 
+  const currentProofSnapshot = useMemo(
+    () =>
+      JSON.stringify({
+        bodyHtml: trimmedBodyHtml,
+        to: toAddress,
+        from: fromAddress,
+      }),
+    [fromAddress, toAddress, trimmedBodyHtml],
+  );
+
   const proofMatchesDraft = Boolean(
-    proof?.bodyHtmlSnapshot &&
-      proof.bodyHtmlSnapshot === trimmedBodyHtml,
+    proof?.snapshot && proof.snapshot === currentProofSnapshot,
   );
 
   const proofLabel = getProofLabel(proof?.status);
+  const canSendLive = Boolean(
+    proof?.letterId &&
+      proof?.status === "rendered" &&
+      proof?.url &&
+      proofMatchesDraft &&
+      !liveMail?.liveLetterId,
+  );
   const nearHtmlLimit = finalLobHtml.length >= 9000;
 
   async function checkProofStatus() {
@@ -476,7 +592,8 @@ export default function LetterComposerModal({ prospect, onClose }) {
         status: data.status || "processed",
         url: "",
         thumbnails: [],
-        bodyHtmlSnapshot: trimmedBodyHtml,
+        snapshot: currentProofSnapshot,
+        proofHash: data.proofHash || "",
         createdAt: new Date().toISOString(),
         lastCheckedAt: null,
         testMode: true,
@@ -501,12 +618,12 @@ export default function LetterComposerModal({ prospect, onClose }) {
           <div>
             <div className={styles.titleRow}>
               <p className={styles.eyebrow}>Property Owner Outreach</p>
-              <span className={styles.testBadge}>Test mode</span>
+              <span className={styles.testBadge}>Proof required</span>
             </div>
             <h2>Create Letter</h2>
             <p>
-              Write the letter, review the page, then generate the actual Lob
-              mailing proof before live sending is enabled.
+              Write the letter, review the page, generate a Lob test proof,
+              then explicitly confirm the live mailing.
             </p>
           </div>
 
@@ -645,7 +762,7 @@ export default function LetterComposerModal({ prospect, onClose }) {
 
                   {!proofMatchesDraft && (
                     <p className={styles.proofNotice}>
-                      Your draft has changed since this proof was created.
+                      The letter or mailing address has changed since this proof was created.
                     </p>
                   )}
                 </div>
@@ -686,6 +803,21 @@ export default function LetterComposerModal({ prospect, onClose }) {
                   </div>
                 </div>
               )}
+
+              {liveMail?.liveLetterId && (
+                <div className={styles.liveSuccess}>
+                  <strong>Live letter submitted</strong>
+                  <span>
+                    Lob ID: {liveMail.liveLetterId}
+                    {liveMail.sendDate
+                      ? ` · scheduled ${new Date(liveMail.sendDate).toLocaleString()}`
+                      : ""}
+                  </span>
+                  <span>
+                    This exact proof cannot be submitted a second time from the CRM.
+                  </span>
+                </div>
+              )}
             </section>
           )}
 
@@ -694,8 +826,11 @@ export default function LetterComposerModal({ prospect, onClose }) {
 
         <footer className={styles.footer}>
           <div className={styles.footerNote}>
-            <strong>Test mode</strong>
-            <span>No physical mail can be sent from this build.</span>
+            <strong>Proof before mail</strong>
+            <span>
+              Live mail requires a rendered proof that still matches the current
+              letter and addresses.
+            </span>
           </div>
 
           <div className={styles.footerActions}>
@@ -717,13 +852,77 @@ export default function LetterComposerModal({ prospect, onClose }) {
             <button
               type="button"
               className={styles.liveButton}
-              disabled
-              title="Live mail will be enabled after the test workflow is approved."
+              onClick={() => setShowLiveConfirm(true)}
+              disabled={!canSendLive || working || sendingLive}
+              title={
+                liveMail?.liveLetterId
+                  ? "This proof has already been submitted."
+                  : !proof?.letterId
+                    ? "Generate a Lob proof first."
+                    : proof?.status !== "rendered"
+                      ? "Wait for the Lob proof to finish rendering."
+                      : !proofMatchesDraft
+                        ? "Generate a new proof for the current letter and addresses."
+                        : "Review the final confirmation before creating live mail."
+              }
             >
-              Confirm & Mail
+              {liveMail?.liveLetterId ? "Submitted" : "Confirm & Mail"}
             </button>
           </div>
         </footer>
+
+        {showLiveConfirm && (
+          <>
+            <div
+              className={styles.confirmBackdrop}
+              onClick={sendingLive ? undefined : () => setShowLiveConfirm(false)}
+            />
+            <section
+              className={styles.confirmDialog}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Confirm live letter"
+            >
+              <p className={styles.eyebrow}>Final confirmation</p>
+              <h3>Mail this physical letter?</h3>
+              <p>
+                This creates one live Lob mailpiece and can create a charge on
+                your Lob account.
+              </p>
+
+              <div className={styles.confirmAddress}>
+                <span>Mail to</span>
+                <pre>{formatConfirmationAddress(toAddress)}</pre>
+              </div>
+
+              <div className={styles.confirmWarning}>
+                <strong>Proof verified</strong>
+                <span>
+                  The current HTML and both mailing addresses match the rendered
+                  Lob test proof.
+                </span>
+              </div>
+
+              <div className={styles.confirmActions}>
+                <button
+                  type="button"
+                  onClick={() => setShowLiveConfirm(false)}
+                  disabled={sendingLive}
+                >
+                  Go Back
+                </button>
+                <button
+                  type="button"
+                  className={styles.mailNowButton}
+                  onClick={sendLiveLetter}
+                  disabled={sendingLive}
+                >
+                  {sendingLive ? "Submitting to Lob…" : "Mail This Letter"}
+                </button>
+              </div>
+            </section>
+          </>
+        )}
       </section>
     </>
   );
