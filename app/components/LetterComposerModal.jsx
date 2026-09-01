@@ -100,79 +100,6 @@ function AddressFields({ value, onChange, prefix }) {
     onChange: (event) => onChange(name, event.target.value),
   });
 
-  async function sendLiveLetter() {
-    if (!canSendLive || !proof?.letterId) return;
-
-    setSendingLive(true);
-    setMessage("");
-
-    try {
-      const response = await fetch("/api/lob/send-letter", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          prospectId: prospect?._id || "",
-          proofLetterId: proof.letterId,
-          to: toAddress,
-          from: fromAddress,
-          bodyHtml: trimmedBodyHtml,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.details || data.error || "Could not submit the live letter.",
-        );
-      }
-
-      const submittedMail = {
-        environment: "live",
-        proofLetterId: proof.letterId,
-        liveLetterId: data.liveLetterId,
-        submittedAt: data.submittedAt || new Date().toISOString(),
-        sendDate: data.sendDate || "",
-        lobStatus: data.lobStatus || "",
-      };
-
-      setLiveMail(submittedMail);
-      setShowLiveConfirm(false);
-      setMessage(
-        data.alreadySubmitted
-          ? "This proof was already submitted to Lob. No duplicate letter was created."
-          : "Live letter submitted to Lob.",
-      );
-
-      if (data.prospect) {
-        onMailed?.(data.prospect);
-      }
-    } catch (error) {
-      setMessage(error.message || "Could not submit the live letter.");
-    } finally {
-      setSendingLive(false);
-    }
-  }
-
-  function formatConfirmationAddress(address) {
-    return [
-      address?.name,
-      address?.address_line1,
-      address?.address_line2,
-      [
-        address?.address_city,
-        address?.address_state,
-        address?.address_zip,
-      ]
-        .filter(Boolean)
-        .join(" "),
-    ]
-      .filter(Boolean)
-      .join("\n");
-  }
-
   return (
     <div className={styles.addressGrid}>
       <label className={styles.fullWidth}>
@@ -607,6 +534,79 @@ export default function LetterComposerModal({ prospect, onClose, onMailed }) {
     } finally {
       setWorking(false);
     }
+  }
+
+  async function sendLiveLetter() {
+    if (!canSendLive || !proof?.letterId) return;
+
+    setSendingLive(true);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/lob/send-letter", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prospectId: prospect?._id || "",
+          proofLetterId: proof.letterId,
+          to: toAddress,
+          from: fromAddress,
+          bodyHtml: trimmedBodyHtml,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.details || data.error || "Could not submit the live letter.",
+        );
+      }
+
+      const submittedMail = {
+        environment: "live",
+        proofLetterId: proof.letterId,
+        liveLetterId: data.liveLetterId,
+        submittedAt: data.submittedAt || new Date().toISOString(),
+        sendDate: data.sendDate || "",
+        lobStatus: data.lobStatus || "",
+      };
+
+      setLiveMail(submittedMail);
+      setShowLiveConfirm(false);
+      setMessage(
+        data.alreadySubmitted
+          ? "This proof was already submitted to Lob. No duplicate letter was created."
+          : "Live letter submitted to Lob.",
+      );
+
+      if (data.prospect) {
+        onMailed?.(data.prospect);
+      }
+    } catch (error) {
+      setMessage(error.message || "Could not submit the live letter.");
+    } finally {
+      setSendingLive(false);
+    }
+  }
+
+  function formatConfirmationAddress(address) {
+    return [
+      address?.name,
+      address?.address_line1,
+      address?.address_line2,
+      [
+        address?.address_city,
+        address?.address_state,
+        address?.address_zip,
+      ]
+        .filter(Boolean)
+        .join(" "),
+    ]
+      .filter(Boolean)
+      .join("\n");
   }
 
   return (
