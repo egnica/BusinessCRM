@@ -39,6 +39,7 @@ export default function PropertyProspectPanel({
   onClose,
   onUpdated,
   onPromoted,
+  onSendLetter,
 }) {
   const [status, setStatus] = useState(prospect?.status || "new");
   const [notes, setNotes] = useState(prospect?.notes || "");
@@ -568,8 +569,8 @@ export default function PropertyProspectPanel({
             <div className={styles.panelSectionHeader}>
               <h4>Actions</h4>
               <p>
-                Physical mail will be enabled in Phase 2 after PostGrid is
-                connected.
+                Create a custom letter and generate a Lob test proof before
+                enabling live mail.
               </p>
             </div>
 
@@ -577,8 +578,8 @@ export default function PropertyProspectPanel({
               <button
                 type="button"
                 className={styles.secondaryButton}
-                disabled
-                title="PostGrid will be connected in Phase 2"
+                onClick={() => onSendLetter?.(prospect)}
+                disabled={working}
               >
                 Send Letter
               </button>
