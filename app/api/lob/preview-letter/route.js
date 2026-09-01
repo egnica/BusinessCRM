@@ -41,27 +41,10 @@ function buildLetterHtml(bodyHtml) {
   const content = clean(bodyHtml) || "<p>&nbsp;</p>";
 
   return [
-    "<!doctype html>",
-    '<html lang="en">',
-    "<head>",
-    '<meta charset="utf-8">',
-    "<style>",
-    "@page { size: 8.5in 11in; margin: 0.65in 0.75in 0.75in; }",
-    "html, body { padding: 0; }",
-    "body { margin: 0; color: #111827; font-family: Georgia, 'Times New Roman', serif; font-size: 11.5pt; line-height: 1.55; }",
-    ".lob-address-space { height: 2.25in; }",
-    ".letter-content { width: 100%; }",
-    ".letter-content p { margin: 0 0 0.95em; }",
-    ".letter-content ul, .letter-content ol { margin: 0 0 0.95em 1.25em; padding: 0; }",
-    ".letter-content a { color: inherit; }",
-    "</style>",
-    "</head>",
-    "<body>",
-    '<div class="lob-address-space" aria-hidden="true"></div>',
-    '<main class="letter-content">',
+    '<html style="padding-top: 3in; margin: 0.65in 0.75in 0.75in;">',
+    '<div style="font-family: Georgia, Times New Roman, serif; font-size: 11.5pt; line-height: 1.55; color: #111827;">',
     content,
-    "</main>",
-    "</body>",
+    "</div>",
     "</html>",
   ].join("");
 }
