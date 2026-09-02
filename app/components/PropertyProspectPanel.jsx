@@ -146,7 +146,7 @@ export default function PropertyProspectPanel({
     try {
       await copyPropertyProspectAiContext(aiProspect);
       setMessage(
-        "AI context copied. Paste it into a chat to draft this owner's letter.",
+        "AI context copied. Paste it into a chat to research this owner and plan the outreach.",
       );
     } catch {
       setMessage("Could not copy AI context to the clipboard.");
