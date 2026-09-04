@@ -25,7 +25,7 @@ function buildContact(prospect, now) {
     coOwnerName: prospect.coOwnerName || "",
     project: "property-owner-outreach",
     jobTitle: "",
-    email: "",
+    email: prospect.email || "",
     phone: "",
     company: {
       name: prospect.ownerType === "llc" ? prospect.ownerNameRaw || "" : "",

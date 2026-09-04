@@ -382,6 +382,7 @@ export default function PropertyProspectList({
               >
                 <strong>{prospect.ownerNameRaw}</strong>
                 <span>Mailing: {mailingName(prospect)}</span>
+                {prospect.email && <span>Email: {prospect.email}</span>}
               </button>
 
               <span>{mailingName(prospect)}</span>

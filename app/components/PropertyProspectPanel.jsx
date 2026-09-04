@@ -43,6 +43,7 @@ export default function PropertyProspectPanel({
   onSendLetter,
 }) {
   const [status, setStatus] = useState(prospect?.status || "new");
+  const [email, setEmail] = useState(prospect?.email || "");
   const [notes, setNotes] = useState(prospect?.notes || "");
   const [primaryParcelId, setPrimaryParcelId] = useState(
     prospect?.primaryParcelId || prospect?.properties?.[0]?.parcelId || "",
@@ -52,6 +53,7 @@ export default function PropertyProspectPanel({
 
   useEffect(() => {
     setStatus(prospect?.status || "new");
+    setEmail(prospect?.email || "");
     setNotes(prospect?.notes || "");
     setPrimaryParcelId(
       prospect?.primaryParcelId || prospect?.properties?.[0]?.parcelId || "",
@@ -73,6 +75,7 @@ export default function PropertyProspectPanel({
         },
         body: JSON.stringify({
           status,
+          email,
           notes,
           primaryParcelId,
         }),
@@ -138,6 +141,7 @@ export default function PropertyProspectPanel({
 
     const aiProspect = {
       ...prospect,
+      email,
       notes,
       primaryParcelId,
       primaryProperty: selectedProperty,
@@ -175,6 +179,7 @@ export default function PropertyProspectPanel({
           },
           body: JSON.stringify({
             status,
+            email,
             notes,
             primaryParcelId,
           }),
@@ -575,6 +580,18 @@ export default function PropertyProspectPanel({
                 </span>
               )}
             </div>
+
+            <label className={styles.customerPanelField}>
+              <span>Email address</span>
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="owner@example.com"
+                autoComplete="email"
+                maxLength={320}
+              />
+            </label>
           </section>
 
           <section className={styles.panelSection}>

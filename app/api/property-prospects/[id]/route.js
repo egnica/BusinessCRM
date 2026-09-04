@@ -12,6 +12,14 @@ const ALLOWED_STATUSES = [
   "archived",
 ];
 
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function isValidEmail(value) {
+  return value.length <= 320 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 function serializeProspect(prospect) {
   return {
     ...prospect,
@@ -77,6 +85,19 @@ export async function PATCH(request, { params }) {
 
     if (body.notes !== undefined) {
       patch.notes = String(body.notes || "");
+    }
+
+    if (body.email !== undefined) {
+      const email = normalizeEmail(body.email);
+
+      if (email && !isValidEmail(email)) {
+        return Response.json(
+          { error: "Enter a valid email address" },
+          { status: 400 },
+        );
+      }
+
+      patch.email = email;
     }
 
     if (body.primaryParcelId !== undefined) {

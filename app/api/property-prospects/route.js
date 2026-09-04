@@ -210,6 +210,7 @@ async function saveProspects(prospects, filters) {
           },
           $setOnInsert: {
             status: "new",
+            email: "",
             mailStatus: "unmailed",
             mailHistory: [],
             notes: "",
