@@ -44,6 +44,7 @@ export default function PropertyProspectPanel({
 }) {
   const [status, setStatus] = useState(prospect?.status || "new");
   const [email, setEmail] = useState(prospect?.email || "");
+  const [phone, setPhone] = useState(prospect?.phone || "");
   const [notes, setNotes] = useState(prospect?.notes || "");
   const [primaryParcelId, setPrimaryParcelId] = useState(
     prospect?.primaryParcelId || prospect?.properties?.[0]?.parcelId || "",
@@ -54,6 +55,7 @@ export default function PropertyProspectPanel({
   useEffect(() => {
     setStatus(prospect?.status || "new");
     setEmail(prospect?.email || "");
+    setPhone(prospect?.phone || "");
     setNotes(prospect?.notes || "");
     setPrimaryParcelId(
       prospect?.primaryParcelId || prospect?.properties?.[0]?.parcelId || "",
@@ -76,6 +78,7 @@ export default function PropertyProspectPanel({
         body: JSON.stringify({
           status,
           email,
+          phone,
           notes,
           primaryParcelId,
         }),
@@ -142,6 +145,7 @@ export default function PropertyProspectPanel({
     const aiProspect = {
       ...prospect,
       email,
+      phone,
       notes,
       primaryParcelId,
       primaryProperty: selectedProperty,
@@ -180,6 +184,7 @@ export default function PropertyProspectPanel({
           body: JSON.stringify({
             status,
             email,
+            phone,
             notes,
             primaryParcelId,
           }),
@@ -581,17 +586,31 @@ export default function PropertyProspectPanel({
               )}
             </div>
 
-            <label className={styles.customerPanelField}>
-              <span>Email address</span>
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="owner@example.com"
-                autoComplete="email"
-                maxLength={320}
-              />
-            </label>
+            <div className={styles.customerPanelGrid}>
+              <label className={styles.customerPanelField}>
+                <span>Email address</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="owner@example.com"
+                  autoComplete="email"
+                  maxLength={320}
+                />
+              </label>
+
+              <label className={styles.customerPanelField}>
+                <span>Phone number</span>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                  placeholder="(612) 555-0123"
+                  autoComplete="tel"
+                  maxLength={50}
+                />
+              </label>
+            </div>
           </section>
 
           <section className={styles.panelSection}>

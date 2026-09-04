@@ -100,6 +100,19 @@ export async function PATCH(request, { params }) {
       patch.email = email;
     }
 
+    if (body.phone !== undefined) {
+      const phone = String(body.phone || "").trim();
+
+      if (phone.length > 50) {
+        return Response.json(
+          { error: "Phone number must be 50 characters or fewer" },
+          { status: 400 },
+        );
+      }
+
+      patch.phone = phone;
+    }
+
     if (body.primaryParcelId !== undefined) {
       patch.primaryParcelId = String(body.primaryParcelId || "");
     }
