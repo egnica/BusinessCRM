@@ -1,6 +1,7 @@
 // CustomerPanel.jsx
 
 import React, { useState } from "react";
+import ContactEmailActivity from "./ContactEmailActivity";
 import styles from "../page.module.css";
 
 function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
@@ -828,6 +829,14 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
                 />
               </label>
             </div>
+          </section>
+
+          <section className={styles.panelSection}>
+            <div className={styles.panelSectionHeader}>
+              <h4>Email Activity</h4>
+              <p>Review custom HTML emails and their latest Resend delivery events.</p>
+            </div>
+            <ContactEmailActivity contactId={customerSelected._id} />
           </section>
 
           <section className={styles.panelSection}>
