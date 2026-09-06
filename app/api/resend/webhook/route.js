@@ -73,6 +73,10 @@ function latestSummary(email) {
   };
 }
 
+export async function GET() {
+  return Response.json({ ok: true, service: "crm-resend-webhook" });
+}
+
 export async function POST(req) {
   const webhookSecret = String(process.env.RESEND_WEBHOOK_SECRET || "").trim();
 
@@ -91,7 +95,9 @@ export async function POST(req) {
   let event;
 
   try {
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    // Webhook verification is local and does not make an API request. A
+    // placeholder API key keeps this receiver independent of the send key.
+    const resend = new Resend("re_webhook_verification_only");
     event = await resend.webhooks.verify({
       payload,
       headers: {
@@ -128,7 +134,7 @@ export async function POST(req) {
     }
 
     if (!email) {
-      return Response.json({ received: true, ignored: true });
+      return Response.json({ received: true, ignored: true, reason: "email_not_found" });
     }
 
     if (svixId && email.webhookEventIds?.includes(svixId)) {
