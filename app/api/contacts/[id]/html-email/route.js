@@ -2,10 +2,7 @@ import crypto from "crypto";
 import { ObjectId } from "mongodb";
 import { Resend } from "resend";
 import clientPromise from "@/lib/mongodb";
-import {
-  getNewsletterConfigStatus,
-  getNewsletterFromAddress,
-} from "@/lib/newsletterConfig";
+import { getNewsletterConfigStatus } from "@/lib/newsletterConfig";
 import { renderHtmlEmailShell } from "@/lib/emailTemplates/_htmlEmailShell";
 
 export const runtime = "nodejs";
@@ -14,6 +11,7 @@ export const dynamic = "force-dynamic";
 const MAX_SUBJECT_LENGTH = 250;
 const MAX_PREHEADER_LENGTH = 300;
 const MAX_BODY_LENGTH = 100000;
+const PERSONAL_FROM = "Nicholas Egner <nick@nicholasegner.com>";
 const PERSONAL_REPLY_TO =
   String(process.env.RESEND_REPLY_TO_EMAIL || "nick@nicholasegner.com").trim();
 
@@ -119,7 +117,7 @@ export async function GET(req, { params }) {
     const config = getNewsletterConfigStatus();
 
     return Response.json({
-      from: getNewsletterFromAddress(),
+      from: PERSONAL_FROM,
       replyTo: PERSONAL_REPLY_TO,
       resendConfigured: config.resendConfigured,
       configured: config.resendConfigured,
@@ -201,7 +199,7 @@ export async function POST(req, { params }) {
       const testToken = normalizeText(body?.sendToken, 120) || crypto.randomUUID();
       const { data, error } = await resend.emails.send(
         {
-          from: getNewsletterFromAddress(),
+          from: PERSONAL_FROM,
           to: testEmail,
           replyTo: PERSONAL_REPLY_TO,
           subject: `[TEST] ${subject}`,
@@ -291,7 +289,7 @@ export async function POST(req, { params }) {
             .filter(Boolean)
             .join(" ")
             .trim() || contact.ownerNameRaw || contact.company?.name || "",
-        fromEmail: getNewsletterFromAddress(),
+        fromEmail: PERSONAL_FROM,
         replyTo: PERSONAL_REPLY_TO,
         subject,
         preheader,
@@ -326,7 +324,7 @@ export async function POST(req, { params }) {
     try {
       const result = await resend.emails.send(
         {
-          from: getNewsletterFromAddress(),
+          from: PERSONAL_FROM,
           to: recipientEmail,
           replyTo: PERSONAL_REPLY_TO,
           subject,
