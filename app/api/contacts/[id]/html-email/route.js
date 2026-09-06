@@ -62,6 +62,19 @@ async function ensureIndexes(collection) {
   ]);
 }
 
+async function markEmailFailed(collection, emailRecordId, error) {
+  await collection.updateOne(
+    { _id: emailRecordId },
+    {
+      $set: {
+        status: "failed",
+        failureMessage: error?.message || "Email send failed",
+        updatedAt: new Date(),
+      },
+    },
+  );
+}
+
 export async function GET(req, { params }) {
   try {
     const { id } = await params;
@@ -326,42 +339,43 @@ export async function POST(req, { params }) {
       }
     }
 
-    const { data, error } = await resend.emails.send(
-      {
-        from: getNewsletterFromAddress(),
-        to: recipientEmail,
-        subject,
-        html: renderedHtml,
-        headers: {
-          "List-Unsubscribe": `<${oneClickUnsubscribeUrl}>`,
-          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-        },
-        tags: [
-          { name: "crm_type", value: "html_email" },
-          { name: "crm_email_id", value: String(emailRecordId) },
-          { name: "contact_id", value: String(contact._id) },
-        ],
-      },
-      {
-        idempotencyKey: `crm-html-email/${String(contact._id)}/${sendToken}`,
-      },
-    );
+    let data = null;
+    let sendError = null;
 
-    if (error) {
-      await collection.updateOne(
-        { _id: emailRecordId },
+    try {
+      const result = await resend.emails.send(
         {
-          $set: {
-            status: "failed",
-            failureMessage: error.message || "Email send failed",
-            updatedAt: new Date(),
+          from: getNewsletterFromAddress(),
+          to: recipientEmail,
+          subject,
+          html: renderedHtml,
+          headers: {
+            "List-Unsubscribe": `<${oneClickUnsubscribeUrl}>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
           },
+          tags: [
+            { name: "crm_type", value: "html_email" },
+            { name: "crm_email_id", value: String(emailRecordId) },
+            { name: "contact_id", value: String(contact._id) },
+          ],
+        },
+        {
+          idempotencyKey: `crm-html-email/${String(contact._id)}/${sendToken}`,
         },
       );
 
-      console.error("Resend HTML email error:", error);
+      data = result.data;
+      sendError = result.error;
+    } catch (error) {
+      await markEmailFailed(collection, emailRecordId, error);
+      throw error;
+    }
+
+    if (sendError) {
+      await markEmailFailed(collection, emailRecordId, sendError);
+      console.error("Resend HTML email error:", sendError);
       return Response.json(
-        { error: error.message || "HTML email failed." },
+        { error: sendError.message || "HTML email failed." },
         { status: 500 },
       );
     }
@@ -372,12 +386,25 @@ export async function POST(req, { params }) {
       { _id: emailRecordId },
       {
         $set: {
-          status: "sent",
           resendEmailId: data?.id || null,
           sentAt,
           "eventTimestamps.sentAt": sentAt,
           updatedAt: sentAt,
+          failureMessage: null,
         },
+      },
+    );
+
+    // A webhook can arrive before this route finishes. Only advance a local
+    // pre-send state to "sent" so a delivered/opened/clicked event is never
+    // accidentally downgraded by this request finishing afterward.
+    await collection.updateOne(
+      {
+        _id: emailRecordId,
+        status: { $in: ["sending", "failed"] },
+      },
+      {
+        $set: { status: "sent" },
       },
     );
 
