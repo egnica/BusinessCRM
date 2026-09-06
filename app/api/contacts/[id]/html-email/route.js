@@ -6,7 +6,6 @@ import {
   getNewsletterConfigStatus,
   getNewsletterFromAddress,
 } from "@/lib/newsletterConfig";
-import { createUnsubscribeToken } from "@/lib/unsubscribe";
 import { renderHtmlEmailShell } from "@/lib/emailTemplates/_htmlEmailShell";
 
 export const runtime = "nodejs";
@@ -15,6 +14,8 @@ export const dynamic = "force-dynamic";
 const MAX_SUBJECT_LENGTH = 250;
 const MAX_PREHEADER_LENGTH = 300;
 const MAX_BODY_LENGTH = 100000;
+const PERSONAL_REPLY_TO =
+  String(process.env.RESEND_REPLY_TO_EMAIL || "nick@nicholasegner.com").trim();
 
 function normalizeText(value, maxLength) {
   return String(value || "").trim().slice(0, maxLength);
@@ -75,6 +76,13 @@ async function markEmailFailed(collection, emailRecordId, error) {
   );
 }
 
+function renderPersonalEmail(bodyHtml, preheader) {
+  return renderHtmlEmailShell({
+    bodyHtml,
+    preheader,
+  });
+}
+
 export async function GET(req, { params }) {
   try {
     const { id } = await params;
@@ -112,8 +120,9 @@ export async function GET(req, { params }) {
 
     return Response.json({
       from: getNewsletterFromAddress(),
+      replyTo: PERSONAL_REPLY_TO,
       resendConfigured: config.resendConfigured,
-      configured: config.configured,
+      configured: config.resendConfigured,
       webhookConfigured: Boolean(process.env.RESEND_WEBHOOK_SECRET),
       history: history.map(serializeEmail),
     });
@@ -164,11 +173,7 @@ export async function POST(req, { params }) {
 
     if (action === "preview") {
       return Response.json({
-        html: renderHtmlEmailShell({
-          bodyHtml,
-          preheader,
-          unsubscribeUrl: "#",
-        }),
+        html: renderPersonalEmail(bodyHtml, preheader),
       });
     }
 
@@ -198,12 +203,9 @@ export async function POST(req, { params }) {
         {
           from: getNewsletterFromAddress(),
           to: testEmail,
+          replyTo: PERSONAL_REPLY_TO,
           subject: `[TEST] ${subject}`,
-          html: renderHtmlEmailShell({
-            bodyHtml,
-            preheader,
-            unsubscribeUrl: "#",
-          }),
+          html: renderPersonalEmail(bodyHtml, preheader),
           tags: [{ name: "crm_type", value: "html_email_test" }],
         },
         {
@@ -243,15 +245,8 @@ export async function POST(req, { params }) {
 
     if (contact.emailStatus !== "subscribed") {
       return Response.json(
-        { error: "This contact is not subscribed to email." },
+        { error: "This contact is marked unsubscribed in the CRM." },
         { status: 400 },
-      );
-    }
-
-    if (!config.configured) {
-      return Response.json(
-        { error: "Email sending is not fully configured." },
-        { status: 500 },
       );
     }
 
@@ -283,22 +278,7 @@ export async function POST(req, { params }) {
 
     let emailRecordId = emailRecord?._id || new ObjectId();
     const now = new Date();
-    const baseUrl = (
-      process.env.APP_BASE_URL || new URL(req.url).origin
-    ).replace(/\/$/, "");
-    const unsubscribeToken = createUnsubscribeToken(
-      contact._id,
-      emailRecordId,
-    );
-    const unsubscribeUrl =
-      `${baseUrl}/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`;
-    const oneClickUnsubscribeUrl =
-      `${baseUrl}/api/newsletters/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`;
-    const renderedHtml = renderHtmlEmailShell({
-      bodyHtml,
-      preheader,
-      unsubscribeUrl,
-    });
+    const renderedHtml = renderPersonalEmail(bodyHtml, preheader);
 
     if (!emailRecord) {
       emailRecord = {
@@ -312,6 +292,7 @@ export async function POST(req, { params }) {
             .join(" ")
             .trim() || contact.ownerNameRaw || contact.company?.name || "",
         fromEmail: getNewsletterFromAddress(),
+        replyTo: PERSONAL_REPLY_TO,
         subject,
         preheader,
         bodyHtml,
@@ -347,12 +328,9 @@ export async function POST(req, { params }) {
         {
           from: getNewsletterFromAddress(),
           to: recipientEmail,
+          replyTo: PERSONAL_REPLY_TO,
           subject,
           html: renderedHtml,
-          headers: {
-            "List-Unsubscribe": `<${oneClickUnsubscribeUrl}>`,
-            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-          },
           tags: [
             { name: "crm_type", value: "html_email" },
             { name: "crm_email_id", value: String(emailRecordId) },
