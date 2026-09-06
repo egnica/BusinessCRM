@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { ObjectId } from "mongodb";
 import { Resend } from "resend";
 import clientPromise from "@/lib/mongodb";
@@ -33,6 +34,9 @@ function latestSummary(email) {
     subject: email.subject,
     status: email.status,
     sentAt: email.sentAt || null,
+    deliveredAt: email.eventTimestamps?.deliveredAt || null,
+    openedAt: email.eventTimestamps?.openedAt || null,
+    clickedAt: email.eventTimestamps?.clickedAt || null,
     updatedAt: email.updatedAt || email.sentAt || null,
   };
 }
@@ -187,9 +191,7 @@ export async function POST(req, { params }) {
             preheader,
             unsubscribeUrl: "#",
           }),
-          tags: [
-            { name: "crm_type", value: "html_email_test" },
-          ],
+          tags: [{ name: "crm_type", value: "html_email_test" }],
         },
         {
           idempotencyKey: `crm-html-test/${testToken}`,
@@ -266,7 +268,7 @@ export async function POST(req, { params }) {
       });
     }
 
-    const emailRecordId = emailRecord?._id || new ObjectId();
+    let emailRecordId = emailRecord?._id || new ObjectId();
     const now = new Date();
     const baseUrl = (
       process.env.APP_BASE_URL || new URL(req.url).origin
@@ -320,6 +322,7 @@ export async function POST(req, { params }) {
           contactId: contact._id,
           sendToken,
         });
+        emailRecordId = emailRecord?._id || emailRecordId;
       }
     }
 
