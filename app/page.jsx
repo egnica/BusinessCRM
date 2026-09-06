@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import CustomerPanel from "./components/CustomerPanel";
 import EmailDashboard from "./components/EmailDashboard";
+import HtmlEmailModal from "./components/HtmlEmailModal";
 import IntroEmailModal from "./components/IntroEmailModal";
 import NewsletterModal from "./components/NewsletterModal";
 import PropertyOwnerWorkspace from "./components/PropertyOwnerWorkspace";
@@ -44,6 +45,23 @@ const getIntroEmailStatus = (contact) => {
   return "pending";
 };
 
+const getHtmlEmailStatusLabel = (status) => {
+  const labels = {
+    sending: "Sending",
+    sent: "Sent",
+    delayed: "Delayed",
+    delivered: "Delivered",
+    opened: "Opened",
+    clicked: "Clicked",
+    bounced: "Bounced",
+    failed: "Failed",
+    complained: "Complaint",
+    suppressed: "Suppressed",
+  };
+
+  return labels[status] || "";
+};
+
 const getContactDisplayName = (contact) => {
   const personName =
     `${contact.firstName || ""} ${contact.lastName || ""}`.trim();
@@ -82,6 +100,7 @@ export default function Home() {
   const [workspace, setWorkspace] = useState("crm");
   const [newsletterOpen, setNewsletterOpen] = useState(false);
   const [introEmailContactId, setIntroEmailContactId] = useState("");
+  const [htmlEmailContactId, setHtmlEmailContactId] = useState("");
   const [emailHistoryOpen, setEmailHistoryOpen] = useState(false);
   const [emailHistoryRefresh, setEmailHistoryRefresh] = useState(0);
 
@@ -283,6 +302,9 @@ export default function Home() {
   const customerSelected = contacts.find((item) => item._id == customerToggle);
   const introEmailContact = contacts.find(
     (item) => item._id == introEmailContactId,
+  );
+  const htmlEmailContact = contacts.find(
+    (item) => item._id == htmlEmailContactId,
   );
 
   async function handleCancelIntro(contact) {
@@ -955,7 +977,7 @@ export default function Home() {
             <span>Rank</span>
             <span>Last Contact</span>
             <span>Next Follow-up</span>
-            <span>Intro</span>
+            <span>Email</span>
             <span>Links</span>
           </div>
 
@@ -970,6 +992,9 @@ export default function Home() {
                 none: "No follow-up",
               }[status];
               const introStatus = getIntroEmailStatus(contact);
+              const htmlStatus = getHtmlEmailStatusLabel(
+                contact.latestHtmlEmail?.status,
+              );
 
               return (
                 <div
@@ -1110,6 +1135,33 @@ export default function Home() {
                         </button>
                       </div>
                     )}
+
+                    <button
+                      type="button"
+                      className={styles.introSendButton}
+                      onClick={() => setHtmlEmailContactId(contact._id)}
+                      disabled={
+                        !contact.email || contact.emailStatus !== "subscribed"
+                      }
+                      title={
+                        !contact.email
+                          ? "Add an email address first"
+                          : contact.emailStatus !== "subscribed"
+                            ? "Contact is not subscribed"
+                            : "Compose a custom HTML email"
+                      }
+                    >
+                      HTML Email
+                    </button>
+
+                    {htmlStatus && (
+                      <small>
+                        HTML: {htmlStatus}
+                        {contact.latestHtmlEmail?.sentAt
+                          ? ` · ${formatDate(contact.latestHtmlEmail.sentAt)}`
+                          : ""}
+                      </small>
+                    )}
                   </div>
 
                   <div className={styles.socials}>
@@ -1198,6 +1250,23 @@ export default function Home() {
               ),
             );
             setIntroEmailContactId("");
+          }}
+        />
+      )}
+
+      {htmlEmailContactId !== "" && htmlEmailContact && (
+        <HtmlEmailModal
+          contact={htmlEmailContact}
+          onClose={() => setHtmlEmailContactId("")}
+          onSent={(latestHtmlEmail) => {
+            setContacts((prev) =>
+              prev.map((contact) =>
+                contact._id === htmlEmailContact._id
+                  ? { ...contact, latestHtmlEmail }
+                  : contact,
+              ),
+            );
+            setHtmlEmailContactId("");
           }}
         />
       )}
