@@ -1,11 +1,13 @@
 // CustomerPanel.jsx
 
 import React, { useState } from "react";
+import { copyContactResearchAiContext } from "@/lib/contactResearchAiContext";
 import ContactEmailActivity from "./ContactEmailActivity";
 import styles from "../page.module.css";
 
 function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
   const [calendarFormOpen, setCalendarFormOpen] = useState(false);
+  const [researchCopyStatus, setResearchCopyStatus] = useState("");
 
   const introEmailStatus =
     customerSelected.introEmail?.status ||
@@ -131,6 +133,19 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
     }
   }
 
+  async function handleCopyResearchPrompt() {
+    setResearchCopyStatus("");
+
+    try {
+      await copyContactResearchAiContext(customerSelected);
+      setResearchCopyStatus(
+        "Research prompt copied. Paste it into a chat with web research enabled.",
+      );
+    } catch {
+      setResearchCopyStatus("Could not copy the research prompt.");
+    }
+  }
+
   const buildGoogleCalendarLink = () => {
     if (!customerSelected?.nextFollowUp) return "#";
 
@@ -240,6 +255,30 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
         </div>
 
         <div className={styles.customerPanelScroll}>
+          <section className={styles.panelSection}>
+            <div className={styles.panelSectionHeader}>
+              <h4>Research &amp; Enrichment</h4>
+              <p>
+                Copy a JSON prompt for missing contact details and a sourced
+                deep dive. This does not change the record.
+              </p>
+            </div>
+
+            <div className={styles.contactResearchActions}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={handleCopyResearchPrompt}
+              >
+                Copy Research Prompt
+              </button>
+
+              <p className={styles.contactResearchStatus} role="status">
+                {researchCopyStatus}
+              </p>
+            </div>
+          </section>
+
           <section className={styles.panelSection}>
             <div className={styles.panelSectionHeader}>
               <h4>Project / Owner</h4>
