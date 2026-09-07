@@ -105,6 +105,24 @@ function serializeProspect(prospect) {
   };
 }
 
+function serializeLetter(letter) {
+  if (!letter) return null;
+
+  return {
+    ...letter,
+    _id: letter._id?.toString?.() || letter._id || "",
+    prospectId:
+      letter.prospectId?.toString?.() || letter.prospectId || "",
+  };
+}
+
+async function ensureLetterHistoryIndex(collection) {
+  await collection.createIndex(
+    { proofLetterId: 1 },
+    { unique: true, sparse: true, name: "lob_proof_letter_unique" },
+  );
+}
+
 export async function POST(request) {
   try {
     const liveApiKey = clean(process.env.LOB_LIVE_API_KEY);
@@ -144,7 +162,7 @@ export async function POST(request) {
     const to = normalizeAddress(body.to);
     const from = normalizeAddress(body.from);
 
-    if (!ObjectId.isValid(prospectId)) {
+    if (prospectId && !ObjectId.isValid(prospectId)) {
       return Response.json(
         { error: "Invalid property prospect." },
         { status: 400 },
@@ -179,25 +197,63 @@ export async function POST(request) {
 
     const client = await clientPromise;
     const db = client.db("crm");
-    const collection = db.collection("propertyProspects");
-    const prospectObjectId = new ObjectId(prospectId);
-    const prospect = await collection.findOne({ _id: prospectObjectId });
+    const prospectCollection = db.collection("propertyProspects");
+    const historyCollection = db.collection("letterHistory");
+    const isPropertyOwnerLetter = Boolean(prospectId);
+    const prospectObjectId = isPropertyOwnerLetter
+      ? new ObjectId(prospectId)
+      : null;
+    const prospect = prospectObjectId
+      ? await prospectCollection.findOne({ _id: prospectObjectId })
+      : null;
 
-    if (!prospect) {
+    if (isPropertyOwnerLetter && !prospect) {
       return Response.json(
         { error: "Property prospect not found." },
         { status: 404 },
       );
     }
 
-    const existingMail = (prospect.mailHistory || []).find(
+    await ensureLetterHistoryIndex(historyCollection);
+
+    const existingCentralMail = await historyCollection.findOne({
+      proofLetterId,
+      environment: "live",
+    });
+    const existingProspectMail = (prospect?.mailHistory || []).find(
       (entry) =>
         entry?.environment === "live" &&
         entry?.proofLetterId === proofLetterId &&
         entry?.liveLetterId,
     );
 
+    const existingMail = existingCentralMail || existingProspectMail;
+
     if (existingMail) {
+      let savedHistory = existingCentralMail;
+
+      if (!savedHistory) {
+        const legacyHistory = {
+          ...existingProspectMail,
+          type: "letter",
+          provider: "lob",
+          source: "property_owner",
+          prospectId: prospectObjectId,
+          prospectName: getMailingContactName(prospect),
+          bodyHtml: submittedBodyHtml,
+          renderedHtml: finalHtml,
+          createdAt:
+            existingProspectMail.submittedAt || new Date().toISOString(),
+        };
+
+        await historyCollection.updateOne(
+          { proofLetterId },
+          { $setOnInsert: legacyHistory },
+          { upsert: true },
+        );
+        savedHistory = await historyCollection.findOne({ proofLetterId });
+      }
+
       return Response.json({
         alreadySubmitted: true,
         liveLetterId: existingMail.liveLetterId,
@@ -205,7 +261,8 @@ export async function POST(request) {
         submittedAt: existingMail.submittedAt || "",
         sendDate: existingMail.sendDate || "",
         lobStatus: existingMail.lobStatus || "",
-        prospect: serializeProspect(prospect),
+        letter: serializeLetter(savedHistory || existingMail),
+        prospect: prospect ? serializeProspect(prospect) : null,
       });
     }
 
@@ -226,12 +283,22 @@ export async function POST(request) {
       );
     }
 
-    if (
-      clean(proof?.metadata?.source) !== "crm_property_owner" ||
-      clean(proof?.metadata?.prospect_id) !== prospectId
-    ) {
+    const expectedProofSource = isPropertyOwnerLetter
+      ? "crm_property_owner"
+      : "crm_manual";
+    const proofHasExpectedSource =
+      clean(proof?.metadata?.source) === expectedProofSource;
+    const proofHasExpectedProspect =
+      !isPropertyOwnerLetter ||
+      clean(proof?.metadata?.prospect_id) === prospectId;
+
+    if (!proofHasExpectedSource || !proofHasExpectedProspect) {
       return Response.json(
-        { error: "This proof is not linked to the selected CRM prospect." },
+        {
+          error: isPropertyOwnerLetter
+            ? "This proof is not linked to the selected CRM prospect."
+            : "This proof is not linked to the manual CRM letter workspace.",
+        },
         { status: 409 },
       );
     }
@@ -264,11 +331,14 @@ export async function POST(request) {
       );
     }
 
-    const idempotencyKey =
-      "crm-property-letter:" + prospectId + ":" + proofLetterId;
+    const idempotencyKey = isPropertyOwnerLetter
+      ? "crm-property-letter:" + prospectId + ":" + proofLetterId
+      : "crm-manual-letter:" + proofLetterId;
 
     const payload = {
-      description: "CRM property owner live letter",
+      description: isPropertyOwnerLetter
+        ? "CRM property owner live letter"
+        : "CRM manual live letter",
       to,
       from,
       file: finalHtml,
@@ -278,8 +348,10 @@ export async function POST(request) {
       mail_type: "usps_standard",
       use_type: "marketing",
       metadata: {
-        source: "crm_property_owner_live",
-        prospect_id: prospectId,
+        source: isPropertyOwnerLetter
+          ? "crm_property_owner_live"
+          : "crm_manual_live",
+        ...(isPropertyOwnerLetter ? { prospect_id: prospectId } : {}),
         proof_letter_id: proofLetterId,
         proof_hash: proofHash,
       },
@@ -303,6 +375,9 @@ export async function POST(request) {
     const historyEntry = {
       type: "letter",
       provider: "lob",
+      source: isPropertyOwnerLetter ? "property_owner" : "manual",
+      prospectId: prospectObjectId,
+      prospectName: prospect ? getMailingContactName(prospect) : "",
       environment: "live",
       proofLetterId,
       liveLetterId: created.id,
@@ -313,9 +388,34 @@ export async function POST(request) {
       expectedDeliveryDate: created.expected_delivery_date || "",
       recipient: to,
       returnAddress: from,
+      bodyHtml: submittedBodyHtml,
+      renderedHtml: finalHtml,
+      createdAt: now,
     };
 
-    const updateResult = await collection.updateOne(
+    await historyCollection.updateOne(
+      { proofLetterId },
+      { $setOnInsert: historyEntry },
+      { upsert: true },
+    );
+
+    const savedHistory = await historyCollection.findOne({ proofLetterId });
+
+    if (!isPropertyOwnerLetter) {
+      return Response.json({
+        alreadySubmitted: false,
+        liveLetterId: created.id,
+        proofLetterId,
+        submittedAt: now,
+        sendDate: created.send_date || "",
+        expectedDeliveryDate: created.expected_delivery_date || "",
+        lobStatus: created.status || "",
+        letter: serializeLetter(savedHistory),
+        prospect: null,
+      });
+    }
+
+    const updateResult = await prospectCollection.updateOne(
       {
         _id: prospectObjectId,
         mailHistory: {
@@ -341,7 +441,9 @@ export async function POST(request) {
     );
 
     if (!updateResult.matchedCount) {
-      const racedProspect = await collection.findOne({ _id: prospectObjectId });
+      const racedProspect = await prospectCollection.findOne({
+        _id: prospectObjectId,
+      });
       const racedMail = (racedProspect?.mailHistory || []).find(
         (entry) =>
           entry?.environment === "live" &&
@@ -356,11 +458,14 @@ export async function POST(request) {
         submittedAt: racedMail?.submittedAt || now,
         sendDate: racedMail?.sendDate || created.send_date || "",
         lobStatus: racedMail?.lobStatus || created.status || "",
+        letter: serializeLetter(savedHistory),
         prospect: serializeProspect(racedProspect || prospect),
       });
     }
 
-    const updatedProspect = await collection.findOne({ _id: prospectObjectId });
+    const updatedProspect = await prospectCollection.findOne({
+      _id: prospectObjectId,
+    });
 
     return Response.json({
       alreadySubmitted: false,
@@ -370,6 +475,7 @@ export async function POST(request) {
       sendDate: created.send_date || "",
       expectedDeliveryDate: created.expected_delivery_date || "",
       lobStatus: created.status || "",
+      letter: serializeLetter(savedHistory),
       prospect: serializeProspect(updatedProspect),
     });
   } catch (error) {

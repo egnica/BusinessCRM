@@ -5,10 +5,8 @@
   background: rgba(15, 23, 42, 0.56);
 }
 
-.modal {
-  position: fixed;
-  inset: 3vh 3vw;
-  z-index: 3001;
+.modal,
+.pageComposer {
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -17,6 +15,22 @@
   background: #f7f8fa;
   color: #18202a;
   box-shadow: 0 28px 80px rgba(15, 23, 42, 0.28);
+}
+
+.modal {
+  position: fixed;
+  inset: 3vh 3vw;
+  z-index: 3001;
+}
+
+.pageComposer {
+  position: relative;
+  margin-bottom: 28px;
+  box-shadow: 0 8px 28px rgba(17, 24, 39, 0.05);
+}
+
+.pageComposer .body {
+  overflow: visible;
 }
 
 .header,

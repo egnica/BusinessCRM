@@ -31,7 +31,14 @@ function initialBody(contact) {
 <p style="margin:0;">Thanks,<br />Nicholas</p>`;
 }
 
-export default function HtmlEmailModal({ contact, onClose, onSent }) {
+export default function HtmlEmailModal({
+  contact,
+  onClose,
+  onSent,
+  standalone = false,
+}) {
+  const [recipientName, setRecipientName] = useState("");
+  const [recipientEmail, setRecipientEmail] = useState("");
   const [subject, setSubject] = useState("");
   const [preheader, setPreheader] = useState("");
   const [bodyHtml, setBodyHtml] = useState(() => initialBody(contact));
@@ -41,7 +48,8 @@ export default function HtmlEmailModal({ contact, onClose, onSent }) {
   const [testEmail, setTestEmail] = useState("");
   const [status, setStatus] = useState("");
   const [working, setWorking] = useState(false);
-  const [sendToken] = useState(createToken);
+  const [sendToken, setSendToken] = useState(createToken);
+  const [standaloneSent, setStandaloneSent] = useState(false);
   const [config, setConfig] = useState({
     loading: true,
     from: "",
@@ -51,6 +59,10 @@ export default function HtmlEmailModal({ contact, onClose, onSent }) {
   });
 
   const displayName = useMemo(() => {
+    if (standalone) {
+      return recipientName.trim() || recipientEmail.trim() || "this recipient";
+    }
+
     const personName = [contact?.firstName, contact?.lastName]
       .filter(Boolean)
       .join(" ")
@@ -62,7 +74,11 @@ export default function HtmlEmailModal({ contact, onClose, onSent }) {
       contact?.company?.name ||
       "this contact"
     );
-  }, [contact]);
+  }, [contact, recipientEmail, recipientName, standalone]);
+
+  const endpoint = standalone
+    ? "/api/html-emails"
+    : `/api/contacts/${contact?._id}/html-email`;
 
   useEffect(() => {
     const savedTestEmail = window.localStorage.getItem("newsletterTestEmail");
@@ -72,10 +88,9 @@ export default function HtmlEmailModal({ contact, onClose, onSent }) {
 
     async function loadSetup() {
       try {
-        const res = await fetch(
-          `/api/contacts/${contact._id}/html-email?limit=0`,
-          { cache: "no-store" },
-        );
+        const res = await fetch(`${endpoint}?limit=0`, {
+          cache: "no-store",
+        });
         const data = await res.json();
 
         if (!res.ok) {
@@ -104,18 +119,27 @@ export default function HtmlEmailModal({ contact, onClose, onSent }) {
     return () => {
       active = false;
     };
-  }, [contact._id]);
+  }, [endpoint]);
+
+  function markStandaloneDraftChanged() {
+    if (!standalone) return;
+    setStandaloneSent(false);
+    setSendToken(createToken());
+    setStatus("");
+  }
 
   async function renderPreview() {
     setWorking(true);
     setStatus("");
 
     try {
-      const res = await fetch(`/api/contacts/${contact._id}/html-email`, {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "preview",
+          recipientName,
+          recipientEmail,
           subject,
           preheader,
           bodyHtml,
@@ -150,6 +174,7 @@ export default function HtmlEmailModal({ contact, onClose, onSent }) {
     return (value) => {
       setter(value);
       setPreviewDirty(true);
+      markStandaloneDraftChanged();
     };
   }
 
@@ -174,11 +199,13 @@ export default function HtmlEmailModal({ contact, onClose, onSent }) {
     setStatus("");
 
     try {
-      const res = await fetch(`/api/contacts/${contact._id}/html-email`, {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "test",
+          recipientName,
+          recipientEmail,
           subject,
           preheader,
           bodyHtml,
@@ -211,8 +238,16 @@ export default function HtmlEmailModal({ contact, onClose, onSent }) {
       return;
     }
 
+    if (standalone && !recipientEmail.trim()) {
+      setStatus("Enter the recipient email address before sending.");
+      return;
+    }
+
+    const finalRecipientEmail = standalone
+      ? recipientEmail.trim()
+      : contact.email;
     const confirmed = window.confirm(
-      `Send "${subject.trim()}" to ${displayName} at ${contact.email}?`,
+      `Send "${subject.trim()}" to ${displayName} at ${finalRecipientEmail}?`,
     );
 
     if (!confirmed) return;
@@ -221,11 +256,13 @@ export default function HtmlEmailModal({ contact, onClose, onSent }) {
     setStatus("");
 
     try {
-      const res = await fetch(`/api/contacts/${contact._id}/html-email`, {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "send",
+          recipientName,
+          recipientEmail: finalRecipientEmail,
           subject,
           preheader,
           bodyHtml,
@@ -238,7 +275,16 @@ export default function HtmlEmailModal({ contact, onClose, onSent }) {
         throw new Error(data.error || "HTML email failed.");
       }
 
-      onSent?.(data.latestHtmlEmail);
+      if (standalone) {
+        setStandaloneSent(true);
+        setStatus(
+          data.duplicatePrevented
+            ? "This email was already sent. No duplicate was created."
+            : `HTML email sent to ${finalRecipientEmail}.`,
+        );
+      }
+
+      onSent?.(data.email || data.latestHtmlEmail);
     } catch (error) {
       setStatus(error.message || "HTML email failed.");
     } finally {
@@ -248,45 +294,97 @@ export default function HtmlEmailModal({ contact, onClose, onSent }) {
 
   return (
     <>
-      <div
-        className={styles.backdrop}
-        onClick={working ? undefined : onClose}
-        aria-hidden="true"
-      />
+      {!standalone && (
+        <div
+          className={styles.backdrop}
+          onClick={working ? undefined : onClose}
+          aria-hidden="true"
+        />
+      )}
 
       <section
-        className={styles.modal}
-        role="dialog"
-        aria-modal="true"
+        className={standalone ? styles.pageComposer : styles.modal}
+        role={standalone ? undefined : "dialog"}
+        aria-modal={standalone ? undefined : "true"}
         aria-labelledby="html-email-title"
       >
         <header className={styles.header}>
           <div>
-            <p className={styles.eyebrow}>One-to-one outreach</p>
+            <p className={styles.eyebrow}>
+              {standalone ? "Manual recipient" : "One-to-one outreach"}
+            </p>
             <h2 id="html-email-title">HTML Email</h2>
             <p className={styles.subhead}>
               Write the body here. The branded email shell and footer are added automatically.
             </p>
           </div>
 
-          <button
-            type="button"
-            className={styles.secondaryButton}
-            onClick={onClose}
-            disabled={working}
-          >
-            Close
-          </button>
+          {!standalone && (
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={onClose}
+              disabled={working}
+            >
+              Close
+            </button>
+          )}
         </header>
 
         <div className={styles.body}>
-          <div className={styles.metaGrid}>
-            <div className={styles.metaCard}>
-              <span>To</span>
-              <strong>{displayName}</strong>
-              <small>{contact.email || "No email"}</small>
+          {standalone ? (
+            <div className={styles.fieldsGrid}>
+              <label className={styles.field}>
+                <span>Recipient name <small>optional</small></span>
+                <input
+                  value={recipientName}
+                  onChange={(event) => {
+                    setRecipientName(event.target.value);
+                    markStandaloneDraftChanged();
+                  }}
+                  placeholder="Recipient name"
+                  maxLength={250}
+                  disabled={working}
+                />
+              </label>
+
+              <label className={styles.field}>
+                <span>Recipient email</span>
+                <input
+                  type="email"
+                  value={recipientEmail}
+                  onChange={(event) => {
+                    setRecipientEmail(event.target.value);
+                    markStandaloneDraftChanged();
+                  }}
+                  placeholder="recipient@example.com"
+                  maxLength={320}
+                  disabled={working}
+                />
+              </label>
             </div>
-            <div className={styles.metaCard}>
+          ) : (
+            <div className={styles.metaGrid}>
+              <div className={styles.metaCard}>
+                <span>To</span>
+                <strong>{displayName}</strong>
+                <small>{contact.email || "No email"}</small>
+              </div>
+
+              <div className={styles.metaCard}>
+                <span>From</span>
+                <strong>{config.from || "Loading sender…"}</strong>
+                <small>
+                  {config.webhookConfigured
+                    ? "Delivery tracking configured"
+                    : "Tracking needs webhook setup"}
+                </small>
+              </div>
+            </div>
+          )}
+
+          {standalone && (
+            <div className={styles.senderCard}>
               <span>From</span>
               <strong>{config.from || "Loading sender…"}</strong>
               <small>
@@ -295,7 +393,7 @@ export default function HtmlEmailModal({ contact, onClose, onSent }) {
                   : "Tracking needs webhook setup"}
               </small>
             </div>
-          </div>
+          )}
 
           <div className={styles.fieldsGrid}>
             <label className={styles.field}>
@@ -305,6 +403,7 @@ export default function HtmlEmailModal({ contact, onClose, onSent }) {
                 onChange={(event) => {
                   setSubject(event.target.value);
                   setPreviewDirty(true);
+                  markStandaloneDraftChanged();
                 }}
                 placeholder="Email subject"
                 maxLength={250}
@@ -319,6 +418,7 @@ export default function HtmlEmailModal({ contact, onClose, onSent }) {
                 onChange={(event) => {
                   setPreheader(event.target.value);
                   setPreviewDirty(true);
+                  markStandaloneDraftChanged();
                 }}
                 placeholder="Short inbox preview text"
                 maxLength={300}
@@ -410,14 +510,16 @@ export default function HtmlEmailModal({ contact, onClose, onSent }) {
         </div>
 
         <footer className={styles.footer}>
-          <button
-            type="button"
-            className={styles.secondaryButton}
-            onClick={onClose}
-            disabled={working}
-          >
-            Cancel
-          </button>
+          {!standalone && (
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={onClose}
+              disabled={working}
+            >
+              Cancel
+            </button>
+          )}
           <button
             type="button"
             className={styles.primaryButton}
@@ -425,11 +527,18 @@ export default function HtmlEmailModal({ contact, onClose, onSent }) {
             disabled={
               working ||
               config.loading ||
-              !contact.email ||
-              contact.emailStatus !== "subscribed"
+              (standalone
+                ? !recipientEmail.trim() || standaloneSent
+                : !contact.email || contact.emailStatus !== "subscribed")
             }
           >
-            {working ? "Sending…" : "Send to Contact"}
+            {working
+              ? "Sending…"
+              : standaloneSent
+                ? "Sent"
+                : standalone
+                  ? "Send Email"
+                  : "Send to Contact"}
           </button>
         </footer>
       </section>

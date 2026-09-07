@@ -140,19 +140,26 @@ function AddressFields({ value, onChange, prefix }) {
   );
 }
 
-export default function LetterComposerModal({ prospect, onClose, onMailed }) {
+export default function LetterComposerModal({
+  prospect,
+  onClose,
+  onMailed,
+  onSent,
+  standalone = false,
+}) {
   const parsedTo = useMemo(() => parseMailingAddress(prospect), [prospect]);
+  const storageScope = prospect?._id || (standalone ? "manual" : "");
   const draftKey = useMemo(
-    () => (prospect?._id ? `crmLobLetterDraft:${prospect._id}` : ""),
-    [prospect?._id],
+    () => (storageScope ? `crmLobLetterDraft:${storageScope}` : ""),
+    [storageScope],
   );
   const proofKey = useMemo(
-    () => (prospect?._id ? `crmLobLetterProof:${prospect._id}` : ""),
-    [prospect?._id],
+    () => (storageScope ? `crmLobLetterProof:${storageScope}` : ""),
+    [storageScope],
   );
   const templateKey = useMemo(
-    () => (prospect?._id ? `crmLobLetterTemplate:${prospect._id}` : ""),
-    [prospect?._id],
+    () => (storageScope ? `crmLobLetterTemplate:${storageScope}` : ""),
+    [storageScope],
   );
 
   const [toAddress, setToAddress] = useState(parsedTo);
@@ -210,7 +217,7 @@ export default function LetterComposerModal({ prospect, onClose, onMailed }) {
       setLiveMail(null);
       setShowLiveConfirm(false);
     }
-  }, [draftKey, parsedTo, proofKey, prospect?._id, templateKey]);
+  }, [draftKey, parsedTo, proofKey, storageScope, templateKey]);
 
   useEffect(() => {
     try {
@@ -229,17 +236,50 @@ export default function LetterComposerModal({ prospect, onClose, onMailed }) {
       return;
     }
 
-    const existingLiveMail = [...(prospect?.mailHistory || [])]
-      .reverse()
-      .find(
-        (entry) =>
-          entry?.environment === "live" &&
-          entry?.proofLetterId === proof.letterId &&
-          entry?.liveLetterId,
-      );
+    if (prospect?._id) {
+      const existingLiveMail = [...(prospect?.mailHistory || [])]
+        .reverse()
+        .find(
+          (entry) =>
+            entry?.environment === "live" &&
+            entry?.proofLetterId === proof.letterId &&
+            entry?.liveLetterId,
+        );
 
-    setLiveMail(existingLiveMail || null);
-  }, [proof?.letterId, prospect?.mailHistory]);
+      setLiveMail(existingLiveMail || null);
+      return undefined;
+    }
+
+    if (!standalone) {
+      setLiveMail(null);
+      return undefined;
+    }
+
+    let active = true;
+
+    async function findSubmittedLetter() {
+      try {
+        const response = await fetch(
+          "/api/lob/history?proofLetterId=" +
+            encodeURIComponent(proof.letterId),
+          { cache: "no-store" },
+        );
+        const data = await response.json();
+
+        if (active && response.ok) {
+          setLiveMail(data.letters?.[0] || null);
+        }
+      } catch {
+        if (active) setLiveMail(null);
+      }
+    }
+
+    findSubmittedLetter();
+
+    return () => {
+      active = false;
+    };
+  }, [proof?.letterId, prospect?._id, prospect?.mailHistory, standalone]);
 
   useEffect(() => {
     if (
@@ -312,6 +352,8 @@ export default function LetterComposerModal({ prospect, onClose, onMailed }) {
       cancelled = true;
       window.clearTimeout(timeoutId);
     };
+    // Polling restarts only when the Lob letter or status changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proof?.letterId, proof?.status]);
 
   function updateTo(name, value) {
@@ -583,6 +625,8 @@ export default function LetterComposerModal({ prospect, onClose, onMailed }) {
       if (data.prospect) {
         onMailed?.(data.prospect);
       }
+
+      onSent?.(data.letter || submittedMail);
     } catch (error) {
       setShowLiveConfirm(false);
       setMessage(error.message || "Could not submit the live letter.");
@@ -610,13 +654,25 @@ export default function LetterComposerModal({ prospect, onClose, onMailed }) {
 
   return (
     <>
-      <div className={styles.backdrop} onClick={working ? undefined : onClose} />
+      {!standalone && (
+        <div
+          className={styles.backdrop}
+          onClick={working ? undefined : onClose}
+        />
+      )}
 
-      <section className={styles.modal} aria-label="Create property owner letter">
+      <section
+        className={standalone ? styles.pageComposer : styles.modal}
+        aria-label={
+          standalone ? "Create a manual letter" : "Create property owner letter"
+        }
+      >
         <header className={styles.header}>
           <div>
             <div className={styles.titleRow}>
-              <p className={styles.eyebrow}>Property Owner Outreach</p>
+              <p className={styles.eyebrow}>
+                {standalone ? "Manual recipient" : "Property Owner Outreach"}
+              </p>
               <span className={styles.testBadge}>Proof required</span>
             </div>
             <h2>Create Letter</h2>
@@ -626,9 +682,11 @@ export default function LetterComposerModal({ prospect, onClose, onMailed }) {
             </p>
           </div>
 
-          <button type="button" onClick={onClose} disabled={working}>
-            Close
-          </button>
+          {!standalone && (
+            <button type="button" onClick={onClose} disabled={working}>
+              Close
+            </button>
+          )}
         </header>
 
         <div className={styles.body}>
@@ -637,7 +695,11 @@ export default function LetterComposerModal({ prospect, onClose, onMailed }) {
               <div className={styles.cardHeading}>
                 <div>
                   <h3>Mail To</h3>
-                  <p>From this prospect's saved mailing address.</p>
+                  <p>
+                    {standalone
+                      ? "Enter any recipient and mailing address."
+                      : "From this prospect's saved mailing address."}
+                  </p>
                 </div>
               </div>
               <AddressFields value={toAddress} onChange={updateTo} prefix="To" />
@@ -663,7 +725,11 @@ export default function LetterComposerModal({ prospect, onClose, onMailed }) {
               <div className={styles.editorHeader}>
                 <div>
                   <h3>Write</h3>
-                  <p>Your draft saves automatically for this prospect.</p>
+                  <p>
+                    {standalone
+                      ? "Your draft saves automatically in this letter workspace."
+                      : "Your draft saves automatically for this prospect."}
+                  </p>
                 </div>
 
                 <label className={styles.templateField}>
@@ -692,7 +758,7 @@ export default function LetterComposerModal({ prospect, onClose, onMailed }) {
                 <span>Draft saved automatically</span>
                 {nearHtmlLimit && (
                   <span className={styles.warningText}>
-                    Approaching Lob's 10,000-character HTML limit
+                    Approaching Lob’s 10,000-character HTML limit
                   </span>
                 )}
                 <button
@@ -833,9 +899,11 @@ export default function LetterComposerModal({ prospect, onClose, onMailed }) {
           </div>
 
           <div className={styles.footerActions}>
-            <button type="button" onClick={onClose} disabled={working}>
-              Cancel
-            </button>
+            {!standalone && (
+              <button type="button" onClick={onClose} disabled={working}>
+                Cancel
+              </button>
+            )}
             <button
               type="button"
               className={styles.previewButton}

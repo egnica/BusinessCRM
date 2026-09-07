@@ -47,7 +47,13 @@ function timeline(email) {
   return items.filter(([, value]) => value);
 }
 
-export default function ContactEmailActivity({ contactId }) {
+export default function ContactEmailActivity({
+  contactId = "",
+  refreshKey = 0,
+  title = "HTML Email Activity",
+  description = "Sent messages and Resend delivery events.",
+  emptyMessage = "No custom HTML emails have been sent yet.",
+}) {
   const [emails, setEmails] = useState([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("");
@@ -57,9 +63,10 @@ export default function ContactEmailActivity({ contactId }) {
     setStatus("");
 
     try {
-      const res = await fetch(`/api/contacts/${contactId}/html-email?limit=20`, {
-        cache: "no-store",
-      });
+      const endpoint = contactId
+        ? `/api/contacts/${contactId}/html-email?limit=20&refresh=${refreshKey}`
+        : `/api/html-emails?limit=100&refresh=${refreshKey}`;
+      const res = await fetch(endpoint, { cache: "no-store" });
       const data = await res.json();
 
       if (!res.ok) {
@@ -72,7 +79,7 @@ export default function ContactEmailActivity({ contactId }) {
     } finally {
       setLoading(false);
     }
-  }, [contactId]);
+  }, [contactId, refreshKey]);
 
   useEffect(() => {
     loadHistory();
@@ -82,8 +89,8 @@ export default function ContactEmailActivity({ contactId }) {
     <div className={styles.activity}>
       <div className={styles.toolbar}>
         <div>
-          <strong>HTML Email Activity</strong>
-          <span>Sent messages and Resend delivery events.</span>
+          <strong>{title}</strong>
+          <span>{description}</span>
         </div>
         <button type="button" onClick={loadHistory} disabled={loading}>
           {loading ? "Refreshing…" : "Refresh"}
@@ -93,7 +100,7 @@ export default function ContactEmailActivity({ contactId }) {
       {status && <p className={styles.status}>{status}</p>}
 
       {!loading && !status && emails.length === 0 && (
-        <div className={styles.empty}>No custom HTML emails have been sent yet.</div>
+        <div className={styles.empty}>{emptyMessage}</div>
       )}
 
       <div className={styles.list}>
@@ -102,7 +109,17 @@ export default function ContactEmailActivity({ contactId }) {
             <summary>
               <div className={styles.summaryCopy}>
                 <strong>{email.subject || "Untitled email"}</strong>
-                <span>{formatDateTime(email.sentAt || email.createdAt)}</span>
+                <span>
+                  {!contactId &&
+                    [email.recipientName, email.recipientEmail]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  {!contactId &&
+                  (email.recipientName || email.recipientEmail)
+                    ? " · "
+                    : ""}
+                  {formatDateTime(email.sentAt || email.createdAt)}
+                </span>
               </div>
               <span
                 className={styles.statusBadge}

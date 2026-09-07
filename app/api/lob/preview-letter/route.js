@@ -189,6 +189,8 @@ export async function POST(request) {
     }
 
     const body = await request.json();
+    const prospectId = clean(body.prospectId);
+    const isPropertyOwnerLetter = Boolean(prospectId);
     const to = normalizeAddress(body.to);
     const from = normalizeAddress(body.from);
     const submittedBodyHtml = clean(body.bodyHtml);
@@ -207,7 +209,7 @@ export async function POST(request) {
 
     const finalHtml = buildLetterHtml(submittedBodyHtml);
     const proofHash = createProofHash({
-      prospectId: body.prospectId,
+      prospectId,
       to,
       from,
       bodyHtml: submittedBodyHtml,
@@ -226,7 +228,9 @@ export async function POST(request) {
     }
 
     const payload = {
-      description: "CRM property owner test proof",
+      description: isPropertyOwnerLetter
+        ? "CRM property owner test proof"
+        : "CRM manual letter test proof",
       to,
       from,
       file: finalHtml,
@@ -236,8 +240,10 @@ export async function POST(request) {
       mail_type: "usps_standard",
       use_type: "marketing",
       metadata: {
-        source: "crm_property_owner",
-        prospect_id: clean(body.prospectId).slice(0, 500),
+        source: isPropertyOwnerLetter ? "crm_property_owner" : "crm_manual",
+        ...(isPropertyOwnerLetter
+          ? { prospect_id: prospectId.slice(0, 500) }
+          : {}),
         proof_hash: proofHash,
       },
     };

@@ -63,6 +63,9 @@
 .customerPanelSave,
 .calendarButton,
 .calendarCreateButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 42px;
   border-radius: 9px;
   border: 1px solid transparent;
@@ -70,6 +73,7 @@
   font: inherit;
   font-size: 0.9rem;
   font-weight: 700;
+  text-decoration: none;
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import CustomerPanel from "./components/CustomerPanel";
 import EmailDashboard from "./components/EmailDashboard";
@@ -141,6 +142,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial API data load
     refreshContacts();
   }, [refreshContacts]);
 
@@ -536,6 +538,12 @@ export default function Home() {
           </div>
 
           <div className={styles.appHeaderActions}>
+            <Link className={styles.secondaryButton} href="/letters">
+              Letters
+            </Link>
+            <Link className={styles.secondaryButton} href="/email">
+              Email
+            </Link>
             <button
               type="button"
               className={styles.secondaryButton}
