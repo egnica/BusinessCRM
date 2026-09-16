@@ -70,10 +70,16 @@ export default function LetterHistory({ refreshKey = 0 }) {
           throw new Error(syncData.error || "Could not sync with Lob.");
         }
 
+        const checked = syncData.checked ?? syncData.synced ?? 0;
+        const withTrackingHistory = syncData.withTrackingHistory ?? 0;
+        const failureMessage = syncData.failed
+          ? ` ${syncData.failed} could not be checked.`
+          : "";
+
         setNotice(
-          syncData.failed
-            ? `Updated ${syncData.synced} letters. ${syncData.failed} could not be refreshed.`
-            : `Updated ${syncData.synced} letters from Lob.`,
+          withTrackingHistory > 0
+            ? `Checked ${checked} letters. Lob supplied tracking history for ${withTrackingHistory}.${failureMessage}`
+            : `Checked ${checked} letters. No historical tracking events were available. Future webhook updates will appear automatically.${failureMessage}`,
         );
       }
 

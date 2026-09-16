@@ -33,13 +33,16 @@ async function syncLetter(db, apiKey, liveLetterId) {
   }
 
   const letter = await response.json();
+  const trackingEvents = extractTrackingEventsFromLetter(letter);
   await applyLobTrackingUpdate(db, {
     liveLetterId,
-    incomingEvents: extractTrackingEventsFromLetter(letter),
+    incomingEvents: trackingEvents,
     providerStatus: clean(letter.status),
     sendDate: clean(letter.send_date),
     expectedDeliveryDate: clean(letter.expected_delivery_date),
   });
+
+  return { trackingEventCount: trackingEvents.length };
 }
 
 async function runWithConcurrency(items, concurrency, task) {
@@ -52,8 +55,8 @@ async function runWithConcurrency(items, concurrency, task) {
       nextIndex += 1;
 
       try {
-        await task(items[index]);
-        results[index] = { ok: true, id: items[index] };
+        const value = await task(items[index]);
+        results[index] = { ok: true, id: items[index], ...value };
       } catch (error) {
         results[index] = {
           ok: false,
@@ -120,9 +123,15 @@ export async function POST() {
       (liveLetterId) => syncLetter(db, apiKey, liveLetterId),
     );
     const failures = results.filter((result) => !result.ok);
+    const checked = results.length - failures.length;
+    const withTrackingHistory = results.filter(
+      (result) => result.ok && result.trackingEventCount > 0,
+    ).length;
 
     return Response.json({
-      synced: results.length - failures.length,
+      checked,
+      withTrackingHistory,
+      synced: checked,
       failed: failures.length,
       failures,
     });
