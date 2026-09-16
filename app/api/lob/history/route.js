@@ -1,12 +1,20 @@
 import clientPromise from "@/lib/mongodb";
 import { getMailingContactName } from "@/lib/propertyOwnerSearch";
+import { deriveTrackingSummary } from "@/lib/lobTracking";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function serializeLetter(letter) {
+  const summary = deriveTrackingSummary({
+    trackingEvents: letter.trackingEvents,
+    providerStatus: letter.lobStatus || letter.lobProviderStatus,
+    submittedAt: letter.submittedAt || letter.createdAt,
+  });
+
   return {
     ...letter,
+    ...summary,
     _id: letter._id?.toString?.() || letter._id || "",
     prospectId:
       letter.prospectId?.toString?.() || letter.prospectId || "",

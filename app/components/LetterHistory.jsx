@@ -52,12 +52,31 @@ export default function LetterHistory({ refreshKey = 0 }) {
   const [letters, setLetters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [notice, setNotice] = useState("");
 
-  const loadHistory = useCallback(async () => {
+  const loadHistory = useCallback(async ({ sync = false } = {}) => {
     setLoading(true);
     setMessage("");
+    setNotice("");
 
     try {
+      if (sync) {
+        const syncResponse = await fetch("/api/lob/history/sync", {
+          method: "POST",
+        });
+        const syncData = await syncResponse.json();
+
+        if (!syncResponse.ok) {
+          throw new Error(syncData.error || "Could not sync with Lob.");
+        }
+
+        setNotice(
+          syncData.failed
+            ? `Updated ${syncData.synced} letters. ${syncData.failed} could not be refreshed.`
+            : `Updated ${syncData.synced} letters from Lob.`,
+        );
+      }
+
       const response = await fetch(
         `/api/lob/history?limit=100&refresh=${refreshKey}`,
         { cache: "no-store" },
@@ -87,12 +106,17 @@ export default function LetterHistory({ refreshKey = 0 }) {
           <p className={styles.eyebrow}>Lob activity</p>
           <h2>Letter History</h2>
         </div>
-        <button type="button" onClick={loadHistory} disabled={loading}>
-          {loading ? "Refreshing…" : "Refresh"}
+        <button
+          type="button"
+          onClick={() => loadHistory({ sync: true })}
+          disabled={loading}
+        >
+          {loading ? "Syncing…" : "Sync with Lob"}
         </button>
       </div>
 
       {message && <p className={styles.historyStatus}>{message}</p>}
+      {notice && <p className={styles.historyNotice}>{notice}</p>}
 
       {!loading && !message && letters.length === 0 && (
         <p className={styles.historyEmpty}>
@@ -115,9 +139,15 @@ export default function LetterHistory({ refreshKey = 0 }) {
                 <strong>{sourceLabel(letter.source)}</strong>
                 <span>{letter.prospectName || letter.liveLetterId || ""}</span>
               </div>
-              <span className={styles.statusBadge}>
-                {letter.lobStatus || "Submitted"}
-              </span>
+              <div className={styles.statusSummary}>
+                <span
+                  className={styles.statusBadge}
+                  data-tone={letter.statusTone || "neutral"}
+                >
+                  {letter.statusLabel || "Submitted to Lob"}
+                </span>
+                <span>{formatDateTime(letter.statusUpdatedAt)}</span>
+              </div>
             </summary>
 
             <div className={styles.historyDetails}>
@@ -134,6 +164,62 @@ export default function LetterHistory({ refreshKey = 0 }) {
                   <span>Expected delivery</span>
                   <strong>{formatDate(letter.expectedDeliveryDate)}</strong>
                 </div>
+                <div className={styles.metaCard}>
+                  <span>Current status</span>
+                  <strong>{letter.statusLabel || "Submitted to Lob"}</strong>
+                </div>
+              </div>
+
+              <div className={styles.trackingPanel}>
+                <div className={styles.trackingHeader}>
+                  <div>
+                    <strong>Mail tracking</strong>
+                    <span>Production and USPS updates</span>
+                  </div>
+                  {letter.liveLetterId && (
+                    <a
+                      href={`https://dashboard.lob.com/letters/${encodeURIComponent(letter.liveLetterId)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      View in Lob
+                    </a>
+                  )}
+                </div>
+                <ol className={styles.trackingTimeline}>
+                  <li>
+                    <span className={styles.timelineDot} />
+                    <div>
+                      <strong>Submitted to Lob</strong>
+                      <span>{formatDateTime(letter.submittedAt)}</span>
+                    </div>
+                  </li>
+                  {(letter.trackingEvents || []).map((event) => (
+                    <li key={event.key}>
+                      <span
+                        className={styles.timelineDot}
+                        data-tone={
+                          event.status === "delivered"
+                            ? "success"
+                            : ["failed", "rejected", "returned_to_sender"].includes(
+                                  event.status,
+                                )
+                              ? "danger"
+                              : event.status === "re_routed"
+                                ? "warning"
+                                : "progress"
+                        }
+                      />
+                      <div>
+                        <strong>{event.label}</strong>
+                        <span>
+                          {formatDateTime(event.occurredAt)}
+                          {event.location ? ` · ${event.location}` : ""}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
               </div>
 
               <div className={styles.addressGrid}>
