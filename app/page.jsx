@@ -544,6 +544,9 @@ export default function Home() {
             <Link className={styles.secondaryButton} href="/email">
               Email
             </Link>
+            <Link className={styles.secondaryButton} href="/logs">
+              Check Logs
+            </Link>
             <button
               type="button"
               className={styles.secondaryButton}
