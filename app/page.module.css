@@ -250,6 +250,7 @@
 }
 
 .formGrid input,
+.formGrid textarea,
 .formGrid select,
 .customerPanelField input,
 .customerPanelField textarea,
@@ -267,6 +268,7 @@
 }
 
 .formGrid input:focus,
+.formGrid textarea:focus,
 .formGrid select:focus,
 .customerPanelField input:focus,
 .customerPanelField textarea:focus,

@@ -373,7 +373,7 @@ export default function Home() {
       phone: formData.phone,
       company: {
         name: formData.companyName,
-        website: "",
+        website: formData.companyWebsite.trim(),
         industry: "",
       },
       address: {
@@ -399,7 +399,7 @@ export default function Home() {
       website: "",
       serviceInterest: [],
       birthday: null,
-      notes: "",
+      notes: formData.notes,
       emailStatus: "subscribed",
       introEmail: {
         status: "pending",
@@ -778,6 +778,17 @@ export default function Home() {
             </label>
 
             <label>
+              <span>Business Website</span>
+              <input
+                name="companyWebsite"
+                placeholder="https://example.com"
+                value={formData.companyWebsite}
+                onChange={handleChange}
+                autoComplete="url"
+              />
+            </label>
+
+            <label>
               <span>Address line 1</span>
               <input
                 name="street1"
@@ -926,6 +937,17 @@ export default function Home() {
                 <option value="C">C</option>
                 <option value="D">D</option>
               </select>
+            </label>
+
+            <label className={styles.customerPanelFull}>
+              <span>Notes</span>
+              <textarea
+                name="notes"
+                rows="5"
+                placeholder="Relationship context, research, or anything to remember"
+                value={formData.notes}
+                onChange={handleChange}
+              />
             </label>
           </div>
 
