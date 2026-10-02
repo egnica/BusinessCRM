@@ -99,6 +99,7 @@ export default function Home() {
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [dateFilter, setDateFilter] = useState("all");
   const [projectFilter, setProjectFilter] = useState("all");
+  const [contactSort, setContactSort] = useState("follow-up");
   const [workspace, setWorkspace] = useState("crm");
   const [newsletterOpen, setNewsletterOpen] = useState(false);
   const [introEmailContactId, setIntroEmailContactId] = useState("");
@@ -272,6 +273,12 @@ export default function Home() {
         return true;
       })
       .sort((a, b) => {
+        if (contactSort === "newest") {
+          const createdA = Date.parse(a.createdAt) || 0;
+          const createdB = Date.parse(b.createdAt) || 0;
+          return createdB - createdA ||
+            getContactDisplayName(a).localeCompare(getContactDisplayName(b));
+        }
         const dateA = parseLocalDate(a.nextFollowUp);
         const dateB = parseLocalDate(b.nextFollowUp);
 
@@ -283,7 +290,7 @@ export default function Home() {
 
         return dateA - dateB;
       });
-  }, [contacts, dateFilter, projectFilter, searchName]);
+  }, [contacts, dateFilter, projectFilter, searchName, contactSort]);
 
   const handleKeyDown = (e) => {
     if (e.key === "ArrowDown") {
@@ -1009,6 +1016,20 @@ export default function Home() {
             >
               <option value="all">All projects</option>
               <option value="property-owner-outreach">Property Owner Outreach</option>
+            </select>
+          </label>
+
+          <label className={styles.projectFilter}>
+            <span className={styles.srOnly}>Sort contacts</span>
+            <select
+              value={contactSort}
+              onChange={(e) => {
+                setContactSort(e.target.value);
+                setSelectedIndex(-1);
+              }}
+            >
+              <option value="follow-up">Sort: Follow-up</option>
+              <option value="newest">Sort: Newest added</option>
             </select>
           </label>
 
