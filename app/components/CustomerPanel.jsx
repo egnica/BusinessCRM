@@ -1,11 +1,14 @@
 // CustomerPanel.jsx
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { copyContactResearchAiContext } from "@/lib/contactResearchAiContext";
 import ContactEmailActivity from "./ContactEmailActivity";
 import styles from "../page.module.css";
 
 function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
+  const [saveError, setSaveError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [calendarFormOpen, setCalendarFormOpen] = useState(false);
   const [researchCopyStatus, setResearchCopyStatus] = useState("");
 
@@ -75,13 +78,17 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
   };
 
   async function handleSaveCustomer() {
-    if (!customerSelected) return;
+    if (!customerSelected || savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    setSaveError("");
 
     try {
       const { _id, ...rest } = customerSelected;
 
       const res = await fetch(`/api/contacts/${_id}`, {
         method: "PUT",
+        signal: AbortSignal.timeout(20000),
         headers: {
           "Content-Type": "application/json",
         },
@@ -94,16 +101,17 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
       const data = await res.json();
 
       if (!res.ok) {
-        console.error(data.error || "Failed to update contact");
-        return;
+        throw new Error(data.error || "Failed to update contact");
       }
 
-      const refreshed = await fetch("/api/contacts");
-      const refreshedData = await refreshed.json();
-      setContacts(refreshedData.contacts || []);
+      // A successful save must not depend on a second database request.
       setCustomerToggle("");
     } catch (error) {
       console.error("Failed to save contact:", error);
+      setSaveError("Could not confirm the save. Your edits remain here. Retry saving before refreshing.");
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   }
 
@@ -254,7 +262,7 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
           </div>
         </div>
 
-        <div className={styles.customerPanelScroll}>
+        <div className={styles.customerPanelScroll} inert={saving}>
           <section className={styles.panelSection}>
             <div className={styles.panelSectionHeader}>
               <h4>Research &amp; Enrichment</h4>
@@ -899,6 +907,7 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
           </section>
         </div>
 
+        {saveError && <p className={styles.errorNotice} role="alert">{saveError}</p>}
         <div className={styles.customerPanelFooter}>
           <button
             type="button"
@@ -911,8 +920,9 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
             type="button"
             className={styles.customerPanelSave}
             onClick={handleSaveCustomer}
+            disabled={saving}
           >
-            Save Changes
+            {saving ? "Saving…" : saveError ? "Retry save" : "Save Changes"}
           </button>
         </div>
       </aside>

@@ -1,4 +1,4 @@
-import clientPromise from "@/lib/mongodb";
+import getMongoClient from "@/lib/mongodb";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,7 +21,7 @@ export async function GET(request) {
       ? Math.min(Math.max(requestedLimit, 1), 500)
       : 200;
 
-    const client = await clientPromise;
+    const client = await getMongoClient();
     const db = client.db("crm");
     const lobCollection = db.collection("lobWebhookEvents");
     const emailCollection = db.collection("contactEmails");

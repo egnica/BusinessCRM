@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import clientPromise from "@/lib/mongodb";
+import getMongoClient from "@/lib/mongodb";
 import {
   getMailingContactName,
   searchPropertyOwners,
@@ -33,7 +33,7 @@ async function saveProspects(prospects, filters) {
     };
   }
 
-  const client = await clientPromise;
+  const client = await getMongoClient();
   const db = client.db("crm");
   const collection = db.collection("propertyProspects");
   const keys = prospects.map((prospect) => prospect.propertyOutreachKey);
@@ -265,7 +265,7 @@ export async function GET(request) {
       ];
     }
 
-    const client = await clientPromise;
+    const client = await getMongoClient();
     const db = client.db("crm");
     const prospects = await db
       .collection("propertyProspects")
@@ -376,7 +376,7 @@ export async function DELETE(request) {
       );
     }
 
-    const client = await clientPromise;
+    const client = await getMongoClient();
     const db = client.db("crm");
     const result = await db
       .collection("propertyProspects")

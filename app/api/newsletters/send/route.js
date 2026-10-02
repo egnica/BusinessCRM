@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-import clientPromise from "@/lib/mongodb";
+import getMongoClient from "@/lib/mongodb";
 import { getEmailTemplate } from "@/lib/emailTemplates";
 import {
   getNewsletterConfigStatus,
@@ -37,14 +37,20 @@ export async function POST(req) {
       );
     }
 
-    const client = await clientPromise;
+    const client = await getMongoClient();
     db = client.db("crm");
 
     const contacts = await db
       .collection("contacts")
       .find({
         email: { $type: "string", $ne: "" },
-        emailStatus: "subscribed",
+        // Preserve the legacy default formerly written by the contact GET route.
+        $or: [
+          { emailStatus: "subscribed" },
+          { emailStatus: { $exists: false } },
+          { emailStatus: null },
+          { emailStatus: "" },
+        ],
       })
       .toArray();
 

@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 import { ObjectId } from "mongodb";
-import clientPromise from "@/lib/mongodb";
+import getMongoClient from "@/lib/mongodb";
 import { getMailingContactName } from "@/lib/propertyOwnerSearch";
 
 export const runtime = "nodejs";
@@ -195,7 +195,7 @@ export async function POST(request) {
       );
     }
 
-    const client = await clientPromise;
+    const client = await getMongoClient();
     const db = client.db("crm");
     const prospectCollection = db.collection("propertyProspects");
     const historyCollection = db.collection("letterHistory");

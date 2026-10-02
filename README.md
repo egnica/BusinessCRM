@@ -1,3 +1,14 @@
+## Contact saving and connection recovery
+
+- New-contact drafts are kept in this browser as fields change and reopened after a refresh. A successful save or an explicit **Discard draft** clears them. **Close form** keeps the draft.
+- If browser storage is unavailable, the form shows a warning and keeps its current fields in memory. Avoid refreshing in that case.
+- Failed contact loads show a connection error and **Retry connection**, preserving any previously loaded list. Failed saves keep the form open with **Retry save**.
+- Each new draft has a stable save request ID. Retrying the same draft cannot create a second contact if the first save committed but its response was lost. If an earlier version already saved and the draft was edited afterward, the server retains the draft and asks you to review the saved record.
+- Database access is lazy and shares a bounded connection pool across route modules. A failed initial connection is cleared so a later request can reconnect. Contact reads no longer perform a database-wide email-status update; email routes retain the same legacy status default without that write.
+- Existing-contact saves show failures and no longer depend on a follow-up contact-list fetch. Their unsaved edits remain on the page; browser draft recovery currently covers the **new-contact** form.
+
+Validation: `npm test`, `npm run lint`, and `npm run build`. Reliability tests use simulated database and storage boundaries, without live contacts or credentials. Production connection causes still require Amplify/Atlas logs if failures continue.
+
 ## Next Features / Roadmap
 
 ### CRM Usability

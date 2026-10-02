@@ -1,4 +1,4 @@
-import clientPromise from "@/lib/mongodb";
+import getMongoClient from "@/lib/mongodb";
 import {
   getMailingContactName,
   searchPropertyOwners,
@@ -21,7 +21,7 @@ function readFilters(searchParams) {
 async function addSavedState(prospects) {
   if (!prospects.length) return prospects;
 
-  const client = await clientPromise;
+  const client = await getMongoClient();
   const db = client.db("crm");
   const keys = prospects.map((prospect) => prospect.propertyOutreachKey);
   const parcelKeys = prospects.flatMap((prospect) =>

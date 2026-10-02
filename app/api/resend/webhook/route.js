@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 import { Resend } from "resend";
-import clientPromise from "@/lib/mongodb";
+import getMongoClient from "@/lib/mongodb";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -113,7 +113,7 @@ export async function POST(req) {
   }
 
   try {
-    const client = await clientPromise;
+    const client = await getMongoClient();
     const db = client.db("crm");
     const collection = db.collection("contactEmails");
     const resendEmailId = String(event?.data?.email_id || "").trim();

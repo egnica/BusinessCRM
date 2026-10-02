@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import clientPromise from "@/lib/mongodb";
+import getMongoClient from "@/lib/mongodb";
 
 export async function GET(_req, { params }) {
   try {
@@ -9,7 +9,7 @@ export async function GET(_req, { params }) {
       return Response.json({ error: "Invalid send id" }, { status: 400 });
     }
 
-    const client = await clientPromise;
+    const client = await getMongoClient();
     const db = client.db("crm");
     const sendId = new ObjectId(id);
 

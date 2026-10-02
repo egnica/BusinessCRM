@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import clientPromise from "@/lib/mongodb";
+import getMongoClient from "@/lib/mongodb";
 import { verifyUnsubscribeToken } from "@/lib/unsubscribe";
 
 export const runtime = "nodejs";
@@ -21,7 +21,7 @@ export async function POST(req) {
       );
     }
 
-    const client = await clientPromise;
+    const client = await getMongoClient();
     const db = client.db("crm");
     const contactId = new ObjectId(decoded.contactId);
     const sendId = new ObjectId(decoded.sendId);

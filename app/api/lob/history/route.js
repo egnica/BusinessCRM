@@ -1,4 +1,4 @@
-import clientPromise from "@/lib/mongodb";
+import getMongoClient from "@/lib/mongodb";
 import { getMailingContactName } from "@/lib/propertyOwnerSearch";
 import { deriveTrackingSummary } from "@/lib/lobTracking";
 
@@ -37,7 +37,7 @@ export async function GET(request) {
       ? Math.min(Math.max(requestedLimit, 1), 250)
       : 100;
 
-    const client = await clientPromise;
+    const client = await getMongoClient();
     const db = client.db("crm");
     const historyFilter = proofLetterId
       ? { environment: "live", proofLetterId }

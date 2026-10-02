@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import clientPromise from "@/lib/mongodb";
+import getMongoClient from "@/lib/mongodb";
 import { getMailingContactName } from "@/lib/propertyOwnerSearch";
 
 export const runtime = "nodejs";
@@ -38,7 +38,7 @@ export async function GET(_request, { params }) {
       return Response.json({ error: "Invalid prospect ID" }, { status: 400 });
     }
 
-    const client = await clientPromise;
+    const client = await getMongoClient();
     const db = client.db("crm");
     const prospect = await db
       .collection("propertyProspects")
@@ -117,7 +117,7 @@ export async function PATCH(request, { params }) {
       patch.primaryParcelId = String(body.primaryParcelId || "");
     }
 
-    const client = await clientPromise;
+    const client = await getMongoClient();
     const db = client.db("crm");
     const collection = db.collection("propertyProspects");
     const prospect = await collection.findOne({
@@ -174,7 +174,7 @@ export async function DELETE(_request, { params }) {
       return Response.json({ error: "Invalid prospect ID" }, { status: 400 });
     }
 
-    const client = await clientPromise;
+    const client = await getMongoClient();
     const db = client.db("crm");
     const result = await db
       .collection("propertyProspects")

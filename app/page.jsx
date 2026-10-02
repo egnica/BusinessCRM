@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CustomerPanel from "./components/CustomerPanel";
+import useNewContactDraft from "./components/useNewContactDraft";
 import EmailDashboard from "./components/EmailDashboard";
 import HtmlEmailModal from "./components/HtmlEmailModal";
 import IntroEmailModal from "./components/IntroEmailModal";
@@ -105,46 +106,53 @@ export default function Home() {
   const [emailHistoryOpen, setEmailHistoryOpen] = useState(false);
   const [emailHistoryRefresh, setEmailHistoryRefresh] = useState(0);
 
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    ownerType: "individual",
-    coOwnerName: "",
-    project: "",
-    jobTitle: "",
-    email: "",
-    phone: "",
-    companyName: "",
-    street1: "",
-    street2: "",
-    city: "",
-    state: "",
-    zip: "",
-    country: "US",
-    propertyStreet1: "",
-    propertyStreet2: "",
-    propertyCity: "",
-    propertyState: "",
-    propertyZip: "",
-    propertyCountry: "US",
-    linkedin: "",
-    rank: "",
-  });
+  const { formData, handleChange, resetDraft, draftStatus, ready: draftReady,
+    requestId, persist } = useNewContactDraft(setNewUserToggle);
+  const [saveError, setSaveError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveNotice, setSaveNotice] = useState("");
+  const savingRef = useRef(false);
+  const loadingRef = useRef(false);
+  const [contactsLoading, setContactsLoading] = useState(true);
+  const [contactsLoaded, setContactsLoaded] = useState(false);
+  const [contactsError, setContactsError] = useState("");
 
   const refreshContacts = useCallback(async () => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    setContactsLoading(true);
     try {
-      const res = await fetch("/api/contacts", { cache: "no-store" });
+      const res = await fetch("/api/contacts", {
+        cache: "no-store", signal: AbortSignal.timeout(15000),
+      });
       const data = await res.json();
-      setContacts(data.contacts || []);
+      if (!res.ok || !Array.isArray(data.contacts)) {
+        throw new Error("Could not load contacts");
+      }
+      setContacts(data.contacts);
+      setContactsLoaded(true);
+      setContactsError("");
     } catch (error) {
       console.error("Failed to fetch contacts:", error);
+      setContactsError("Could not load contacts. Any previously loaded contacts remain visible. You can keep entering a new contact and retry without refreshing.");
+    } finally {
+      loadingRef.current = false;
+      setContactsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial API data load
     refreshContacts();
   }, [refreshContacts]);
+
+  useEffect(() => {
+    // Keep unsaved existing-contact edits intact when connectivity changes.
+    const handleOnline = () => {
+      if (!customerToggle) refreshContacts();
+    };
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [customerToggle, refreshContacts]);
 
   const getFollowUpStatus = (contact) => {
     const followUp = parseLocalDate(contact.nextFollowUp);
@@ -345,17 +353,14 @@ export default function Home() {
     }
   }
 
-  function handleChange(e) {
-    const { name, value } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  }
-
   async function handleSubmit(e) {
     e.preventDefault();
+    if (savingRef.current || !draftReady) return;
+    savingRef.current = true;
+    setSaving(true);
+    setSaveError("");
+    setSaveNotice("");
+    persist(formData);
 
     const newContact = {
       firstName: formData.firstName,
@@ -417,46 +422,46 @@ export default function Home() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Idempotency-Key": requestId.current,
         },
+        signal: AbortSignal.timeout(20000),
         body: JSON.stringify(newContact),
       });
 
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
-        console.error(data.error);
-        return;
+        throw new Error(data.error || "Could not save the contact. Please retry.");
       }
+      if (!data.contact?._id) throw new Error("Could not confirm the save. Please retry.");
 
-      setFormData({
-        firstName: "",
-        lastName: "",
-        ownerType: "individual",
-        coOwnerName: "",
-        project: "",
-        jobTitle: "",
-        email: "",
-        phone: "",
-        companyName: "",
-        street1: "",
-        street2: "",
-        city: "",
-        state: "",
-        zip: "",
-        country: "US",
-        propertyStreet1: "",
-        propertyStreet2: "",
-        propertyCity: "",
-        propertyState: "",
-        propertyZip: "",
-        propertyCountry: "US",
-        linkedin: "",
-        rank: "",
-      });
-
+      setContacts((prev) => [data.contact, ...prev.filter((contact) => contact._id !== data.contact._id)]);
+      setSaveNotice("Contact saved.");
+      try {
+        resetDraft();
+        setNewUserToggle(false);
+      } catch {
+        setSaveNotice("Contact saved, but the browser draft could not be cleared. Retrying this same draft will not create another contact.");
+      }
       await refreshContacts();
-      setNewUserToggle(false);
     } catch (error) {
       console.error("Failed to create contact:", error);
+      setSaveError(`${error.name === "TimeoutError" || error.name === "TypeError"
+        ? "Could not confirm the save. Please retry."
+        : error.message} Your details remain in this form.`);
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  }
+
+  function discardDraft() {
+    if (!window.confirm("Discard this unsaved contact draft?")) return;
+    try {
+      resetDraft();
+      setSaveError("");
+      setNewUserToggle(false);
+    } catch {
+      setSaveError("Could not remove the browser draft. Your details are still here.");
     }
   }
 
@@ -557,6 +562,7 @@ export default function Home() {
             <button
               type="button"
               className={styles.primaryButton}
+              disabled={saving || !draftReady}
               onClick={() => setNewUserToggle((prev) => !prev)}
             >
               {newUserToggle ? "Close Form" : "+ New Contact"}
@@ -603,6 +609,17 @@ export default function Home() {
         </div>
       </section>
 
+      {contactsError && (
+        <div className={styles.errorNotice} role="alert">
+          <p>{contactsError}</p>
+          <button type="button" className={styles.secondaryButton}
+            onClick={refreshContacts} disabled={contactsLoading}>
+            {contactsLoading ? "Retrying…" : "Retry connection"}
+          </button>
+        </div>
+      )}
+      {saveNotice && <p className={styles.draftNotice} role="status">{saveNotice}</p>}
+
       <section className={styles.dashboardPanel}>
         <div className={styles.dashboardHeading}>
           <div>
@@ -610,7 +627,7 @@ export default function Home() {
             <h2>At a glance</h2>
           </div>
           <div className={styles.totalContacts}>
-            <span>{outreachStats.total}</span>
+            <span>{contactsLoaded ? outreachStats.total : "—"}</span>
             <small>Total contacts</small>
           </div>
         </div>
@@ -626,7 +643,7 @@ export default function Home() {
                 setSelectedIndex(-1);
               }}
             >
-              <span className={styles.metricValue}>{card.value}</span>
+              <span className={styles.metricValue}>{contactsLoaded ? card.value : "—"}</span>
               <span className={styles.metricLabel}>{card.label}</span>
               <span className={styles.metricHelper}>{card.helper}</span>
             </button>
@@ -648,6 +665,9 @@ export default function Home() {
             </div>
           </div>
 
+          {draftStatus && <p className={styles.draftNotice} role="status">{draftStatus}</p>}
+          {saveError && <p className={styles.errorNotice} role="alert">{saveError}</p>}
+          <fieldset className={styles.formFields} disabled={saving || !draftReady}>
           <div className={styles.formGrid}>
             <label>
               <span>Project</span>
@@ -909,16 +929,22 @@ export default function Home() {
             </label>
           </div>
 
+          </fieldset>
           <div className={styles.formActions}>
+            <button type="button" className={styles.secondaryButton}
+              onClick={discardDraft} disabled={saving || !draftReady}>
+              Discard draft
+            </button>
             <button
               type="button"
               className={styles.secondaryButton}
               onClick={() => setNewUserToggle(false)}
+              disabled={saving}
             >
-              Cancel
+              Close form
             </button>
-            <button type="submit" className={styles.primaryButton}>
-              Add Contact
+            <button type="submit" className={styles.primaryButton} disabled={saving || !draftReady}>
+              {saving ? "Saving…" : saveError ? "Retry save" : "Add Contact"}
             </button>
           </div>
         </form>
@@ -931,7 +957,7 @@ export default function Home() {
             <h2>Contacts</h2>
           </div>
           <span className={styles.resultCount}>
-            {filteredContacts.length} shown
+            {contactsLoaded ? `${filteredContacts.length} shown` : "Not loaded"}
           </span>
         </div>
 
@@ -1229,8 +1255,8 @@ export default function Home() {
 
             {filteredContacts.length === 0 && (
               <div className={styles.emptyState}>
-                <strong>No contacts match this view.</strong>
-                <span>Try a different search or follow-up filter.</span>
+                <strong>{!contactsLoaded ? (contactsError ? "Contacts could not be loaded." : "Loading contacts…") : "No contacts match this view."}</strong>
+                <span>{!contactsLoaded ? "Your new contact draft stays available while the connection recovers." : "Try a different search or follow-up filter."}</span>
               </div>
             )}
           </div>

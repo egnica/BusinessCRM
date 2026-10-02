@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { ObjectId } from "mongodb";
 import { Resend } from "resend";
-import clientPromise from "@/lib/mongodb";
+import getMongoClient from "@/lib/mongodb";
 import { getNewsletterConfigStatus } from "@/lib/newsletterConfig";
 import { renderHtmlEmailShell } from "@/lib/emailTemplates/_htmlEmailShell";
 
@@ -89,7 +89,7 @@ export async function GET(req, { params }) {
       return Response.json({ error: "Invalid contact ID" }, { status: 400 });
     }
 
-    const client = await clientPromise;
+    const client = await getMongoClient();
     const db = client.db("crm");
     const contact = await getContact(db, id);
 
@@ -161,7 +161,7 @@ export async function POST(req, { params }) {
       );
     }
 
-    const client = await clientPromise;
+    const client = await getMongoClient();
     const db = client.db("crm");
     const contact = await getContact(db, id);
 
@@ -241,7 +241,7 @@ export async function POST(req, { params }) {
       );
     }
 
-    if (contact.emailStatus !== "subscribed") {
+    if ((contact.emailStatus || "subscribed") !== "subscribed") {
       return Response.json(
         { error: "This contact is marked unsubscribed in the CRM." },
         { status: 400 },

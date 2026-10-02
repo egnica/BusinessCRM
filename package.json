@@ -7,6 +7,7 @@
     "build": "node scripts/generate-email-template-index.mjs && next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "node --test tests/*.test.mjs",
     "email-templates": "node scripts/generate-email-template-index.mjs"
   },
   "dependencies": {

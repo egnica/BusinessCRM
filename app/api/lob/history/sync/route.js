@@ -1,4 +1,4 @@
-import clientPromise from "@/lib/mongodb";
+import getMongoClient from "@/lib/mongodb";
 import { extractTrackingEventsFromLetter } from "@/lib/lobTracking";
 import { applyLobTrackingUpdate } from "@/lib/lobTrackingStore";
 
@@ -84,7 +84,7 @@ export async function POST() {
       );
     }
 
-    const client = await clientPromise;
+    const client = await getMongoClient();
     const db = client.db("crm");
     const [centralLetters, prospects] = await Promise.all([
       db

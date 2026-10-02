@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import clientPromise from "@/lib/mongodb";
+import getMongoClient from "@/lib/mongodb";
 import {
   getMailingContactName,
   lookupMetroPropertiesForProspect,
@@ -26,7 +26,7 @@ export async function POST(_request, { params }) {
       return Response.json({ error: "Invalid prospect ID" }, { status: 400 });
     }
 
-    const client = await clientPromise;
+    const client = await getMongoClient();
     const db = client.db("crm");
     const collection = db.collection("propertyProspects");
     const prospect = await collection.findOne({

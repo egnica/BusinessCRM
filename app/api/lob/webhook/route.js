@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto";
-import clientPromise from "@/lib/mongodb";
+import getMongoClient from "@/lib/mongodb";
 import { extractTrackingEventsFromWebhook } from "@/lib/lobTracking";
 import { applyLobTrackingUpdate } from "@/lib/lobTrackingStore";
 
@@ -95,7 +95,7 @@ export async function POST(request) {
       );
     }
 
-    const client = await clientPromise;
+    const client = await getMongoClient();
     const db = client.db("crm");
     const eventId = clean(payload.id);
 

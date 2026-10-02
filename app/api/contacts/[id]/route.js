@@ -1,4 +1,4 @@
-import clientPromise from "@/lib/mongodb";
+import getMongoClient from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 
 export async function PUT(req, { params }) {
@@ -20,7 +20,7 @@ export async function PUT(req, { params }) {
     // MongoDB will not allow _id to be changed
     delete body._id;
 
-    const client = await clientPromise;
+    const client = await getMongoClient();
     const db = client.db("crm");
 
     const result = await db.collection("contacts").updateOne(
@@ -75,7 +75,7 @@ export async function DELETE(req, { params }) {
       );
     }
 
-    const client = await clientPromise;
+    const client = await getMongoClient();
     const db = client.db("crm");
 
     const result = await db.collection("contacts").deleteOne({

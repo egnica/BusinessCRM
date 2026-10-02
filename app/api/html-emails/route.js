@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { ObjectId } from "mongodb";
 import { Resend } from "resend";
-import clientPromise from "@/lib/mongodb";
+import getMongoClient from "@/lib/mongodb";
 import { getNewsletterConfigStatus } from "@/lib/newsletterConfig";
 import { renderHtmlEmailShell } from "@/lib/emailTemplates/_htmlEmailShell";
 
@@ -61,7 +61,7 @@ function renderPersonalEmail(bodyHtml, preheader) {
 
 export async function GET(request) {
   try {
-    const client = await clientPromise;
+    const client = await getMongoClient();
     const db = client.db("crm");
     const collection = db.collection("contactEmails");
     await ensureIndexes(collection);
@@ -202,7 +202,7 @@ export async function POST(request) {
       );
     }
 
-    const client = await clientPromise;
+    const client = await getMongoClient();
     const db = client.db("crm");
     const collection = db.collection("contactEmails");
     await ensureIndexes(collection);
