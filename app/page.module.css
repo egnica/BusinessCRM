@@ -367,11 +367,11 @@
   font: inherit;
 }
 
-.projectFilter {
+.toolbarSelect {
   flex: 0 0 auto;
 }
 
-.projectFilter select {
+.toolbarSelect select {
   box-sizing: border-box;
   min-width: 190px;
   padding: 0.72rem 2.1rem 0.72rem 0.82rem;
@@ -384,7 +384,7 @@
   font-weight: 700;
 }
 
-.projectFilter select:focus {
+.toolbarSelect select:focus {
   outline: none;
   border-color: #84adff;
   box-shadow: 0 0 0 3px rgba(21, 112, 239, 0.12);
@@ -416,6 +416,18 @@
   border-color: #1d2939;
   background: #1d2939;
   color: #ffffff;
+}
+
+.toolbarActions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.toolbarActions button {
+  min-height: 42px;
+  white-space: nowrap;
 }
 
 .contactTable {
@@ -1005,8 +1017,17 @@
     flex-basis: auto;
   }
 
-  .projectFilter select {
+  .toolbarSelect select {
     width: 100%;
+  }
+
+  .toolbarActions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .toolbarActions button {
+    flex: 1 1 0;
   }
 
   .calendarGrid {
