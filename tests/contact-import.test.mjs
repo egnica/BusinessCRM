@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   addContactToDuplicateIndex,
+  buildImportUpdateSet,
   createDuplicateIndex,
   findDuplicateContact,
   guessImportField,
@@ -44,6 +45,27 @@ test("company-only rows become valid entity contacts and imported email status s
   assert.equal(normalized.contact.company.name, "Acme LLC");
   assert.equal(normalized.contact.emailStatus, "unknown");
   assert.equal(normalized.contact.importSource, "csv");
+  assert.equal(normalized.contact.rank, "D");
+});
+
+test("explicit import rank is preserved and duplicate updates do not invent D rank", () => {
+  const ranked = normalizeImportRow({ firstName: "Jane", lastName: "Doe", rank: "B" });
+  assert.equal(ranked.contact.rank, "B");
+
+  const defaulted = normalizeImportRow({ firstName: "Jane", lastName: "Doe" });
+  const update = buildImportUpdateSet(
+    { firstName: "Jane", lastName: "Doe" },
+    defaulted.contact,
+    { now: "2026-10-05T15:00:00.000Z" },
+  );
+  assert.equal("rank" in update, false);
+
+  const explicitUpdate = buildImportUpdateSet(
+    { firstName: "Jane", lastName: "Doe", rank: "C" },
+    normalizeImportRow({ firstName: "Jane", lastName: "Doe", rank: "C" }).contact,
+    { now: "2026-10-05T15:00:00.000Z" },
+  );
+  assert.equal(explicitUpdate.rank, "C");
 });
 
 test("invalid rows require either a complete person name or a company", () => {
