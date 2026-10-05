@@ -1,3 +1,13 @@
+## Bulk CSV contact import
+
+- The contact directory toolbar now keeps **Sort: Newest added**, moves follow-up views into a single dropdown, and removes the unused project dropdown.
+- **+ Add Contact** and **Import CSV** live beside the directory filters.
+- CSV import flow: upload -> map headers -> preview/validate -> duplicate handling -> import results.
+- Duplicate checks use normalized email, LinkedIn, phone, then name + company or LLC/company name. The default action is to skip duplicates; updating the existing contact or importing another copy are explicit alternatives.
+- Imported contacts receive `importSource`, `importBatchId`, `importFileName`, and `importedAt`. Each batch is logged in `contactImports` and shown in the import dialog.
+- Imported contacts default to `emailStatus: "unknown"`, so a bulk lead list is not silently enrolled in newsletter sends.
+- Each import uses a stable batch ID so a completed import can be safely recognized if the browser loses the response and retries the same batch.
+
 ## Contact saving and connection recovery
 
 - New-contact drafts are kept in this browser as fields change and reopened after a refresh. A successful save or an explicit **Discard draft** clears them. **Close form** keeps the draft.
