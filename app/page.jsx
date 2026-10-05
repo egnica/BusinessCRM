@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CustomerPanel from "./components/CustomerPanel";
+import BulkContactImport from "./components/BulkContactImport";
 import useNewContactDraft from "./components/useNewContactDraft";
 import EmailDashboard from "./components/EmailDashboard";
 import HtmlEmailModal from "./components/HtmlEmailModal";
@@ -98,7 +99,6 @@ export default function Home() {
   const [searchName, setSearchName] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [dateFilter, setDateFilter] = useState("all");
-  const [projectFilter, setProjectFilter] = useState("all");
   const [contactSort, setContactSort] = useState("follow-up");
   const [workspace, setWorkspace] = useState("crm");
   const [newsletterOpen, setNewsletterOpen] = useState(false);
@@ -106,6 +106,7 @@ export default function Home() {
   const [htmlEmailContactId, setHtmlEmailContactId] = useState("");
   const [emailHistoryOpen, setEmailHistoryOpen] = useState(false);
   const [emailHistoryRefresh, setEmailHistoryRefresh] = useState(0);
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
 
   const { formData, handleChange, resetDraft, draftStatus, ready: draftReady,
     requestId, persist } = useNewContactDraft(setNewUserToggle);
@@ -255,10 +256,6 @@ export default function Home() {
         const matchesSearch = !query || haystack.includes(query);
         if (!matchesSearch) return false;
 
-        if (projectFilter !== "all" && contact.project !== projectFilter) {
-          return false;
-        }
-
         const status = getFollowUpStatus(contact);
         const followUp = parseLocalDate(contact.nextFollowUp);
         const today = startOfToday();
@@ -290,7 +287,7 @@ export default function Home() {
 
         return dateA - dateB;
       });
-  }, [contacts, dateFilter, projectFilter, searchName, contactSort]);
+  }, [contacts, dateFilter, searchName, contactSort]);
 
   const handleKeyDown = (e) => {
     if (e.key === "ArrowDown") {
@@ -1001,25 +998,28 @@ export default function Home() {
                 setSelectedIndex(-1);
               }}
               onKeyDown={handleKeyDown}
-              placeholder="Search name, company, address, project..."
+              placeholder="Search name, company, address..."
             />
           </label>
 
-          <label className={styles.projectFilter}>
-            <span className={styles.srOnly}>Project filter</span>
+          <label className={styles.toolbarSelect}>
+            <span className={styles.srOnly}>Follow-up filter</span>
             <select
-              value={projectFilter}
+              value={dateFilter}
               onChange={(e) => {
-                setProjectFilter(e.target.value);
+                setDateFilter(e.target.value);
                 setSelectedIndex(-1);
               }}
             >
-              <option value="all">All projects</option>
-              <option value="property-owner-outreach">Property Owner Outreach</option>
+              {filterOptions.map(([value, label]) => (
+                <option key={value} value={value}>
+                  Follow-up: {label}
+                </option>
+              ))}
             </select>
           </label>
 
-          <label className={styles.projectFilter}>
+          <label className={styles.toolbarSelect}>
             <span className={styles.srOnly}>Sort contacts</span>
             <select
               value={contactSort}
@@ -1033,20 +1033,21 @@ export default function Home() {
             </select>
           </label>
 
-          <div className={styles.filterGroup} aria-label="Follow-up filters">
-            {filterOptions.map(([value, label]) => (
-              <button
-                type="button"
-                key={value}
-                className={dateFilter === value ? styles.filterActive : ""}
-                onClick={() => {
-                  setDateFilter(value);
-                  setSelectedIndex(-1);
-                }}
-              >
-                {label}
-              </button>
-            ))}
+          <div className={styles.toolbarActions}>
+            <button
+              type="button"
+              className={styles.primaryButton}
+              onClick={() => setNewUserToggle(true)}
+            >
+              + Add Contact
+            </button>
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={() => setBulkImportOpen(true)}
+            >
+              Import CSV
+            </button>
           </div>
         </div>
 
@@ -1305,6 +1306,19 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {bulkImportOpen && (
+        <BulkContactImport
+          onClose={() => setBulkImportOpen(false)}
+          onImported={async () => {
+            setContactSort("newest");
+            setDateFilter("all");
+            setSearchName("");
+            setSelectedIndex(-1);
+            await refreshContacts();
+          }}
+        />
+      )}
 
       {newsletterOpen && (
         <NewsletterModal
