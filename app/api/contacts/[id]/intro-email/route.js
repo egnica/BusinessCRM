@@ -58,6 +58,7 @@ export async function GET(req, { params }) {
 
     const previewHtml = template.render({
       recipientName: introRecipientName(contact),
+      trackingId: contact.trackingId || "",
       unsubscribeUrl: "#",
     });
 
@@ -241,6 +242,7 @@ export async function POST(req, { params }) {
       subject: template.subject,
       html: template.render({
         recipientName: introRecipientName(contact),
+        trackingId: contact.trackingId || "",
         unsubscribeUrl,
       }),
       headers: {
