@@ -4,6 +4,12 @@ import { Resend } from "resend";
 import getMongoClient from "@/lib/mongodb";
 import { getNewsletterConfigStatus } from "@/lib/newsletterConfig";
 import { renderHtmlEmailShell } from "@/lib/emailTemplates/_htmlEmailShell";
+import {
+  createEmailActivityRecord,
+  ensureEmailActivityIndexes,
+  markEmailActivityFailed,
+  markEmailActivitySent,
+} from "@/lib/emailActivity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -197,27 +203,69 @@ export async function POST(req, { params }) {
       }
 
       const testToken = normalizeText(body?.sendToken, 120) || crypto.randomUUID();
-      const { data, error } = await resend.emails.send(
-        {
-          from: PERSONAL_FROM,
-          to: testEmail,
-          replyTo: PERSONAL_REPLY_TO,
-          subject: `[TEST] ${subject}`,
-          html: renderPersonalEmail(bodyHtml, preheader),
-          tags: [{ name: "crm_type", value: "html_email_test" }],
-        },
-        {
-          idempotencyKey: `crm-html-test/${testToken}`,
-        },
-      );
+      const activityCollection = db.collection("contactEmails");
+      await ensureEmailActivityIndexes(activityCollection);
+      const renderedHtml = renderPersonalEmail(bodyHtml, preheader);
+      const activity = createEmailActivityRecord({
+        source: "html-test",
+        sendToken: `html-test-${testToken}`,
+        personalizationContactId: contact._id,
+        recipientEmail: testEmail,
+        recipientName:
+          [contact.firstName, contact.lastName]
+            .filter(Boolean)
+            .join(" ")
+            .trim() || "Test recipient",
+        fromEmail: PERSONAL_FROM,
+        replyTo: PERSONAL_REPLY_TO,
+        subject: `[TEST] ${subject}`,
+        preheader,
+        bodyHtml,
+        renderedHtml,
+      });
+      await activityCollection.insertOne(activity);
 
-      if (error) {
-        console.error("Resend HTML email test error:", error);
+      let data = null;
+      let sendError = null;
+
+      try {
+        const result = await resend.emails.send(
+          {
+            from: PERSONAL_FROM,
+            to: testEmail,
+            replyTo: PERSONAL_REPLY_TO,
+            subject: `[TEST] ${subject}`,
+            html: renderedHtml,
+            tags: [
+              { name: "crm_type", value: "html_email_test" },
+              { name: "crm_email_id", value: String(activity._id) },
+            ],
+          },
+          {
+            idempotencyKey: `crm-html-test/${testToken}`,
+          },
+        );
+        data = result.data;
+        sendError = result.error;
+      } catch (error) {
+        await markEmailActivityFailed(activityCollection, activity._id, error);
+        throw error;
+      }
+
+      if (sendError) {
+        await markEmailActivityFailed(activityCollection, activity._id, sendError);
+        console.error("Resend HTML email test error:", sendError);
         return Response.json(
-          { error: error.message || "Test email failed." },
+          { error: sendError.message || "Test email failed." },
           { status: 500 },
         );
       }
+
+      await markEmailActivitySent(
+        activityCollection,
+        activity._id,
+        data?.id || null,
+      );
 
       return Response.json({
         message: "Test email sent",

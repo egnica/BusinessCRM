@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { Resend } from "resend";
 import { getEmailTemplate } from "@/lib/emailTemplates";
 import getMongoClient from "@/lib/mongodb";
@@ -6,6 +7,12 @@ import {
   getNewsletterConfigStatus,
   getNewsletterFromAddress,
 } from "@/lib/newsletterConfig";
+import {
+  createEmailActivityRecord,
+  ensureEmailActivityIndexes,
+  markEmailActivityFailed,
+  markEmailActivitySent,
+} from "@/lib/emailActivity";
 
 const TRACKING_ID_PATTERN = /^NE-[A-HJ-NP-Z2-9]{8}$/;
 
@@ -13,7 +20,7 @@ async function getTrackedRecipientName(trackingId, fallbackName) {
   const normalizedTrackingId = String(trackingId || "").trim().toUpperCase();
 
   if (!normalizedTrackingId) {
-    return { recipientName: fallbackName, trackingId: "" };
+    return { recipientName: fallbackName, trackingId: "", contactId: null };
   }
 
   if (!TRACKING_ID_PATTERN.test(normalizedTrackingId)) {
@@ -34,6 +41,7 @@ async function getTrackedRecipientName(trackingId, fallbackName) {
   return {
     recipientName: String(contact.firstName || "").trim() || fallbackName,
     trackingId: normalizedTrackingId,
+    contactId: contact._id,
   };
 }
 
@@ -76,25 +84,65 @@ export async function POST(req) {
         ? getIntroductionFromAddress()
         : getNewsletterFromAddress();
 
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const { data, error } = await resend.emails.send({
-      from: fromAddress,
-      to: email,
-      subject: testSubject,
-      html: template.render({
-        recipientName: testRecipient.recipientName,
-        trackingId: testRecipient.trackingId,
-        unsubscribeUrl: "#",
-      }),
-    });
+    const client = await getMongoClient();
+    const db = client.db("crm");
+    const activityCollection = db.collection("contactEmails");
+    await ensureEmailActivityIndexes(activityCollection);
 
-    if (error) {
-      console.error("Resend test error:", error);
+    const renderedHtml = template.render({
+      recipientName: testRecipient.recipientName,
+      trackingId: testRecipient.trackingId,
+      unsubscribeUrl: "#",
+    });
+    const activity = createEmailActivityRecord({
+      source: "template-test",
+      sendToken: `template-test-${randomUUID()}`,
+      templateId,
+      personalizationContactId: testRecipient.contactId,
+      recipientEmail: email,
+      recipientName: testRecipient.recipientName,
+      fromEmail: fromAddress,
+      subject: testSubject,
+      renderedHtml,
+    });
+    await activityCollection.insertOne(activity);
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    let data = null;
+    let sendError = null;
+
+    try {
+      const result = await resend.emails.send({
+        from: fromAddress,
+        to: email,
+        subject: testSubject,
+        html: renderedHtml,
+        tags: [
+          { name: "crm_type", value: "template_test" },
+          { name: "crm_email_id", value: String(activity._id) },
+        ],
+      });
+      data = result.data;
+      sendError = result.error;
+    } catch (error) {
+      await markEmailActivityFailed(activityCollection, activity._id, error);
+      throw error;
+    }
+
+    if (sendError) {
+      await markEmailActivityFailed(activityCollection, activity._id, sendError);
+      console.error("Resend test error:", sendError);
       return Response.json(
-        { error: error.message || "Failed to send test email" },
+        { error: sendError.message || "Failed to send test email" },
         { status: 500 },
       );
     }
+
+    await markEmailActivitySent(
+      activityCollection,
+      activity._id,
+      data?.id || null,
+    );
 
     return Response.json({
       message: "Test email sent",

@@ -7,6 +7,12 @@ import {
   getNewsletterFromAddress,
 } from "@/lib/newsletterConfig";
 import { createUnsubscribeToken } from "@/lib/unsubscribe";
+import {
+  createEmailActivityRecord,
+  ensureEmailActivityIndexes,
+  markEmailActivityFailed,
+  markEmailActivitySent,
+} from "@/lib/emailActivity";
 
 const BATCH_SIZE = 100;
 
@@ -147,39 +153,73 @@ export async function POST(req) {
     let sentCount = 0;
     let failedCount = 0;
 
+    const activityCollection = db.collection("contactEmails");
+    await ensureEmailActivityIndexes(activityCollection);
+
     for (let i = 0; i < uniqueContacts.length; i += BATCH_SIZE) {
       const chunk = uniqueContacts.slice(i, i + BATCH_SIZE);
       const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+      const fromAddress = getNewsletterFromAddress();
 
-      const messages = chunk.map((contact) => {
+      const prepared = chunk.map((contact) => {
         const token = createUnsubscribeToken(contact._id, sendId);
         const unsubscribeUrl =
           `${baseUrl}/unsubscribe?token=${encodeURIComponent(token)}`;
         const oneClickUnsubscribeUrl =
           `${baseUrl}/api/newsletters/unsubscribe?token=${encodeURIComponent(token)}`;
+        const recipientName = contactName(contact);
+        const renderedHtml = template.render({
+          recipientName,
+          unsubscribeUrl,
+        });
+        const activity = createEmailActivityRecord({
+          source: "campaign",
+          sendToken: `campaign-${String(sendId)}-${String(contact._id)}`,
+          contactId: contact._id,
+          campaignId: sendId,
+          templateId: template.id,
+          recipientEmail: contact.email,
+          recipientName,
+          fromEmail: fromAddress,
+          subject: finalSubject,
+          renderedHtml,
+        });
 
         return {
-          from: getNewsletterFromAddress(),
-          to: contact.email,
-          subject: finalSubject,
-          html: template.render({
-            recipientName: contactName(contact),
-            unsubscribeUrl,
-          }),
-          headers: {
-            "List-Unsubscribe": `<${oneClickUnsubscribeUrl}>`,
-            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          contact,
+          activity,
+          message: {
+            from: fromAddress,
+            to: contact.email,
+            subject: finalSubject,
+            html: renderedHtml,
+            headers: {
+              "List-Unsubscribe": `<${oneClickUnsubscribeUrl}>`,
+              "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+            },
+            tags: [
+              { name: "crm_type", value: "campaign" },
+              { name: "crm_email_id", value: String(activity._id) },
+              { name: "contact_id", value: String(contact._id) },
+            ],
           },
         };
       });
+
+      await activityCollection.insertMany(
+        prepared.map((item) => item.activity),
+      );
 
       let data = null;
       let batchError = null;
 
       try {
-        const result = await resend.batch.send(messages, {
-          idempotencyKey: `newsletter-${String(sendId)}-batch-${batchNumber}`,
-        });
+        const result = await resend.batch.send(
+          prepared.map((item) => item.message),
+          {
+            idempotencyKey: `newsletter-${String(sendId)}-batch-${batchNumber}`,
+          },
+        );
 
         data = result.data;
         batchError = result.error;
@@ -193,13 +233,30 @@ export async function POST(req) {
           ? data.data
           : [];
 
-      const recipientDocs = chunk.map((contact, index) => {
+      const recipientDocs = [];
+
+      for (let index = 0; index < prepared.length; index += 1) {
+        const { contact, activity } = prepared[index];
         const wasSent = !batchError;
+        const resendEmailId = responseItems[index]?.id || null;
 
-        if (wasSent) sentCount += 1;
-        else failedCount += 1;
+        if (wasSent) {
+          sentCount += 1;
+          await markEmailActivitySent(
+            activityCollection,
+            activity._id,
+            resendEmailId,
+          );
+        } else {
+          failedCount += 1;
+          await markEmailActivityFailed(
+            activityCollection,
+            activity._id,
+            batchError,
+          );
+        }
 
-        return {
+        recipientDocs.push({
           sendId,
           contactId: contact._id,
           email: contact.email,
@@ -209,14 +266,15 @@ export async function POST(req) {
               .join(" ")
               .trim() || "",
           status: wasSent ? "sent" : "failed",
-          resendEmailId: responseItems[index]?.id || null,
+          resendEmailId,
+          emailActivityId: activity._id,
           error: batchError?.message || null,
           sentAt: wasSent ? new Date() : null,
           unsubscribedAt: null,
           createdAt: new Date(),
           updatedAt: new Date(),
-        };
-      });
+        });
+      }
 
       await db.collection("newsletterRecipients").insertMany(recipientDocs);
     }

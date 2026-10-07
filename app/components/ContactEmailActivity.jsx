@@ -3,6 +3,15 @@
 import { useCallback, useEffect, useState } from "react";
 import styles from "./ContactEmailActivity.module.css";
 
+const SOURCE_LABELS = {
+  intro: "Introduction",
+  campaign: "Campaign",
+  "template-test": "Template Test",
+  "html-test": "HTML Test",
+  manual: "Manual HTML",
+  contact: "Contact HTML",
+};
+
 const STATUS_LABELS = {
   sending: "Sending",
   sent: "Sent",
@@ -28,6 +37,11 @@ function formatDateTime(value) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function sourceLabel(email) {
+  const source = email.source || (email.contactId ? "contact" : "manual");
+  return SOURCE_LABELS[source] || source || "Email";
 }
 
 function timeline(email) {
@@ -118,7 +132,7 @@ export default function ContactEmailActivity({
                   (email.recipientName || email.recipientEmail)
                     ? " · "
                     : ""}
-                  {formatDateTime(email.sentAt || email.createdAt)}
+                  {sourceLabel(email)} · {formatDateTime(email.sentAt || email.createdAt)}
                 </span>
               </div>
               <span

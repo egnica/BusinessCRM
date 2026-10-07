@@ -232,6 +232,7 @@ export default function EmailWorkspace() {
             templates={templates}
             config={config}
             loading={loading}
+            onSent={() => setHtmlHistoryRefresh((value) => value + 1)}
           />
         </section>
       )}
@@ -263,10 +264,10 @@ export default function EmailWorkspace() {
 
         <div className={styles.historyStack}>
           <ContactEmailActivity
-            refreshKey={htmlHistoryRefresh}
-            title="One-off HTML Email History"
-            description="Manual and contact-linked HTML emails with Resend delivery events."
-            emptyMessage="No HTML emails have been sent yet."
+            refreshKey={htmlHistoryRefresh + campaignHistoryRefresh}
+            title="All Email Activity"
+            description="Introduction, one-off, campaign, and test emails with Resend delivery events."
+            emptyMessage="No CRM emails have been sent yet."
           />
           <EmailDashboard refreshKey={campaignHistoryRefresh} />
         </div>

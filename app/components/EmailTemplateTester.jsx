@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import styles from "./EmailHub.module.css";
 
-export default function EmailTemplateTester({ templates, config, loading }) {
+export default function EmailTemplateTester({
+  templates,
+  config,
+  loading,
+  onSent,
+}) {
   const [templateId, setTemplateId] = useState("");
   const [subject, setSubject] = useState("");
   const [testEmail, setTestEmail] = useState("");
@@ -94,6 +99,7 @@ export default function EmailTemplateTester({ templates, config, loading }) {
 
       if (!res.ok) throw new Error(data.error || "Test email failed.");
       setStatus(`Test email sent to ${testEmail.trim()}.`);
+      onSent?.();
     } catch (error) {
       setStatus(error.message || "Test email failed.");
     } finally {

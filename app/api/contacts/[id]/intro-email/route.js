@@ -7,6 +7,12 @@ import {
   getNewsletterConfigStatus,
 } from "@/lib/newsletterConfig";
 import { createUnsubscribeToken } from "@/lib/unsubscribe";
+import {
+  createEmailActivityRecord,
+  ensureEmailActivityIndexes,
+  markEmailActivityFailed,
+  markEmailActivitySent,
+} from "@/lib/emailActivity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -235,38 +241,141 @@ export async function POST(req, { params }) {
     const oneClickUnsubscribeUrl =
       `${baseUrl}/api/newsletters/unsubscribe?token=${encodeURIComponent(token)}`;
 
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const { data, error } = await resend.emails.send({
-      from: getIntroductionFromAddress(),
-      to: email,
-      subject: template.subject,
-      html: template.render({
-        recipientName: introRecipientName(contact),
-        trackingId: contact.trackingId || "",
-        unsubscribeUrl,
-      }),
-      headers: {
-        "List-Unsubscribe": `<${oneClickUnsubscribeUrl}>`,
-        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-      },
+    const activityCollection = db.collection("contactEmails");
+    await ensureEmailActivityIndexes(activityCollection);
+
+    const fromAddress = getIntroductionFromAddress();
+    const recipientName = introRecipientName(contact);
+    const renderedHtml = template.render({
+      recipientName,
+      trackingId: contact.trackingId || "",
+      unsubscribeUrl,
+    });
+    const sendToken = `intro-${String(contact._id)}`;
+
+    let activity = await activityCollection.findOne({
+      source: "intro",
+      sendToken,
     });
 
-    if (error) {
-      console.error("Resend intro email error:", error);
+    if (activity?.resendEmailId) {
+      const sentAt = activity.sentAt || now;
+      const introEmail = {
+        ...(contact.introEmail || {}),
+        status: "sent",
+        sent: true,
+        sentAt: new Date(sentAt).toISOString(),
+        cancelledAt: null,
+        resendEmailId: activity.resendEmailId,
+        subject: template.subject,
+        emailActivityId: String(activity._id),
+      };
+
+      await db.collection("contacts").updateOne(
+        { _id: contact._id },
+        {
+          $set: {
+            introEmail,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      );
+
+      return Response.json({
+        message: "Introduction email already sent",
+        introEmail,
+        resendEmailId: activity.resendEmailId,
+        duplicatePrevented: true,
+      });
+    }
+
+    if (!activity) {
+      activity = createEmailActivityRecord({
+        source: "intro",
+        sendToken,
+        contactId: contact._id,
+        templateId: INTRO_TEMPLATE_ID,
+        recipientEmail: email,
+        recipientName,
+        fromEmail: fromAddress,
+        subject: template.subject,
+        renderedHtml,
+      });
+      await activityCollection.insertOne(activity);
+    } else {
+      await activityCollection.updateOne(
+        { _id: activity._id },
+        {
+          $set: {
+            recipientEmail: email,
+            recipientName,
+            fromEmail: fromAddress,
+            subject: template.subject,
+            renderedHtml,
+            status: "sending",
+            failureMessage: null,
+            updatedAt: new Date(),
+          },
+        },
+      );
+    }
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    let data = null;
+    let sendError = null;
+
+    try {
+      const result = await resend.emails.send(
+        {
+          from: fromAddress,
+          to: email,
+          subject: template.subject,
+          html: renderedHtml,
+          headers: {
+            "List-Unsubscribe": `<${oneClickUnsubscribeUrl}>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          },
+          tags: [
+            { name: "crm_type", value: "intro" },
+            { name: "crm_email_id", value: String(activity._id) },
+            { name: "contact_id", value: String(contact._id) },
+          ],
+        },
+        {
+          idempotencyKey: `crm-intro/${String(contact._id)}`,
+        },
+      );
+      data = result.data;
+      sendError = result.error;
+    } catch (error) {
+      await markEmailActivityFailed(activityCollection, activity._id, error);
+      throw error;
+    }
+
+    if (sendError) {
+      await markEmailActivityFailed(activityCollection, activity._id, sendError);
+      console.error("Resend intro email error:", sendError);
       return Response.json(
-        { error: error.message || "Failed to send introduction email" },
+        { error: sendError.message || "Failed to send introduction email" },
         { status: 500 },
       );
     }
+
+    const sentAt = await markEmailActivitySent(
+      activityCollection,
+      activity._id,
+      data?.id || null,
+    );
 
     const introEmail = {
       ...(contact.introEmail || {}),
       status: "sent",
       sent: true,
-      sentAt: now.toISOString(),
+      sentAt: sentAt.toISOString(),
       cancelledAt: null,
       resendEmailId: data?.id || null,
       subject: template.subject,
+      emailActivityId: String(activity._id),
     };
 
     await db.collection("contacts").updateOne(
