@@ -31,11 +31,16 @@ export async function POST(req) {
       );
     }
 
+    const finalSubject = subject?.trim() || template.subject;
+    const testSubject = finalSubject.startsWith("[TEST]")
+      ? finalSubject
+      : `[TEST] ${finalSubject}`;
+
     const resend = new Resend(process.env.RESEND_API_KEY);
     const { data, error } = await resend.emails.send({
       from: getNewsletterFromAddress(),
       to: email,
-      subject: subject?.trim() || template.subject,
+      subject: testSubject,
       html: template.render({
         recipientName: "Test Recipient",
         unsubscribeUrl: "#",
@@ -54,6 +59,7 @@ export async function POST(req) {
       message: "Test email sent",
       id: data?.id || null,
       from: config.fromEmail,
+      subject: testSubject,
     });
   } catch (error) {
     console.error("Newsletter test error:", error);

@@ -1,3 +1,4 @@
+import { ObjectId } from "mongodb";
 import { Resend } from "resend";
 import getMongoClient from "@/lib/mongodb";
 import { getEmailTemplate } from "@/lib/emailTemplates";
@@ -16,16 +17,54 @@ function contactName(contact) {
   );
 }
 
+function subscribedEmailFilter() {
+  return {
+    email: { $type: "string", $ne: "" },
+    // Preserve the legacy default formerly written by the contact GET route.
+    $or: [
+      { emailStatus: "subscribed" },
+      { emailStatus: { $exists: false } },
+      { emailStatus: null },
+      { emailStatus: "" },
+    ],
+  };
+}
+
+function parseSelectedContactIds(contactIds) {
+  if (!Array.isArray(contactIds)) return null;
+
+  const ids = Array.from(
+    new Set(contactIds.map((value) => String(value || "").trim()).filter(Boolean)),
+  );
+
+  if (ids.length === 0) {
+    throw new Error("Select at least one contact before sending");
+  }
+
+  if (ids.some((id) => !ObjectId.isValid(id))) {
+    throw new Error("One or more selected contacts are invalid");
+  }
+
+  return ids;
+}
+
 export async function POST(req) {
   let db;
   let sendId;
 
   try {
-    const { templateId, subject } = await req.json();
+    const { templateId, subject, contactIds, campaignName } = await req.json();
     const template = getEmailTemplate(templateId);
 
     if (!template) {
       return Response.json({ error: "Template not found" }, { status: 404 });
+    }
+
+    let selectedContactIds;
+    try {
+      selectedContactIds = parseSelectedContactIds(contactIds);
+    } catch (error) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
 
     const config = getNewsletterConfigStatus();
@@ -40,19 +79,24 @@ export async function POST(req) {
     const client = await getMongoClient();
     db = client.db("crm");
 
-    const contacts = await db
-      .collection("contacts")
-      .find({
-        email: { $type: "string", $ne: "" },
-        // Preserve the legacy default formerly written by the contact GET route.
-        $or: [
-          { emailStatus: "subscribed" },
-          { emailStatus: { $exists: false } },
-          { emailStatus: null },
-          { emailStatus: "" },
-        ],
-      })
-      .toArray();
+    const query = subscribedEmailFilter();
+    if (selectedContactIds) {
+      query._id = {
+        $in: selectedContactIds.map((id) => new ObjectId(id)),
+      };
+    }
+
+    const contacts = await db.collection("contacts").find(query).toArray();
+
+    if (selectedContactIds && contacts.length !== selectedContactIds.length) {
+      return Response.json(
+        {
+          error:
+            "One or more selected contacts cannot receive campaign email. Refresh the contact list and try again.",
+        },
+        { status: 400 },
+      );
+    }
 
     const uniqueContacts = Array.from(
       new Map(
@@ -73,18 +117,22 @@ export async function POST(req) {
     }
 
     const finalSubject = subject?.trim() || template.subject;
+    const finalCampaignName = String(campaignName || "").trim().slice(0, 200);
     const now = new Date();
     const baseUrl = (
       process.env.APP_BASE_URL || new URL(req.url).origin
     ).replace(/\/$/, "");
 
     const sendResult = await db.collection("newsletterSends").insertOne({
+      campaignName: finalCampaignName || null,
+      sendType: selectedContactIds ? "selected" : "all-subscribers",
       templateId: template.id,
       templateName: template.name,
       subject: finalSubject,
       fromEmail: config.fromEmail,
       sentAt: now,
       recipientCount: uniqueContacts.length,
+      selectedContactCount: selectedContactIds?.length || null,
       sentCount: 0,
       failedCount: 0,
       unsubscribeCount: 0,
@@ -189,7 +237,9 @@ export async function POST(req) {
     );
 
     return Response.json({
-      message: "Newsletter send complete",
+      message: selectedContactIds
+        ? "Campaign send complete"
+        : "Newsletter send complete",
       sendId,
       recipientCount: uniqueContacts.length,
       sentCount,

@@ -1,0 +1,746 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 28px;
+  margin-bottom: 22px;
+  border: 1px solid #e3e7ec;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 30px;
+  box-shadow: 0 8px 28px rgba(17, 24, 39, 0.05);
+}
+
+.header h1 {
+  margin: 4px 0 8px;
+  color: #18202a;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.headerCopy {
+  max-width: 760px;
+  margin: 0;
+  color: #667085;
+  line-height: 1.55;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #667085;
+  font-size: 0.73rem;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.backLink {
+  display: inline-flex;
+  margin-bottom: 18px;
+  color: #475467;
+  font-size: 0.84rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.backLink:hover {
+  color: #175cd3;
+}
+
+.workspaceLinks {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.workspaceLink,
+.workspaceLinkActive {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d0d5dd;
+  border-radius: 9px;
+  background: #ffffff;
+  padding: 0.65rem 0.9rem;
+  color: #344054;
+  font-size: 0.86rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.workspaceLink:hover {
+  background: #f9fafb;
+}
+
+.workspaceLinkActive {
+  border-color: #1d2939;
+  background: #1d2939;
+  color: #ffffff;
+}
+
+.toolGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.toolCard {
+  display: flex;
+  min-width: 0;
+  min-height: 170px;
+  align-items: flex-start;
+  flex-direction: column;
+  border: 1px solid #e3e7ec;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 20px;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(17, 24, 39, 0.04);
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+.toolCard:hover {
+  border-color: #98a2b3;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 28px rgba(17, 24, 39, 0.07);
+}
+
+.toolCardActive {
+  border-color: #1d2939;
+  box-shadow: inset 0 0 0 1px #1d2939;
+}
+
+.toolTitle {
+  color: #101828;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.toolDescription {
+  margin-top: 9px;
+  color: #667085;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.toolAction {
+  margin-top: auto;
+  padding-top: 18px;
+  color: #344054;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.welcomePanel,
+.toolPanel,
+.activitySection {
+  margin-bottom: 24px;
+  border: 1px solid #e3e7ec;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 24px;
+  box-shadow: 0 8px 28px rgba(17, 24, 39, 0.05);
+}
+
+.welcomePanel h2,
+.panelHeading h2,
+.activityHeading h2 {
+  margin: 4px 0 0;
+  color: #101828;
+  font-size: 1.45rem;
+  letter-spacing: -0.025em;
+}
+
+.welcomePanel > p:last-child {
+  max-width: 760px;
+  margin: 12px 0 0;
+  color: #667085;
+  line-height: 1.6;
+}
+
+.panelHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #eaecf0;
+}
+
+.closeToolButton,
+.smallButton,
+.secondaryButton,
+.primaryButton,
+.previewHeader button {
+  min-height: 40px;
+  border-radius: 8px;
+  padding: 0.65rem 0.9rem;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.closeToolButton,
+.smallButton,
+.secondaryButton,
+.previewHeader button {
+  border: 1px solid #d0d5dd;
+  background: #ffffff;
+  color: #344054;
+}
+
+.closeToolButton:hover:not(:disabled),
+.smallButton:hover:not(:disabled),
+.secondaryButton:hover:not(:disabled),
+.previewHeader button:hover:not(:disabled) {
+  background: #f9fafb;
+}
+
+.primaryButton {
+  border: 1px solid #1d2939;
+  background: #1d2939;
+  color: #ffffff;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: #101828;
+}
+
+.closeToolButton:disabled,
+.smallButton:disabled,
+.secondaryButton:disabled,
+.primaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.errorNotice,
+.statusMessage,
+.tableNotice {
+  margin: 0 0 18px;
+  border: 1px solid #fecdca;
+  border-radius: 9px;
+  background: #fef3f2;
+  padding: 12px 14px;
+  color: #b42318;
+  font-size: 0.84rem;
+}
+
+.composerGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(440px, 1.1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.settingsColumn,
+.testControls {
+  min-width: 0;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.fieldWide {
+  grid-column: 1 / -1;
+}
+
+.field > span {
+  color: #344054;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.field small {
+  color: #98a2b3;
+  font-weight: 600;
+}
+
+.field input,
+.field select,
+.searchField input {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0 12px;
+  color: #101828;
+  font: inherit;
+  font-size: 0.86rem;
+}
+
+.field input:focus,
+.field select:focus,
+.searchField input:focus {
+  border-color: #84adff;
+  outline: 3px solid #eff4ff;
+}
+
+.senderStatus {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  border: 1px solid #eaecf0;
+  border-radius: 10px;
+  background: #f9fafb;
+  padding: 12px 14px;
+}
+
+.senderStatus > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.senderStatus > div span {
+  color: #667085;
+  font-size: 0.7rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.senderStatus > div strong {
+  overflow: hidden;
+  color: #344054;
+  font-size: 0.84rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statusPill,
+.contactStatus {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.28rem 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.statusReady,
+.contactStatusReady {
+  background: #ecfdf3;
+  color: #027a48;
+}
+
+.statusWarning,
+.contactStatusBlocked {
+  background: #fef3f2;
+  color: #b42318;
+}
+
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 16px;
+}
+
+.statusMessage {
+  margin-top: 14px;
+  margin-bottom: 0;
+  border-color: #b2ddff;
+  background: #eff8ff;
+  color: #175cd3;
+}
+
+.contactsPanel {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #d0d5dd;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.contactsToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-betweeen;
+  gap: 12px;
+  border-bottom: 1px solid #eaecf0;
+  padding: 14px;
+}
+
+.contactsToolbar > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.contactsToolbar strong {
+  color: #1d2939;
+  font-size: 0.88rem;
+}
+
+.contactsToolbar span {
+  color: #667085;
+  font-size: 0.74rem;
+}
+
+.smallButton {
+  min-height: 34px;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.74rem;
+}
+
+.searchField {
+  display: block;
+  border-bottom: 1px solid #eaecf0;
+  background: #f9fafb;
+  padding: 10px 12px;
+}
+
+.searchField input {
+  min-height: 40px;
+}
+
+.contactTable {
+  max-height: 610px;
+  overflow: auto;
+}
+
+.contactTableHeader,
+.contactRow {
+  display: grid;
+  grid-template-columns: 36px minmax(120px, 1fr) minmax(120px, 1fr) minmax(170px, 1.35fr) 100px;
+  align-items: center;
+  gap: 10px;
+  min-width: 720px;
+}
+
+.contactTableHeader {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  border-bottom: 1px solid #eaecf0;
+  background: #f9fafb;
+  padding: 9px 12px;
+  color: #667085;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.contactRow {
+  border-bottom: 1px solid #f2f4f7;
+  padding: 11px 12px;
+  color: #475467;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.contactRow:hover {
+  background: #f9fafb;
+}
+
+.contactRow strong {
+  overflow: hidden;
+  color: #344054;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contactRow input {
+  width: 16px;
+  height: 16px;
+}
+
+.contactRowDisabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.emailCell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tableNotice {
+  margin: 14px;
+  border-color: #eaecf0;
+  background: #f9fafb;
+  color: #667085;
+}
+
+.previewPanel {
+  overflow: hidden;
+  margin-top: 18px;
+  border: 1px solid #d0d5dd;
+  border-radius: 10px;
+}
+
+.previewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-betweeen;
+  gap: 10px;
+  border-bottom: 1px solid #eaecf0;
+  background: #f9fafb;
+  padding: 9px 10px;
+}
+
+.previewHeader strong {
+  color: #344054;
+  font-size: 0.78rem;
+}
+
+.previewHeader button {
+  min-height: 32px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.72rem;
+}
+
+.previewPanel iframe,
+.testPreviewShell iframe {
+  display: block;
+  width: 100%;
+  min-height: 610px;
+  border: 0;
+  background: #ffffff;
+}
+
+.testLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(460px, 1.2fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.helperText {
+  margin: 14px 0 0;
+  color: #667085;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.testPreviewShell {
+  overflow: hidden;
+  min-height: 520px;
+  border: 1px solid #d0d5dd;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.previewPlaceholder {
+  display: flex;
+  min-height: 520px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 6px;
+  padding: 30px;
+  color: #667085;
+  text-align: center;
+}
+
+.previewPlaceholder strong {
+  color: #344054;
+}
+
+.templateLibrary {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pathNotice {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 5px;
+  border: 1px solid #b2ddff;
+  border-radius: 10px;
+  background: #eff8ff;
+  padding: 14px 16px;
+}
+
+.pathNotice > span {
+  color: #175cd3;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.pathNotice code {
+  color: #1849a9;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.pathNotice small {
+  color: #667085;
+  font-size: 0.72rem;
+}
+
+.templateList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.templateCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.8fr);
+  gap: 18px;
+  border: 1px solid #eaecf0;
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.templateCard h3 {
+  margin: 4px 0 8px;
+  color: #101828;
+  font-size: 1rem;
+}
+
+.templateCard p:not(.eyebrow) {
+  margin: 0;
+  color: #667085;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.templateMeta {
+  display: grid;
+  gap: 5px;
+  align-content: start;
+}
+
+.templateMeta span {
+  margin-top: 5px;
+  color: #667085;
+  font-size: 0.66rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.templateMeta code {
+  overflow-wrap: anywhere;
+  color: #344054;
+  font-size: 0.72rem;
+}
+
+.activitySection {
+  margin-top: 6px;
+}
+
+.activityHeading {
+  margin-bottom: 16px;
+}
+
+.historyStack {
+  display: grid;
+  gap: 20px;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 1120px) {
+  .toolGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .composerGrid,
+  .testLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .contactTable {
+    max-height: 520px;
+  }
+
+  .templateList {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .header {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 20px;
+  }
+
+  .workspaceLinks {
+    width: 100%;
+  }
+
+  .workspaceLink,
+  .workspaceLinkActive {
+    flex: 1;
+  }
+
+  .toolGrid,
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .toolCard {
+    min-height: 142px;
+  }
+
+  .welcomePanel,
+  .toolPanel,
+  .activitySection {
+    padding: 18px;
+  }
+
+  .panelHeading,
+  .contactsToolbar,
+  .senderStatus {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .closeToolButton {
+    width: 100%;
+  }
+
+  .fieldWide {
+    grid-column: auto;
+  }
+
+  .actionRow > button {
+    flex: 1 1 180px;
+  }
+
+  .templateCard {
+    grid-template-columns: 1fr;
+  }
+}
