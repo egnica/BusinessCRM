@@ -197,9 +197,9 @@ export async function POST(req, { params }) {
       );
     }
 
-    if ((contact.emailStatus || "subscribed") !== "subscribed") {
+    if (contact.emailStatus === "unsubscribed") {
       return Response.json(
-        { error: "This contact is not subscribed to email" },
+        { error: "This contact has unsubscribed from email" },
         { status: 400 },
       );
     }

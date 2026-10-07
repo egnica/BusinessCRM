@@ -241,7 +241,7 @@ export async function POST(req, { params }) {
       );
     }
 
-    if ((contact.emailStatus || "subscribed") !== "subscribed") {
+    if (contact.emailStatus === "unsubscribed") {
       return Response.json(
         { error: "This contact is marked unsubscribed in the CRM." },
         { status: 400 },

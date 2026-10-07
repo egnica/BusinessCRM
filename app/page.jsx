@@ -1100,19 +1100,38 @@ export default function Home() {
                     >
                       {contact.email || "No email"}
                     </a>
-                    {contact.email && (
-                      <span
-                        className={`${styles.emailStatusBadge} ${
-                          contact.emailStatus === "unsubscribed"
-                            ? styles.emailStatusUnsubscribed
-                            : styles.emailStatusSubscribed
-                        }`}
-                      >
-                        {contact.emailStatus === "unsubscribed"
-                          ? "Unsubscribed"
-                          : "Subscribed"}
-                      </span>
-                    )}
+                    {contact.email && (() => {
+                      const emailStatus = contact.emailStatus || "subscribed";
+                      const emailStatusMeta = {
+                        subscribed: {
+                          label: "Subscribed",
+                          className: styles.emailStatusSubscribed,
+                        },
+                        unsubscribed: {
+                          label: "Unsubscribed",
+                          className: styles.emailStatusUnsubscribed,
+                        },
+                        unknown: {
+                          label: "Unknown",
+                          className: styles.emailStatusUnknown,
+                        },
+                        pending: {
+                          label: "Pending",
+                          className: styles.emailStatusPending,
+                        },
+                      }[emailStatus] || {
+                        label: emailStatus,
+                        className: styles.emailStatusUnknown,
+                      };
+
+                      return (
+                        <span
+                          className={`${styles.emailStatusBadge} ${emailStatusMeta.className}`}
+                        >
+                          {emailStatusMeta.label}
+                        </span>
+                      );
+                    })()}
                   </div>
 
                   <div className={styles.companyCell}>
@@ -1196,13 +1215,13 @@ export default function Home() {
                           onClick={() => setIntroEmailContactId(contact._id)}
                           disabled={
                             !contact.email ||
-                            contact.emailStatus !== "subscribed"
+                            contact.emailStatus === "unsubscribed"
                           }
                           title={
                             !contact.email
                               ? "Add an email address first"
-                              : contact.emailStatus !== "subscribed"
-                                ? "Contact is not subscribed"
+                              : contact.emailStatus === "unsubscribed"
+                                ? "Contact has unsubscribed from email"
                                 : "Preview and send introduction email"
                           }
                         >
@@ -1223,13 +1242,13 @@ export default function Home() {
                       className={styles.introSendButton}
                       onClick={() => setHtmlEmailContactId(contact._id)}
                       disabled={
-                        !contact.email || contact.emailStatus !== "subscribed"
+                        !contact.email || contact.emailStatus === "unsubscribed"
                       }
                       title={
                         !contact.email
                           ? "Add an email address first"
-                          : contact.emailStatus !== "subscribed"
-                            ? "Contact is not subscribed"
+                          : contact.emailStatus === "unsubscribed"
+                            ? "Contact has unsubscribed from email"
                             : "Compose a custom HTML email"
                       }
                     >

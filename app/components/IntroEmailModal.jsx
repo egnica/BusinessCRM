@@ -149,7 +149,7 @@ export default function IntroEmailModal({ contact, onClose, onSent }) {
                 working ||
                 !preview ||
                 !contact.email ||
-                contact.emailStatus !== "subscribed"
+                contact.emailStatus === "unsubscribed"
               }
             >
               {working ? "Sending…" : "Send Intro"}

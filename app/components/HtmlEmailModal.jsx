@@ -529,7 +529,7 @@ export default function HtmlEmailModal({
               config.loading ||
               (standalone
                 ? !recipientEmail.trim() || standaloneSent
-                : !contact.email || contact.emailStatus !== "subscribed")
+                : !contact.email || contact.emailStatus === "unsubscribed")
             }
           >
             {working
