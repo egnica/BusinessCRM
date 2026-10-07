@@ -3,8 +3,8 @@ import { Resend } from "resend";
 import getMongoClient from "@/lib/mongodb";
 import { getEmailTemplate } from "@/lib/emailTemplates";
 import {
+  getIntroductionFromAddress,
   getNewsletterConfigStatus,
-  getNewsletterFromAddress,
 } from "@/lib/newsletterConfig";
 import { createUnsubscribeToken } from "@/lib/unsubscribe";
 
@@ -237,7 +237,7 @@ export async function POST(req, { params }) {
 
     const resend = new Resend(process.env.RESEND_API_KEY);
     const { data, error } = await resend.emails.send({
-      from: getNewsletterFromAddress(),
+      from: getIntroductionFromAddress(),
       to: email,
       subject: template.subject,
       html: template.render({

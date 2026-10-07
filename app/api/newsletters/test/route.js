@@ -2,6 +2,7 @@ import { Resend } from "resend";
 import { getEmailTemplate } from "@/lib/emailTemplates";
 import getMongoClient from "@/lib/mongodb";
 import {
+  getIntroductionFromAddress,
   getNewsletterConfigStatus,
   getNewsletterFromAddress,
 } from "@/lib/newsletterConfig";
@@ -70,10 +71,14 @@ export async function POST(req) {
       trackingId,
       "Test Recipient",
     );
+    const fromAddress =
+      templateId === "introduction-email"
+        ? getIntroductionFromAddress()
+        : getNewsletterFromAddress();
 
     const resend = new Resend(process.env.RESEND_API_KEY);
     const { data, error } = await resend.emails.send({
-      from: getNewsletterFromAddress(),
+      from: fromAddress,
       to: email,
       subject: testSubject,
       html: template.render({
@@ -94,7 +99,7 @@ export async function POST(req) {
     return Response.json({
       message: "Test email sent",
       id: data?.id || null,
-      from: config.fromEmail,
+      from: fromAddress,
       subject: testSubject,
       recipientName: testRecipient.recipientName,
       trackingId: testRecipient.trackingId,

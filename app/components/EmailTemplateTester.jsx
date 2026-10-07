@@ -11,6 +11,10 @@ export default function EmailTemplateTester({ templates, config, loading }) {
   const [previewHtml, setPreviewHtml] = useState("");
   const [status, setStatus] = useState("");
   const [working, setWorking] = useState(false);
+  const displayedFrom =
+    templateId === "introduction-email"
+      ? config.introFromEmail || "nick@nicholasegner.com"
+      : config.fromEmail;
 
   useEffect(() => {
     const saved = window.localStorage.getItem("newsletterTestEmail");
@@ -155,7 +159,7 @@ export default function EmailTemplateTester({ templates, config, loading }) {
         <div className={styles.senderStatus}>
           <div>
             <span>From</span>
-            <strong>{config.fromEmail || "Sender not detected"}</strong>
+            <strong>{displayedFrom || "Sender not detected"}</strong>
           </div>
           <span
             className={`${styles.statusPill} ${
