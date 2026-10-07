@@ -17,8 +17,9 @@ export async function PUT(req, { params }) {
 
     const body = await req.json();
 
-    // MongoDB will not allow _id to be changed
+    // Internal identifiers are assigned by the server and are not editable.
     delete body._id;
+    delete body.trackingId;
 
     const client = await getMongoClient();
     const db = client.db("crm");

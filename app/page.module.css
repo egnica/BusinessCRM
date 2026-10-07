@@ -836,6 +836,46 @@
   font-size: 0.9rem;
 }
 
+.trackingIdRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+  color: #667085;
+  font-size: 0.75rem;
+}
+
+.trackingIdRow > span {
+  font-weight: 700;
+}
+
+.trackingIdRow code {
+  padding: 0.28rem 0.46rem;
+  border: 1px solid #e4e7ec;
+  border-radius: 6px;
+  background: #f9fafb;
+  color: #344054;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.trackingIdRow button {
+  border: 0;
+  padding: 0.2rem 0.25rem;
+  background: transparent;
+  color: #175cd3;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.trackingIdRow button:hover {
+  text-decoration: underline;
+}
+
 .panelHeaderActions {
   display: flex;
   gap: 8px;

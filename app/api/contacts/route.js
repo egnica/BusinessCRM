@@ -1,6 +1,123 @@
 import getMongoClient from "@/lib/mongodb";
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { ObjectId } from "mongodb";
+
+
+const TRACKING_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const TRACKING_LENGTH = 8;
+const MISSING_TRACKING_FILTER = {
+  $or: [
+    { trackingId: { $exists: false } },
+    { trackingId: null },
+    { trackingId: "" },
+  ],
+};
+
+let trackingIndexPromise;
+
+function createTrackingId() {
+  const bytes = randomBytes(TRACKING_LENGTH);
+  let value = "NE-";
+
+  for (let index = 0; index < TRACKING_LENGTH; index += 1) {
+    value += TRACKING_ALPHABET[bytes[index] % TRACKING_ALPHABET.length];
+  }
+
+  return value;
+}
+
+function ensureTrackingIdIndex(collection) {
+  if (!trackingIndexPromise) {
+    trackingIndexPromise = collection
+      .createIndex(
+        { trackingId: 1 },
+        {
+          unique: true,
+          name: "trackingId_unique",
+          partialFilterExpression: { trackingId: { $type: "string" } },
+        },
+      )
+      .catch((error) => {
+        trackingIndexPromise = null;
+        throw error;
+      });
+  }
+
+  return trackingIndexPromise;
+}
+
+async function backfillMissingTrackingIds(collection) {
+  const missing = await collection
+    .find(MISSING_TRACKING_FILTER, { projection: { _id: 1 } })
+    .toArray();
+
+  for (const contact of missing) {
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      try {
+        const result = await collection.updateOne(
+          { _id: contact._id, ...MISSING_TRACKING_FILTER },
+          { $set: { trackingId: createTrackingId() } },
+        );
+
+        if (result.modifiedCount || !result.matchedCount) break;
+      } catch (error) {
+        if (error?.code !== 11000) throw error;
+      }
+    }
+  }
+}
+
+async function insertWithTrackingId(collection, contact) {
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const trackingId = createTrackingId();
+
+    try {
+      const result = await collection.insertOne({ ...contact, trackingId });
+      return {
+        result,
+        contact: { ...contact, trackingId, _id: result.insertedId },
+      };
+    } catch (error) {
+      if (error?.code !== 11000) throw error;
+    }
+  }
+
+  throw new Error("Could not generate a unique tracking ID.");
+}
+
+async function upsertWithTrackingId(
+  collection,
+  insertedId,
+  contact,
+  requestHash,
+) {
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    try {
+      return await collection.updateOne(
+        { _id: insertedId },
+        {
+          $setOnInsert: {
+            ...contact,
+            trackingId: createTrackingId(),
+            createRequestHash: requestHash,
+          },
+        },
+        { upsert: true },
+      );
+    } catch (error) {
+      if (error?.code !== 11000) throw error;
+
+      const existing = await collection.findOne(
+        { _id: insertedId },
+        { projection: { _id: 1 } },
+      );
+
+      if (existing) return null;
+    }
+  }
+
+  throw new Error("Could not generate a unique tracking ID.");
+}
 
 export async function GET() {
   try {
@@ -8,6 +125,9 @@ export async function GET() {
     const db = client.db("crm");
 
     const contactsCollection = db.collection("contacts");
+
+    await ensureTrackingIdIndex(contactsCollection);
+    await backfillMissingTrackingIds(contactsCollection);
 
     const contacts = await contactsCollection
       .find({})
@@ -40,6 +160,7 @@ export async function POST(req) {
     }
     delete body._id;
     delete body.createRequestHash;
+    delete body.trackingId;
 
     const isEntity = body.ownerType === "llc";
     const hasPersonName = Boolean(body.firstName?.trim() && body.lastName?.trim());
@@ -65,6 +186,8 @@ export async function POST(req) {
     };
 
     const collection = db.collection("contacts");
+    await ensureTrackingIdIndex(collection);
+
     let insertedId;
     let savedContact;
     let replayed = false;
@@ -76,17 +199,12 @@ export async function POST(req) {
       const requestHash = createHash("sha256")
         .update(JSON.stringify(content))
         .digest("hex");
-      let result;
-      try {
-        result = await collection.updateOne(
-          { _id: insertedId },
-          { $setOnInsert: { ...contact, createRequestHash: requestHash } },
-          { upsert: true },
-        );
-      } catch (error) {
-        // Concurrent retries can race on the unique _id. Read the winner.
-        if (error.code !== 11000) throw error;
-      }
+      const result = await upsertWithTrackingId(
+        collection,
+        insertedId,
+        contact,
+        requestHash,
+      );
       savedContact = await collection.findOne({ _id: insertedId });
       if (savedContact?.createRequestHash !== requestHash) {
         return Response.json(
@@ -96,9 +214,9 @@ export async function POST(req) {
       }
       replayed = !result?.upsertedCount;
     } else {
-      const result = await collection.insertOne(contact);
-      insertedId = result.insertedId;
-      savedContact = { ...contact, _id: insertedId };
+      const inserted = await insertWithTrackingId(collection, contact);
+      insertedId = inserted.result.insertedId;
+      savedContact = inserted.contact;
     }
 
     return Response.json(

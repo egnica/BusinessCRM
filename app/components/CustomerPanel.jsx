@@ -11,6 +11,7 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
   const savingRef = useRef(false);
   const [calendarFormOpen, setCalendarFormOpen] = useState(false);
   const [researchCopyStatus, setResearchCopyStatus] = useState("");
+  const [trackingCopyStatus, setTrackingCopyStatus] = useState("");
 
   const introEmailStatus =
     customerSelected.introEmail?.status ||
@@ -141,6 +142,18 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
     }
   }
 
+  async function handleCopyTrackingId() {
+    if (!customerSelected.trackingId) return;
+
+    try {
+      await navigator.clipboard.writeText(customerSelected.trackingId);
+      setTrackingCopyStatus("Copied");
+      window.setTimeout(() => setTrackingCopyStatus(""), 1600);
+    } catch {
+      setTrackingCopyStatus("Copy failed");
+    }
+  }
+
   async function handleCopyResearchPrompt() {
     setResearchCopyStatus("");
 
@@ -241,6 +254,16 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
                   .filter(Boolean)
                   .join(" · ") || "No role or company added"}
               </p>
+
+              {customerSelected.trackingId && (
+                <div className={styles.trackingIdRow}>
+                  <span>Tracking ID</span>
+                  <code>{customerSelected.trackingId}</code>
+                  <button type="button" onClick={handleCopyTrackingId}>
+                    {trackingCopyStatus || "Copy"}
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className={styles.panelHeaderActions}>

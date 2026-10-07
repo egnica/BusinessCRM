@@ -1,6 +1,6 @@
 import getMongoClient from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import {
   addContactToDuplicateIndex,
   buildImportUpdateSet,
@@ -8,6 +8,51 @@ import {
   findDuplicateContact,
   normalizeImportRow,
 } from "@/lib/contactImport.mjs";
+
+
+
+const TRACKING_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const TRACKING_LENGTH = 8;
+
+function createTrackingId() {
+  const bytes = randomBytes(TRACKING_LENGTH);
+  let value = "NE-";
+
+  for (let index = 0; index < TRACKING_LENGTH; index += 1) {
+    value += TRACKING_ALPHABET[bytes[index] % TRACKING_ALPHABET.length];
+  }
+
+  return value;
+}
+
+async function ensureTrackingIdIndex(collection) {
+  await collection.createIndex(
+    { trackingId: 1 },
+    {
+      unique: true,
+      name: "trackingId_unique",
+      partialFilterExpression: { trackingId: { $type: "string" } },
+    },
+  );
+}
+
+async function insertWithTrackingId(collection, contact) {
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const trackingId = createTrackingId();
+
+    try {
+      const result = await collection.insertOne({ ...contact, trackingId });
+      return {
+        result,
+        contact: { ...contact, trackingId },
+      };
+    } catch (error) {
+      if (error?.code !== 11000) throw error;
+    }
+  }
+
+  throw new Error("Could not generate a unique tracking ID.");
+}
 
 const MAX_ROWS = 2500;
 const MODES = new Set(["skip", "update", "import"]);
@@ -33,6 +78,7 @@ export async function POST(req) {
     const client = await getMongoClient();
     const db = client.db("crm");
     const contacts = db.collection("contacts");
+    await ensureTrackingIdIndex(contacts);
     imports = db.collection("contactImports");
 
     const existingBatch = await imports.findOne({ _id: batchId });
@@ -124,11 +170,17 @@ export async function POST(req) {
         continue;
       }
 
-      const result = await contacts.insertOne(normalized.contact);
+      const inserted = await insertWithTrackingId(
+        contacts,
+        normalized.contact,
+      );
       importedCount += 1;
       addContactToDuplicateIndex(
         duplicateIndex,
-        { ...normalized.contact, _id: result.insertedId },
+        {
+          ...inserted.contact,
+          _id: inserted.result.insertedId,
+        },
         { source: "batch" },
       );
     }

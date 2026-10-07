@@ -225,6 +225,7 @@ export default function Home() {
           contact.lastName,
           contact.jobTitle,
           contact.email,
+          contact.trackingId,
           contact.company?.name,
           contact.company?.industry,
           contact.relationshipType,
