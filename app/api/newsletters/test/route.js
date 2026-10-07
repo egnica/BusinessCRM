@@ -7,7 +7,7 @@ import {
 
 export async function POST(req) {
   try {
-    const { templateId, subject, email } = await req.json();
+    const { templateId, subject, email, trackingId } = await req.json();
 
     if (!email) {
       return Response.json(
@@ -43,6 +43,7 @@ export async function POST(req) {
       subject: testSubject,
       html: template.render({
         recipientName: "Test Recipient",
+        trackingId: String(trackingId || "").trim(),
         unsubscribeUrl: "#",
       }),
     });

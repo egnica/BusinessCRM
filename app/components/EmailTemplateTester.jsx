@@ -7,13 +7,16 @@ export default function EmailTemplateTester({ templates, config, loading }) {
   const [templateId, setTemplateId] = useState("");
   const [subject, setSubject] = useState("");
   const [testEmail, setTestEmail] = useState("");
+  const [trackingId, setTrackingId] = useState("");
   const [previewHtml, setPreviewHtml] = useState("");
   const [status, setStatus] = useState("");
   const [working, setWorking] = useState(false);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("newsletterTestEmail");
+    const savedTrackingId = window.localStorage.getItem("newsletterTestTrackingId");
     if (saved) setTestEmail(saved);
+    if (savedTrackingId) setTrackingId(savedTrackingId);
   }, []);
 
   useEffect(() => {
@@ -40,7 +43,7 @@ export default function EmailTemplateTester({ templates, config, loading }) {
       const res = await fetch("/api/newsletters/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId }),
+        body: JSON.stringify({ templateId, trackingId: trackingId.trim() }),
       });
       const data = await res.json();
 
@@ -68,6 +71,7 @@ export default function EmailTemplateTester({ templates, config, loading }) {
     }
 
     window.localStorage.setItem("newsletterTestEmail", testEmail.trim());
+    window.localStorage.setItem("newsletterTestTrackingId", trackingId.trim());
     setWorking(true);
     setStatus("");
 
@@ -79,6 +83,7 @@ export default function EmailTemplateTester({ templates, config, loading }) {
           templateId,
           subject,
           email: testEmail.trim(),
+          trackingId: trackingId.trim(),
         }),
       });
       const data = await res.json();
@@ -119,6 +124,19 @@ export default function EmailTemplateTester({ templates, config, loading }) {
               onChange={(event) => setTestEmail(event.target.value)}
               placeholder="your@email.com"
               disabled={working}
+            />
+          </label>
+
+          <label className={styles.field}>
+            <span>Tracking ID <em>(optional)</em></span>
+            <input
+              value={trackingId}
+              onChange={(event) => setTrackingId(event.target.value.toUpperCase())}
+              placeholder="NE-7K4P9X2Q"
+              maxLength={11}
+              disabled={working}
+              autoCapitalize="characters"
+              spellCheck={false}
             />
           </label>
 

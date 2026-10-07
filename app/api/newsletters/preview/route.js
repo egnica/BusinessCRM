@@ -2,7 +2,7 @@ import { getEmailTemplate } from "@/lib/emailTemplates";
 
 export async function POST(req) {
   try {
-    const { templateId } = await req.json();
+    const { templateId, trackingId } = await req.json();
     const template = getEmailTemplate(templateId);
 
     if (!template) {
@@ -11,6 +11,7 @@ export async function POST(req) {
 
     const html = template.render({
       recipientName: "Sample Contact",
+      trackingId: String(trackingId || "").trim(),
       unsubscribeUrl: "#",
     });
 
