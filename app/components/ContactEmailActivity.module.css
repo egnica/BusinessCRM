@@ -235,9 +235,24 @@
 }
 
 .clicks a {
+  min-width: 0;
   overflow-wrap: anywhere;
   color: #175cd3;
   font-size: 0.76rem;
+}
+
+.clickRow {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: baseline;
+  gap: 12px;
+}
+
+.clickTime {
+  color: #667085;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .sentPreview {
@@ -275,6 +290,11 @@
 }
 
 @media (max-width: 720px) {
+  .clickRow {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
   .toolbar,
   .sentPreviewHeader {
     align-items: flex-start;

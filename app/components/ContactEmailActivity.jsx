@@ -25,7 +25,7 @@ const STATUS_LABELS = {
   suppressed: "Suppressed",
 };
 
-function formatDateTime(value) {
+function formatDateTime(value, includeSeconds = false) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
@@ -36,6 +36,7 @@ function formatDateTime(value) {
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    ...(includeSeconds ? { second: "2-digit" } : {}),
   });
 }
 
@@ -226,14 +227,21 @@ export default function ContactEmailActivity({
                   {(email.events || [])
                     .filter((event) => event.link)
                     .map((event, index) => (
-                      <a
-                        href={event.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <div
+                        className={styles.clickRow}
                         key={`${event.id || event.at}-${index}`}
                       >
-                        {event.link}
-                      </a>
+                        <time className={styles.clickTime} dateTime={event.at || undefined}>
+                          {formatDateTime(event.at, true) || "Time unavailable"}
+                        </time>
+                        <a
+                          href={event.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {event.link}
+                        </a>
+                      </div>
                     ))}
                 </div>
               )}
