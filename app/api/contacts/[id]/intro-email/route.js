@@ -7,6 +7,7 @@ import {
   getNewsletterConfigStatus,
 } from "@/lib/newsletterConfig";
 import { createUnsubscribeToken } from "@/lib/unsubscribe";
+import { getEmailBaseUrl } from "@/lib/emailBaseUrl.mjs";
 import {
   createEmailActivityRecord,
   ensureEmailActivityIndexes,
@@ -229,9 +230,7 @@ export async function POST(req, { params }) {
     }
 
     const unsubscribeReferenceId = new ObjectId();
-    const baseUrl = (
-      process.env.APP_BASE_URL || new URL(req.url).origin
-    ).replace(/\/$/, "");
+    const baseUrl = getEmailBaseUrl();
     const token = createUnsubscribeToken(
       contact._id,
       unsubscribeReferenceId,

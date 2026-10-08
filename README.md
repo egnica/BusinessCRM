@@ -1,3 +1,11 @@
+## Public email links
+
+- Intro emails and campaigns use `lib/emailBaseUrl.mjs` for both footer and one-click unsubscribe links. They never derive recipient links from the server's internal request URL.
+- `APP_BASE_URL` can override the public HTTPS origin. If unset, the live CRM origin is `https://main.dcjjjb8rwkdsk.amplifyapp.com`. Localhost and loopback settings outside development also fall back to that live origin. Invalid settings fail before sending.
+- Local development can explicitly set `APP_BASE_URL=http://localhost:3000`. Update the public origin when moving the CRM to another host.
+- The unsubscribe page calls the shared database connection function. Opening the page displays confirmation; only the confirmation POST or a mail client's one-click POST changes email preferences.
+- Emails already sent with localhost links keep those URLs; a deployment cannot rewrite delivered emails.
+
 ## Bulk CSV contact import
 
 - The contact directory toolbar now keeps **Sort: Newest added**, moves follow-up views into a single dropdown, and removes the unused project dropdown.

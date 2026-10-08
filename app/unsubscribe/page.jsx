@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import clientPromise from "@/lib/mongodb";
+import getMongoClient from "@/lib/mongodb";
 import { verifyUnsubscribeToken } from "@/lib/unsubscribe";
 import UnsubscribeForm from "./UnsubscribeForm";
 import styles from "./unsubscribe.module.css";
@@ -27,7 +27,7 @@ export default async function UnsubscribePage({ searchParams }) {
     );
   }
 
-  const client = await clientPromise;
+  const client = await getMongoClient();
   const db = client.db("crm");
   const contact = await db.collection("contacts").findOne({
     _id: new ObjectId(decoded.contactId),

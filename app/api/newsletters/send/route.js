@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
 import { Resend } from "resend";
 import getMongoClient from "@/lib/mongodb";
+import { getEmailBaseUrl } from "@/lib/emailBaseUrl.mjs";
 import { getEmailTemplate } from "@/lib/emailTemplates";
 import {
   getNewsletterConfigStatus,
@@ -125,9 +126,7 @@ export async function POST(req) {
     const finalSubject = subject?.trim() || template.subject;
     const finalCampaignName = String(campaignName || "").trim().slice(0, 200);
     const now = new Date();
-    const baseUrl = (
-      process.env.APP_BASE_URL || new URL(req.url).origin
-    ).replace(/\/$/, "");
+    const baseUrl = getEmailBaseUrl();
 
     const sendResult = await db.collection("newsletterSends").insertOne({
       campaignName: finalCampaignName || null,
