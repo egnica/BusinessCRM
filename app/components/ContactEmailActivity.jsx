@@ -76,12 +76,12 @@ function classifyEngagement(email) {
   }
   if (!burst) return null;
   const later = clicks.filter(e => e.time > burst.end+300000);
-  const humanLike = later.some((e,i) => later.slice(i+1).some(other => other.time-e.time >= 60000));
+  const humanLike = later.length > 0;
   return {
     label: humanLike ? "Later Engagement" : "Bot Likely",
     suspected: !humanLike,
     explanation: humanLike
-      ? "An automated-looking click burst was followed by separate later clicks. Human engagement is possible, but not verified."
+      ? "An automated-looking click burst was followed by a link click more than five minutes later. Human engagement is possible, but not verified."
       : `${burst.unique} distinct links were requested within 30 seconds shortly after delivery. This suggests automated security scanning.`,
   };
 }
