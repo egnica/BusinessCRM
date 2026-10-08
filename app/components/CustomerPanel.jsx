@@ -312,59 +312,6 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
 
           <section className={styles.panelSection}>
             <div className={styles.panelSectionHeader}>
-              <h4>Project / Owner</h4>
-              <p>Group this record and describe how the property is owned.</p>
-            </div>
-
-            <div className={styles.customerPanelGrid}>
-              <label className={styles.customerPanelField}>
-                <span>Owner / Entity Name</span>
-                <input
-                  type="text"
-                  value={customerSelected.ownerNameRaw || ""}
-                  onChange={(e) => updateContact({ ownerNameRaw: e.target.value })}
-                  placeholder="Used for imported property-owner records"
-                />
-              </label>
-
-              <label className={styles.customerPanelField}>
-                <span>Project</span>
-                <select
-                  value={customerSelected.project || ""}
-                  onChange={(e) => updateContact({ project: e.target.value })}
-                >
-                  <option value="">No project</option>
-                  <option value="property-owner-outreach">Property Owner Outreach</option>
-                </select>
-              </label>
-
-              <label className={styles.customerPanelField}>
-                <span>Owner Type</span>
-                <select
-                  value={customerSelected.ownerType || "individual"}
-                  onChange={(e) => updateContact({ ownerType: e.target.value })}
-                >
-                  <option value="individual">Individual</option>
-                  <option value="couple">Couple</option>
-                  <option value="llc">LLC / Entity</option>
-                  <option value="other">Other</option>
-                </select>
-              </label>
-
-              <label className={styles.customerPanelField}>
-                <span>Co-owner Name</span>
-                <input
-                  type="text"
-                  value={customerSelected.coOwnerName || ""}
-                  onChange={(e) => updateContact({ coOwnerName: e.target.value })}
-                  placeholder="Optional second owner"
-                />
-              </label>
-            </div>
-          </section>
-
-          <section className={styles.panelSection}>
-            <div className={styles.panelSectionHeader}>
               <h4>Contact</h4>
               <p>Core identity and contact information.</p>
             </div>
@@ -924,6 +871,58 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
                   rows="7"
                   value={customerSelected.notes || ""}
                   onChange={(e) => updateContact({ notes: e.target.value })}
+                />
+              </label>
+            </div>
+          </section>
+          <section className={styles.panelSection}>
+            <div className={styles.panelSectionHeader}>
+              <h4>Project / Owner</h4>
+              <p>Group this record and describe how the property is owned.</p>
+            </div>
+
+            <div className={styles.customerPanelGrid}>
+              <label className={styles.customerPanelField}>
+                <span>Owner / Entity Name</span>
+                <input
+                  type="text"
+                  value={customerSelected.ownerNameRaw || ""}
+                  onChange={(e) => updateContact({ ownerNameRaw: e.target.value })}
+                  placeholder="Used for imported property-owner records"
+                />
+              </label>
+
+              <label className={styles.customerPanelField}>
+                <span>Project</span>
+                <select
+                  value={customerSelected.project || ""}
+                  onChange={(e) => updateContact({ project: e.target.value })}
+                >
+                  <option value="">No project</option>
+                  <option value="property-owner-outreach">Property Owner Outreach</option>
+                </select>
+              </label>
+
+              <label className={styles.customerPanelField}>
+                <span>Owner Type</span>
+                <select
+                  value={customerSelected.ownerType || "individual"}
+                  onChange={(e) => updateContact({ ownerType: e.target.value })}
+                >
+                  <option value="individual">Individual</option>
+                  <option value="couple">Couple</option>
+                  <option value="llc">LLC / Entity</option>
+                  <option value="other">Other</option>
+                </select>
+              </label>
+
+              <label className={styles.customerPanelField}>
+                <span>Co-owner Name</span>
+                <input
+                  type="text"
+                  value={customerSelected.coOwnerName || ""}
+                  onChange={(e) => updateContact({ coOwnerName: e.target.value })}
+                  placeholder="Optional second owner"
                 />
               </label>
             </div>
