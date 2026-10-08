@@ -150,12 +150,34 @@ export default function ContactEmailActivity({
               <div className={styles.summaryCopy}>
                 <strong>{email.subject || "Untitled email"}</strong>
                 <span>
+                  {!contactId && (
+                    <>
+                      {email.recipientName}
+                      {email.contactId && (
+                        <>
+                          {email.recipientName ? " · " : ""}
+                          <a
+                            className={styles.contactLink}
+                            href={`/?contactId=${encodeURIComponent(email.contactId)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`View contact for ${email.recipientName || email.recipientEmail || "this recipient"} (opens in a new tab)`}
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            View contact →
+                          </a>
+                        </>
+                      )}
+                      {email.recipientEmail && (
+                        <>
+                          {email.recipientName || email.contactId ? " · " : ""}
+                          {email.recipientEmail}
+                        </>
+                      )}
+                    </>
+                  )}
                   {!contactId &&
-                    [email.recipientName, email.recipientEmail]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  {!contactId &&
-                  (email.recipientName || email.recipientEmail)
+                  (email.recipientName || email.recipientEmail || email.contactId)
                     ? " · "
                     : ""}
                   {sourceLabel(email)} · {formatDateTime(email.sentAt || email.createdAt)}
@@ -237,3 +259,4 @@ export default function ContactEmailActivity({
     </div>
   );
 }
+

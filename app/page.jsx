@@ -115,6 +115,7 @@ export default function Home() {
   const [saveNotice, setSaveNotice] = useState("");
   const savingRef = useRef(false);
   const loadingRef = useRef(false);
+  const contactLinkHandledRef = useRef(false);
   const [contactsLoading, setContactsLoading] = useState(true);
   const [contactsLoaded, setContactsLoaded] = useState(false);
   const [contactsError, setContactsError] = useState("");
@@ -134,6 +135,18 @@ export default function Home() {
       setContacts(data.contacts);
       setContactsLoaded(true);
       setContactsError("");
+      if (!contactLinkHandledRef.current) {
+        contactLinkHandledRef.current = true;
+        const linkedContactId = new URLSearchParams(window.location.search).get("contactId");
+        if (linkedContactId) {
+          if (data.contacts.some((contact) => contact._id === linkedContactId)) {
+            setNewUserToggle(false);
+            setCustomerToggle(linkedContactId);
+          } else {
+            setSaveNotice("This contact is no longer available in the CRM.");
+          }
+        }
+      }
     } catch (error) {
       console.error("Failed to fetch contacts:", error);
       setContactsError("Could not load contacts. Any previously loaded contacts remain visible. You can keep entering a new contact and retry without refreshing.");
@@ -1395,3 +1408,4 @@ export default function Home() {
     </main>
   );
 }
+
