@@ -524,3 +524,9 @@
     flex: 1 1 0;
   }
 }
+
+/* Optional batch-wide values share the existing import form styling. */
+.additionalFields { margin-top: 24px; padding-top: 18px; border-top: 1px solid #e5e7eb; }
+.additionalFieldRow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; align-items: center; gap: 10px; margin: 12px 0; }
+.additionalFieldRow select, .additionalFieldRow input { width: 100%; min-width: 0; border: 1px solid #cbd5e1; border-radius: 9px; padding: 12px; font: inherit; background: #fff; color: #1e293b; }
+@media (max-width: 640px) { .additionalFieldRow { grid-template-columns: 1fr 1fr; } .additionalFieldRow button { grid-column: 1 / -1; justify-self: start; } }
