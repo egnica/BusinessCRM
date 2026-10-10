@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { randomBytes, randomUUID } from "node:crypto";
 import {
   addContactToDuplicateIndex,
+  applyAdditionalImportFields,
   normalizeContactTags,
   applyAdditionalImportFields,
   buildImportUpdateSet,
@@ -160,10 +161,12 @@ export async function POST(req) {
           batchId,
           fileName,
         });
-        const incomingTags = normalizeContactTags(raw.tags);
+        const incomingTags = normalizeContactTags(applyAdditionalImportFields(raw, additionalFields).tags);
+        const storedContact = await contacts.findOne({ _id: new ObjectId(duplicate.id) }, { projection: { tags: 1 } });
+        const mergedTags = normalizeContactTags([...(storedContact?.tags || []), ...incomingTags]);
         await contacts.updateOne(
           { _id: new ObjectId(duplicate.id) },
-          { $set: update, ...(incomingTags.length ? { $addToSet: { tags: { $each: incomingTags } } } : {}) },
+          { $set: { ...update, ...(incomingTags.length ? { tags: mergedTags } : {}) } },
         );
         updatedCount += 1;
         addContactToDuplicateIndex(
