@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   IMPORT_FIELD_DEFINITIONS,
+  IMPORT_ADDITIONAL_FIELDS,
   guessImportField,
   mapCsvRows,
   parseCsvText,
@@ -36,6 +37,7 @@ export default function BulkContactImport({ onClose, onImported }) {
   const [headers, setHeaders] = useState([]);
   const [csvRows, setCsvRows] = useState([]);
   const [mapping, setMapping] = useState([]);
+  const [additionalFields, setAdditionalFields] = useState([]);
   const [preview, setPreview] = useState(null);
   const [duplicateMode, setDuplicateMode] = useState("skip");
   const [result, setResult] = useState(null);
@@ -97,6 +99,7 @@ export default function BulkContactImport({ onClose, onImported }) {
       setHeaders(parsed.headers);
       setCsvRows(parsed.rows);
       setMapping(dedupedMapping);
+      setAdditionalFields([]);
       setStage("map");
     } catch (fileError) {
       setError(fileError.message || "Could not read that CSV.");
@@ -126,7 +129,7 @@ export default function BulkContactImport({ onClose, onImported }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: AbortSignal.timeout(30000),
-        body: JSON.stringify({ rows: mappedRows }),
+        body: JSON.stringify({ rows: mappedRows, additionalFields }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not preview the import.");
@@ -151,6 +154,7 @@ export default function BulkContactImport({ onClose, onImported }) {
         signal: AbortSignal.timeout(120000),
         body: JSON.stringify({
           rows: mappedRows,
+          additionalFields,
           fileName,
           batchId,
           duplicateMode,
@@ -177,6 +181,7 @@ export default function BulkContactImport({ onClose, onImported }) {
     setHeaders([]);
     setCsvRows([]);
     setMapping([]);
+    setAdditionalFields([]);
     setPreview(null);
     setResult(null);
     setError("");
@@ -295,6 +300,81 @@ export default function BulkContactImport({ onClose, onImported }) {
                 );
               })}
             </div>
+
+            <section className={styles.additionalFields}>
+              <div className={styles.sectionHeading}>
+                <div>
+                  <h3>Additional fields</h3>
+                  <p>Optional. Apply a value to every imported contact where the CSV has no value. Existing contacts are not changed by these fields.</p>
+                </div>
+              </div>
+              {additionalFields.map((entry, index) => (
+                <div className={styles.additionalFieldRow} key={entry.id}>
+                  <select
+                    aria-label={"Additional CRM field " + (index + 1)}
+                    value={entry.key}
+                    onChange={(event) => {
+                      setAdditionalFields((current) => current.map((item) => item.id === entry.id
+                        ? { ...item, key: event.target.value, value: "" }
+                        : item));
+                      setPreview(null);
+                    }}
+                  >
+                    <option value="">Select field</option>
+                    {IMPORT_ADDITIONAL_FIELDS.map((field) => (
+                      <option
+                        key={field.key}
+                        value={field.key}
+                        disabled={(usedFields.has(field.key) || additionalFields.some((item) => item.id !== entry.id && item.key === field.key))}
+                      >
+                        {field.label}
+                      </option>
+                    ))}
+                  </select>
+                  {entry.key === "rank" ? (
+                    <select aria-label="Rank value" value={entry.value} onChange={(event) => {
+                      setAdditionalFields((current) => current.map((item) => item.id === entry.id ? { ...item, value: event.target.value } : item));
+                      setPreview(null);
+                    }}>
+                      <option value="">Select rank</option>
+                      {["A", "B", "C", "D"].map((rank) => <option key={rank} value={rank}>{rank}</option>)}
+                    </select>
+                  ) : entry.key === "emailStatus" ? (
+                    <select aria-label="Email status value" value={entry.value} onChange={(event) => {
+                      setAdditionalFields((current) => current.map((item) => item.id === entry.id ? { ...item, value: event.target.value } : item));
+                      setPreview(null);
+                    }}>
+                      <option value="">Select email status</option>
+                      <option value="unknown">Unknown</option>
+                      <option value="unsubscribed">Unsubscribed</option>
+                      <option value="subscribed">Subscribed (only with consent)</option>
+                    </select>
+                  ) : (
+                    <input
+                      aria-label="Field value"
+                      placeholder="Value for this batch"
+                      value={entry.value}
+                      onChange={(event) => {
+                        setAdditionalFields((current) => current.map((item) => item.id === entry.id ? { ...item, value: event.target.value } : item));
+                        setPreview(null);
+                      }}
+                    />
+                  )}
+                  <button type="button" className={styles.textButton} onClick={() => {
+                    setAdditionalFields((current) => current.filter((item) => item.id !== entry.id));
+                    setPreview(null);
+                  }} aria-label="Remove field">Remove</button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                disabled={additionalFields.length >= IMPORT_ADDITIONAL_FIELDS.length - usedFields.size}
+                onClick={() => setAdditionalFields((current) => [...current, { id: crypto.randomUUID(), key: "", value: "" }])}
+              >
+                + Add field
+              </button>
+            </section>
           </div>
         )}
 
@@ -316,7 +396,8 @@ export default function BulkContactImport({ onClose, onImported }) {
                   <option value="import">Import another copy anyway</option>
                 </select>
               </label>
-              <p>Matches use email, LinkedIn, phone, then name + company or LLC/company name. Imported contacts start with email status “unknown,” so they are not automatically added to newsletter sends.</p>
+              <p>Matches use email, LinkedIn, phone, then name + company or LLC/company name. Without an explicit email status, new contacts start as “unknown.” Additional fields do not overwrite existing contacts.</p>
+              {additionalFields.some((item) => item.key && item.value) && <p><strong>Applied to new contacts:</strong> {additionalFields.filter((item) => item.key && item.value).map((item) => `${IMPORT_ADDITIONAL_FIELDS.find((field) => field.key === item.key)?.label}: ${item.value}`).join(" · ")}</p>}
             </div>
 
             <div className={styles.previewTable}>
