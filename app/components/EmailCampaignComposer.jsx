@@ -39,6 +39,8 @@ export default function EmailCampaignComposer({
   contacts,
   templates,
   config,
+  fromEmail,
+  onFromEmailChange,
   loading,
   onOpenTester,
   onSent,
@@ -149,7 +151,7 @@ export default function EmailCampaignComposer({
 
     const label = subject.trim() || "this campaign";
     const confirmed = window.confirm(
-      `Send "${label}" to ${selectedIds.length} selected contact${
+      `Send "${label}" from ${fromEmail} to ${selectedIds.length} selected contact${
         selectedIds.length === 1 ? "" : "s"
       }?`,
     );
@@ -165,6 +167,7 @@ export default function EmailCampaignComposer({
         body: JSON.stringify({
           templateId,
           subject,
+          fromEmail,
           campaignName,
           contactIds: selectedIds,
         }),
@@ -230,10 +233,18 @@ export default function EmailCampaignComposer({
         </div>
 
         <div className={styles.senderStatus}>
-          <div>
+          <label className={`${styles.field} ${styles.senderField}`}>
             <span>From</span>
-            <strong>{config.fromEmail || "Sender not detected"}</strong>
-          </div>
+            <select
+              value={fromEmail}
+              onChange={(event) => onFromEmailChange(event.target.value)}
+              disabled={working || config.loading}
+            >
+              {(config.senderOptions?.length ? config.senderOptions : [fromEmail]).map((email) => (
+                <option value={email} key={email}>{email}</option>
+              ))}
+            </select>
+          </label>
           <span
             className={`${styles.statusPill} ${
               config.configured ? styles.statusReady : styles.statusWarning
@@ -392,3 +403,4 @@ export default function EmailCampaignComposer({
     </div>
   );
 }
+

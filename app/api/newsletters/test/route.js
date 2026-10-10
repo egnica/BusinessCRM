@@ -3,9 +3,8 @@ import { Resend } from "resend";
 import { getEmailTemplate } from "@/lib/emailTemplates";
 import getMongoClient from "@/lib/mongodb";
 import {
-  getIntroductionFromAddress,
   getNewsletterConfigStatus,
-  getNewsletterFromAddress,
+  resolveNewsletterSender,
 } from "@/lib/newsletterConfig";
 import {
   createEmailActivityRecord,
@@ -47,7 +46,7 @@ async function getTrackedRecipientName(trackingId, fallbackName) {
 
 export async function POST(req) {
   try {
-    const { templateId, subject, email, trackingId } = await req.json();
+    const { templateId, subject, email, trackingId, fromEmail } = await req.json();
 
     if (!email) {
       return Response.json(
@@ -60,6 +59,13 @@ export async function POST(req) {
 
     if (!template) {
       return Response.json({ error: "Template not found" }, { status: 404 });
+    }
+
+    let sender;
+    try {
+      sender = resolveNewsletterSender(fromEmail);
+    } catch (error) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
 
     const config = getNewsletterConfigStatus();
@@ -79,10 +85,7 @@ export async function POST(req) {
       trackingId,
       "Test Recipient",
     );
-    const fromAddress =
-      templateId === "introduction-email"
-        ? getIntroductionFromAddress()
-        : getNewsletterFromAddress();
+    const fromAddress = sender.address;
 
     const client = await getMongoClient();
     const db = client.db("crm");
@@ -164,3 +167,4 @@ export async function POST(req) {
     );
   }
 }
+

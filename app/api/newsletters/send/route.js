@@ -5,7 +5,7 @@ import { getEmailBaseUrl } from "@/lib/emailBaseUrl.mjs";
 import { getEmailTemplate } from "@/lib/emailTemplates";
 import {
   getNewsletterConfigStatus,
-  getNewsletterFromAddress,
+  resolveNewsletterSender,
 } from "@/lib/newsletterConfig";
 import { createUnsubscribeToken } from "@/lib/unsubscribe";
 import {
@@ -60,7 +60,7 @@ export async function POST(req) {
   let sendId;
 
   try {
-    const { templateId, subject, contactIds, campaignName } = await req.json();
+    const { templateId, subject, contactIds, campaignName, fromEmail } = await req.json();
     const template = getEmailTemplate(templateId);
 
     if (!template) {
@@ -70,6 +70,13 @@ export async function POST(req) {
     let selectedContactIds;
     try {
       selectedContactIds = parseSelectedContactIds(contactIds);
+    } catch (error) {
+      return Response.json({ error: error.message }, { status: 400 });
+    }
+
+    let sender;
+    try {
+      sender = resolveNewsletterSender(fromEmail);
     } catch (error) {
       return Response.json({ error: error.message }, { status: 400 });
     }
@@ -134,7 +141,7 @@ export async function POST(req) {
       templateId: template.id,
       templateName: template.name,
       subject: finalSubject,
-      fromEmail: config.fromEmail,
+      fromEmail: sender.email,
       sentAt: now,
       recipientCount: uniqueContacts.length,
       selectedContactCount: selectedContactIds?.length || null,
@@ -158,7 +165,7 @@ export async function POST(req) {
     for (let i = 0; i < uniqueContacts.length; i += BATCH_SIZE) {
       const chunk = uniqueContacts.slice(i, i + BATCH_SIZE);
       const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
-      const fromAddress = getNewsletterFromAddress();
+      const fromAddress = sender.address;
 
       const prepared = chunk.map((contact) => {
         const token = createUnsubscribeToken(contact._id, sendId);
@@ -329,3 +336,4 @@ export async function POST(req) {
     );
   }
 }
+

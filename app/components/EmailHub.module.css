@@ -310,6 +310,10 @@
   padding: 12px 14px;
 }
 
+.senderField {
+  flex: 1;
+}
+
 .senderStatus > div {
   display: flex;
   min-width: 0;
@@ -744,3 +748,4 @@
     grid-template-columns: 1fr;
   }
 }
+

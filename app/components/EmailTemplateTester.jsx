@@ -6,6 +6,8 @@ import styles from "./EmailHub.module.css";
 export default function EmailTemplateTester({
   templates,
   config,
+  fromEmail,
+  onFromEmailChange,
   loading,
   onSent,
 }) {
@@ -16,10 +18,6 @@ export default function EmailTemplateTester({
   const [previewHtml, setPreviewHtml] = useState("");
   const [status, setStatus] = useState("");
   const [working, setWorking] = useState(false);
-  const displayedFrom =
-    templateId === "introduction-email"
-      ? config.introFromEmail || "nick@nicholasegner.com"
-      : config.fromEmail;
 
   useEffect(() => {
     const saved = window.localStorage.getItem("newsletterTestEmail");
@@ -79,6 +77,8 @@ export default function EmailTemplateTester({
       return;
     }
 
+    if (!window.confirm(`Send a test from ${fromEmail} to ${testEmail.trim()}?`)) return;
+
     window.localStorage.setItem("newsletterTestEmail", testEmail.trim());
     window.localStorage.setItem("newsletterTestTrackingId", trackingId.trim());
     setWorking(true);
@@ -91,6 +91,7 @@ export default function EmailTemplateTester({
         body: JSON.stringify({
           templateId,
           subject,
+          fromEmail,
           email: testEmail.trim(),
           trackingId: trackingId.trim(),
         }),
@@ -163,10 +164,18 @@ export default function EmailTemplateTester({
         </div>
 
         <div className={styles.senderStatus}>
-          <div>
+          <label className={`${styles.field} ${styles.senderField}`}>
             <span>From</span>
-            <strong>{displayedFrom || "Sender not detected"}</strong>
-          </div>
+            <select
+              value={fromEmail}
+              onChange={(event) => onFromEmailChange(event.target.value)}
+              disabled={working || config.loading}
+            >
+              {(config.senderOptions?.length ? config.senderOptions : [fromEmail]).map((email) => (
+                <option value={email} key={email}>{email}</option>
+              ))}
+            </select>
+          </label>
           <span
             className={`${styles.statusPill} ${
               config.resendConfigured ? styles.statusReady : styles.statusWarning
@@ -224,3 +233,4 @@ export default function EmailTemplateTester({
     </div>
   );
 }
+

@@ -36,6 +36,7 @@ const tools = [
 
 export default function EmailWorkspace() {
   const [activeTool, setActiveTool] = useState("home");
+  const [selectedFromEmail, setSelectedFromEmail] = useState("");
   const [contacts, setContacts] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [config, setConfig] = useState({
@@ -90,6 +91,8 @@ export default function EmailWorkspace() {
           resendConfigured: Boolean(statusData.resendConfigured),
           unsubscribeConfigured: Boolean(statusData.unsubscribeConfigured),
           fromEmail: statusData.fromEmail || "",
+          defaultFromEmail: statusData.defaultFromEmail || "nick@nicholasegner.com",
+          senderOptions: statusData.senderOptions || [],
         });
       } catch (error) {
         if (!active) return;
@@ -204,6 +207,8 @@ export default function EmailWorkspace() {
             contacts={contacts}
             templates={templates}
             config={config}
+            fromEmail={selectedFromEmail || config.defaultFromEmail || "nick@nicholasegner.com"}
+            onFromEmailChange={setSelectedFromEmail}
             loading={loading}
             onOpenTester={() => setActiveTool("test")}
             onSent={() =>
@@ -231,6 +236,8 @@ export default function EmailWorkspace() {
           <EmailTemplateTester
             templates={templates}
             config={config}
+            fromEmail={selectedFromEmail || config.defaultFromEmail || "nick@nicholasegner.com"}
+            onFromEmailChange={setSelectedFromEmail}
             loading={loading}
             onSent={() => setHtmlHistoryRefresh((value) => value + 1)}
           />
@@ -275,3 +282,4 @@ export default function EmailWorkspace() {
     </main>
   );
 }
+
