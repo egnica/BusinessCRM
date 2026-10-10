@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { campaignBlockedReason } from "@/lib/campaignEligibility.mjs";
 import styles from "./EmailHub.module.css";
 
 function contactName(contact) {
@@ -30,9 +31,7 @@ function contactSearchText(contact) {
 }
 
 function canReceiveCampaign(contact) {
-  return Boolean(
-    String(contact.email || "").trim() && contact.emailStatus !== "unsubscribed",
-  );
+  return !campaignBlockedReason(contact);
 }
 
 export default function EmailCampaignComposer({
@@ -52,6 +51,7 @@ export default function EmailCampaignComposer({
   const [subject, setSubject] = useState("");
   const [campaignName, setCampaignName] = useState("");
   const [previewHtml, setPreviewHtml] = useState("");
+  const [blockedContacts, setBlockedContacts] = useState([]);
   const [status, setStatus] = useState("");
   const [working, setWorking] = useState(false);
 
@@ -74,9 +74,9 @@ export default function EmailCampaignComposer({
   const visibleEligibleIds = useMemo(
     () =>
       visibleContacts
-        .filter(canReceiveCampaign)
+        .filter((contact) => canReceiveCampaign(contact) && !blockedContacts.some((item) => item.id === String(contact._id)))
         .map((contact) => String(contact._id)),
-    [visibleContacts],
+    [visibleContacts, blockedContacts],
   );
 
   const allVisibleSelected =
@@ -88,6 +88,13 @@ export default function EmailCampaignComposer({
     setPreviewHtml("");
     const template = templates.find((item) => item.id === value);
     if (template) setSubject(template.subject || "");
+  }
+
+  function removeBlockedContacts() {
+    const blockedIds = new Set(blockedContacts.map((contact) => contact.id));
+    setSelectedIds((current) => current.filter((id) => !blockedIds.has(id)));
+    setBlockedContacts([]);
+    setStatus("Blocked contacts removed from selection. Review the remaining recipients before sending.");
   }
 
   function toggleContact(id) {
@@ -175,6 +182,7 @@ export default function EmailCampaignComposer({
       const data = await res.json();
 
       if (!res.ok) {
+        setBlockedContacts(data.code === "CAMPAIGN_RECIPIENTS_BLOCKED" ? data.blockedContacts || [] : []);
         throw new Error(data.error || "Campaign send failed.");
       }
 
@@ -182,6 +190,7 @@ export default function EmailCampaignComposer({
         `Campaign complete: ${data.sentCount} sent, ${data.failedCount} failed.`,
       );
       setSelectedIds([]);
+      setBlockedContacts([]);
       onSent?.();
     } catch (error) {
       setStatus(error.message || "Campaign send failed.");
@@ -287,7 +296,29 @@ export default function EmailCampaignComposer({
           </button>
         </div>
 
-        {status && <p className={styles.statusMessage}>{status}</p>}
+        {status && <p className={styles.statusMessage} role="status">{status}</p>}
+
+        {blockedContacts.length > 0 && (
+          <div className={styles.blockedContacts} role="alert">
+            <strong>Review these contacts</strong>
+            <ul>
+              {blockedContacts.map((contact) => (
+                <li key={contact.id}>
+                  {contact.exists ? (
+                    <a href={`/?contactId=${encodeURIComponent(contact.id)}`} target="_blank" rel="noopener noreferrer">
+                      {contact.name}
+                    </a>
+                  ) : <strong>{contact.name}</strong>}
+                  <span>{contact.email || "No email address"}</span>
+                  <span>{contact.reason}</span>
+                </li>
+              ))}
+            </ul>
+            <button type="button" className={styles.secondaryButton} onClick={removeBlockedContacts} disabled={working}>
+              Remove blocked contacts from selection
+            </button>
+          </div>
+        )}
 
         {previewHtml && (
           <div className={styles.previewPanel}>
@@ -358,7 +389,9 @@ export default function EmailCampaignComposer({
           ) : (
             visibleContacts.map((contact) => {
               const id = String(contact._id);
-              const eligible = canReceiveCampaign(contact);
+              const serverBlock = blockedContacts.find((item) => item.id === id);
+              const blockedReason = serverBlock?.reason || campaignBlockedReason(contact);
+              const eligible = !blockedReason;
               const selected = selectedSet.has(id);
 
               return (
@@ -367,13 +400,14 @@ export default function EmailCampaignComposer({
                     !eligible ? styles.contactRowDisabled : ""
                   }`}
                   key={id}
+                  title={blockedReason || undefined}
                 >
                   <span>
                     <input
                       type="checkbox"
                       checked={selected}
                       onChange={() => toggleContact(id)}
-                      disabled={!eligible || working}
+                      disabled={working || (!eligible && !selected)}
                     />
                   </span>
                   <strong>{contactName(contact)}</strong>
@@ -387,11 +421,7 @@ export default function EmailCampaignComposer({
                           : styles.contactStatusBlocked
                       }`}
                     >
-                      {contact.emailStatus === "unsubscribed"
-                        ? "Unsubscribed"
-                        : contact.email
-                          ? "Subscribed"
-                          : "No email"}
+                      {eligible ? "Subscribed" : blockedReason}
                     </span>
                   </span>
                 </label>
@@ -403,4 +433,3 @@ export default function EmailCampaignComposer({
     </div>
   );
 }
-

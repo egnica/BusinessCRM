@@ -1,3 +1,4 @@
+import { campaignBlockedReason, getBlockedCampaignContacts } from "@/lib/campaignEligibility.mjs";
 import { EMAIL_REPLY_TO } from "@/lib/newsletterConfig";
 import { ObjectId } from "mongodb";
 import { Resend } from "resend";
@@ -94,24 +95,25 @@ export async function POST(req) {
     const client = await getMongoClient();
     db = client.db("crm");
 
-    const query = subscribedEmailFilter();
-    if (selectedContactIds) {
-      query._id = {
-        $in: selectedContactIds.map((id) => new ObjectId(id)),
-      };
-    }
+    const query = selectedContactIds
+      ? { _id: { $in: selectedContactIds.map((id) => new ObjectId(id)) } }
+      : subscribedEmailFilter();
+    const selectedContacts = await db.collection("contacts").find(query).toArray();
+    const blockedContacts = selectedContactIds
+      ? getBlockedCampaignContacts(selectedContactIds, selectedContacts)
+      : [];
 
-    const contacts = await db.collection("contacts").find(query).toArray();
-
-    if (selectedContactIds && contacts.length !== selectedContactIds.length) {
+    if (blockedContacts.length > 0) {
       return Response.json(
         {
-          error:
-            "One or more selected contacts cannot receive campaign email. Refresh the contact list and try again.",
+          code: "CAMPAIGN_RECIPIENTS_BLOCKED",
+          error: `${blockedContacts.length} selected contact${blockedContacts.length === 1 ? " cannot" : "s cannot"} receive this campaign. No emails were sent.`,
+          blockedContacts,
         },
         { status: 400 },
       );
     }
+    const contacts = selectedContacts.filter((contact) => !campaignBlockedReason(contact));
 
     const uniqueContacts = Array.from(
       new Map(
@@ -340,4 +342,3 @@ export async function POST(req) {
     );
   }
 }
-
