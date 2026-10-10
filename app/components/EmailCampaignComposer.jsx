@@ -22,6 +22,7 @@ function contactSearchText(contact) {
     businessName(contact),
     contact.email,
     contact.ownerType,
+    ...(Array.isArray(contact.tags) ? contact.tags : []),
   ]
     .filter(Boolean)
     .join(" ")
@@ -43,6 +44,7 @@ export default function EmailCampaignComposer({
   onSent,
 }) {
   const [search, setSearch] = useState("");
+  const [tagFilter, setTagFilter] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
   const [templateId, setTemplateId] = useState("");
   const [subject, setSubject] = useState("");
@@ -60,11 +62,12 @@ export default function EmailCampaignComposer({
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
+  const availableTags = useMemo(() => Array.from(new Map(contacts.flatMap((contact) => Array.isArray(contact.tags) ? contact.tags : []).filter(Boolean).map((tag) => [tag.toLowerCase(), tag])).values()).sort((a, b) => a.localeCompare(b)), [contacts]);
+
   const visibleContacts = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return contacts;
-    return contacts.filter((contact) => contactSearchText(contact).includes(query));
-  }, [contacts, search]);
+    return contacts.filter((contact) => (!query || contactSearchText(contact).includes(query)) && (!tagFilter.length || tagFilter.every((tag) => (contact.tags || []).some((value) => value.toLowerCase() === tag.toLowerCase()))));
+  }, [contacts, search, tagFilter]);
 
   const visibleEligibleIds = useMemo(
     () =>
@@ -304,7 +307,7 @@ export default function EmailCampaignComposer({
             onClick={toggleVisible}
             disabled={visibleEligibleIds.length === 0 || working}
           >
-            {allVisibleSelected ? "Clear visible" : "Select visible"}
+            {allVisibleSelected ? "Clear filtered" : "Select filtered"}
           </button>
         </div>
 
@@ -317,6 +320,16 @@ export default function EmailCampaignComposer({
             placeholder="Search name, business, or email…"
           />
         </label>
+
+        <div style={{ padding: "0 12px 12px" }}>
+          <label style={{ display: "block", fontSize: "12px", fontWeight: 700, marginBottom: "6px" }} htmlFor="campaign-tag-filter">Filter by tags</label>
+          <select id="campaign-tag-filter" value="" onChange={(event) => { const value = event.target.value; if (value && !tagFilter.some((tag) => tag.toLowerCase() === value.toLowerCase())) setTagFilter((current) => [...current, value]); }} style={{ width: "100%", padding: "9px", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
+            <option value="">All tags (choose to filter)</option>
+            {availableTags.map((tag) => <option key={tag} value={tag}>{tag}</option>)}
+          </select>
+          {tagFilter.length > 0 && <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", paddingTop: "8px" }}>{tagFilter.map((tag) => <button key={tag} type="button" className={styles.smallButton} onClick={() => setTagFilter((current) => current.filter((value) => value !== tag))}>{tag} ×</button>)}</div>}
+          <small>{visibleEligibleIds.length} matching eligible contacts</small>
+        </div>
 
         <div className={styles.contactTable}>
           <div className={styles.contactTableHeader}>
