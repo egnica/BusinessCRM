@@ -1,3 +1,4 @@
+import { EMAIL_REPLY_TO } from "@/lib/newsletterConfig";
 import crypto from "crypto";
 import { ObjectId } from "mongodb";
 import { Resend } from "resend";
@@ -18,8 +19,7 @@ const MAX_SUBJECT_LENGTH = 250;
 const MAX_PREHEADER_LENGTH = 300;
 const MAX_BODY_LENGTH = 100000;
 const PERSONAL_FROM = "Nicholas Egner <nick@nicholasegner.com>";
-const PERSONAL_REPLY_TO =
-  String(process.env.RESEND_REPLY_TO_EMAIL || "nick@nicholasegner.com").trim();
+const PERSONAL_REPLY_TO = EMAIL_REPLY_TO;
 
 function normalizeText(value, maxLength) {
   return String(value || "").trim().slice(0, maxLength);

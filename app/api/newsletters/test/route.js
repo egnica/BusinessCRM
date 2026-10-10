@@ -1,3 +1,4 @@
+import { EMAIL_REPLY_TO } from "@/lib/newsletterConfig";
 import { randomUUID } from "node:crypto";
 import { Resend } from "resend";
 import { getEmailTemplate } from "@/lib/emailTemplates";
@@ -105,6 +106,7 @@ export async function POST(req) {
       recipientEmail: email,
       recipientName: testRecipient.recipientName,
       fromEmail: fromAddress,
+      replyTo: EMAIL_REPLY_TO,
       subject: testSubject,
       renderedHtml,
     });
@@ -117,6 +119,7 @@ export async function POST(req) {
     try {
       const result = await resend.emails.send({
         from: fromAddress,
+        replyTo: EMAIL_REPLY_TO,
         to: email,
         subject: testSubject,
         html: renderedHtml,
@@ -151,6 +154,7 @@ export async function POST(req) {
       message: "Test email sent",
       id: data?.id || null,
       from: fromAddress,
+      replyTo: EMAIL_REPLY_TO,
       subject: testSubject,
       recipientName: testRecipient.recipientName,
       trackingId: testRecipient.trackingId,

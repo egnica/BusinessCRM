@@ -1,3 +1,4 @@
+import { EMAIL_REPLY_TO } from "@/lib/newsletterConfig";
 import { ObjectId } from "mongodb";
 import { Resend } from "resend";
 import getMongoClient from "@/lib/mongodb";
@@ -297,6 +298,7 @@ export async function POST(req, { params }) {
         recipientEmail: email,
         recipientName,
         fromEmail: fromAddress,
+        replyTo: EMAIL_REPLY_TO,
         subject: template.subject,
         renderedHtml,
       });
@@ -309,6 +311,7 @@ export async function POST(req, { params }) {
             recipientEmail: email,
             recipientName,
             fromEmail: fromAddress,
+            replyTo: EMAIL_REPLY_TO,
             subject: template.subject,
             renderedHtml,
             status: "sending",
@@ -327,6 +330,7 @@ export async function POST(req, { params }) {
       const result = await resend.emails.send(
         {
           from: fromAddress,
+          replyTo: EMAIL_REPLY_TO,
           to: email,
           subject: template.subject,
           html: renderedHtml,

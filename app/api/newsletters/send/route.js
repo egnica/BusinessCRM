@@ -1,3 +1,4 @@
+import { EMAIL_REPLY_TO } from "@/lib/newsletterConfig";
 import { ObjectId } from "mongodb";
 import { Resend } from "resend";
 import getMongoClient from "@/lib/mongodb";
@@ -142,6 +143,7 @@ export async function POST(req) {
       templateName: template.name,
       subject: finalSubject,
       fromEmail: sender.email,
+      replyTo: EMAIL_REPLY_TO,
       sentAt: now,
       recipientCount: uniqueContacts.length,
       selectedContactCount: selectedContactIds?.length || null,
@@ -187,6 +189,7 @@ export async function POST(req) {
           recipientEmail: contact.email,
           recipientName,
           fromEmail: fromAddress,
+          replyTo: EMAIL_REPLY_TO,
           subject: finalSubject,
           renderedHtml,
         });
@@ -196,6 +199,7 @@ export async function POST(req) {
           activity,
           message: {
             from: fromAddress,
+            replyTo: EMAIL_REPLY_TO,
             to: contact.email,
             subject: finalSubject,
             html: renderedHtml,
