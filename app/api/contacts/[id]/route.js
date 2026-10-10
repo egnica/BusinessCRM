@@ -1,3 +1,4 @@
+import { normalizeContactTags } from "@/lib/contactImport.mjs";
 import getMongoClient from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 
@@ -20,6 +21,7 @@ export async function PUT(req, { params }) {
     // Internal identifiers are assigned by the server and are not editable.
     delete body._id;
     delete body.trackingId;
+    if (Object.hasOwn(body, "tags")) body.tags = normalizeContactTags(body.tags);
 
     const client = await getMongoClient();
     const db = client.db("crm");
