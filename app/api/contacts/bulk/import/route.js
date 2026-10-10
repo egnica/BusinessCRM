@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { randomBytes, randomUUID } from "node:crypto";
 import {
   addContactToDuplicateIndex,
+  applyAdditionalImportFields,
   buildImportUpdateSet,
   createDuplicateIndex,
   findDuplicateContact,
@@ -64,6 +65,7 @@ export async function POST(req) {
   try {
     const body = await req.json();
     const rows = Array.isArray(body.rows) ? body.rows : [];
+    const additionalFields = body.additionalFields;
     const duplicateMode = MODES.has(body.duplicateMode) ? body.duplicateMode : "skip";
     const fileName = String(body.fileName || "contacts.csv").slice(0, 180);
     batchId = /^[a-f0-9-]{36}$/i.test(body.batchId || "") ? body.batchId : randomUUID();
@@ -129,7 +131,7 @@ export async function POST(req) {
 
     for (let index = 0; index < rows.length; index += 1) {
       const raw = rows[index];
-      const normalized = normalizeImportRow(raw, { now, batchId, fileName });
+      const normalized = normalizeImportRow(applyAdditionalImportFields(raw, additionalFields), { now, batchId, fileName });
 
       if (normalized.errors.length) {
         errorCount += 1;
