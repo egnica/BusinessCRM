@@ -352,7 +352,7 @@ export default function BulkContactImport({ onClose, onImported }) {
                   ) : (
                     <input
                       aria-label="Field value"
-                      placeholder="Value for this batch"
+                      placeholder={entry.key === "tags" ? "Video Editing Outreach, Creative Agency" : "Value for this batch"}
                       value={entry.value}
                       onChange={(event) => {
                         setAdditionalFields((current) => current.map((item) => item.id === entry.id ? { ...item, value: event.target.value } : item));
