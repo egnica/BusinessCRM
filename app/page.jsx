@@ -962,7 +962,7 @@ export default function Home() {
 
             <label className={styles.customerPanelFull}>
               <span>Tags (comma-separated groups)</span>
-              <input name="tags" value={formData.tags || ""} onChange={handleChange} placeholder="Video Outreach October, Follow Up" />
+              <input name="tags" value={formData.tags || ""} onChange={handleChange} />
             </label>
             <label className={styles.customerPanelFull}>
               <span>Notes</span>

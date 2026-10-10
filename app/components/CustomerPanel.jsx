@@ -379,7 +379,7 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
 
               <label className={styles.customerPanelField}>
                 <span>Tags (comma-separated groups)</span>
-                <input type="text" key={String(customerSelected._id) + "-tags"} defaultValue={(customerSelected.tags || []).join(", ")} onBlur={(e) => updateContact({ tags: normalizeContactTags(e.target.value) })} placeholder="Video Outreach October, Follow Up" />
+                <input type="text" key={String(customerSelected._id) + "-tags"} defaultValue={(customerSelected.tags || []).join(", ")} onBlur={(e) => updateContact({ tags: normalizeContactTags(e.target.value) })} />
               </label>
               <label className={styles.customerPanelField}>
                 <span>Relationship Type</span>
@@ -847,7 +847,6 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
                         .filter(Boolean),
                     })
                   }
-                  placeholder="Video Editing, Web Development, SEO"
                 />
                 <small>Services this contact has expressed interest in. Use Tags for outreach groups.</small>
               </label>
