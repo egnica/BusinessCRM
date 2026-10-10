@@ -1,3 +1,4 @@
+import { normalizeContactTags } from "@/lib/contactImport.mjs";
 // CustomerPanel.jsx
 
 import React, { useRef, useState } from "react";
@@ -376,6 +377,10 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
                 </select>
               </label>
 
+              <label className={styles.customerPanelField}>
+                <span>Tags (comma-separated)</span>
+                <input type="text" key={String(customerSelected._id) + "-tags"} defaultValue={(customerSelected.tags || []).join(", ")} onBlur={(e) => updateContact({ tags: normalizeContactTags(e.target.value) })} placeholder="Video Editing Outreach, Creative Agency" />
+              </label>
               <label className={styles.customerPanelField}>
                 <span>Relationship Type</span>
                 <input
