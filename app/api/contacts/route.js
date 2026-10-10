@@ -1,3 +1,4 @@
+import { normalizeContactTags } from "@/lib/contactImport.mjs";
 import getMongoClient from "@/lib/mongodb";
 import { createHash, randomBytes } from "node:crypto";
 import { ObjectId } from "mongodb";
@@ -183,6 +184,7 @@ export async function POST(req) {
     const contact = {
       ...body,
       emailStatus: body.emailStatus || "subscribed",
+      tags: normalizeContactTags(body.tags),
     };
 
     const collection = db.collection("contacts");
