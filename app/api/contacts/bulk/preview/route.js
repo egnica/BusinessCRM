@@ -1,6 +1,7 @@
 import getMongoClient from "@/lib/mongodb";
 import {
   addContactToDuplicateIndex,
+  applyAdditionalImportFields,
   createDuplicateIndex,
   findDuplicateContact,
   normalizeImportRow,
@@ -12,6 +13,7 @@ export async function POST(req) {
   try {
     const body = await req.json();
     const rows = Array.isArray(body.rows) ? body.rows : [];
+    const additionalFields = body.additionalFields;
 
     if (!rows.length) {
       return Response.json({ error: "No contact rows were provided." }, { status: 400 });
@@ -39,7 +41,7 @@ export async function POST(req) {
 
     const duplicateIndex = createDuplicateIndex(existing);
     const previewRows = rows.map((row, index) => {
-      const { contact, errors } = normalizeImportRow(row);
+      const { contact, errors } = normalizeImportRow(applyAdditionalImportFields(row, additionalFields));
       const duplicate = errors.length ? null : findDuplicateContact(contact, duplicateIndex);
 
       if (!errors.length) {
@@ -70,6 +72,8 @@ export async function POST(req) {
           email: contact.email,
           phone: contact.phone,
           linkedin: contact.linkedin,
+          rank: contact.rank,
+          emailStatus: contact.emailStatus,
         },
       };
     });
