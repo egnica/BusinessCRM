@@ -1,5 +1,6 @@
-import { normalizeContactTags } from "@/lib/contactImport.mjs";
 "use client";
+
+import { normalizeContactTags } from "@/lib/contactImport.mjs";
 
 import Image from "next/image";
 import Link from "next/link";
