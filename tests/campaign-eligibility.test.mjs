@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { campaignBlockedReason, getBlockedCampaignContacts } from '../lib/campaignEligibility.mjs';
 
 test('legacy defaults and normalized subscribed statuses remain eligible', () => {
-  for (const emailStatus of [undefined, null, '', 'subscribed', ' Subscribed ']) {
+  for (const emailStatus of [undefined, null, '', 'subscribed', ' Subscribed ', 'unknown', ' Unknown ']) {
     assert.equal(campaignBlockedReason({email:' person@example.com ',emailStatus}), '');
   }
 });
@@ -13,6 +13,7 @@ test('blocked recipients get actionable reasons without permitting unsubscribed 
     assert.match(campaignBlockedReason({email:'person@example.com',emailStatus}), /Unsubscribed/);
   }
   assert.match(campaignBlockedReason({email:'person@example.com',emailStatus:'bounced'}), /bounced/);
+  assert.match(campaignBlockedReason({email:'person@example.com',emailStatus:'complained'}), /complained/);
   for (const email of ['', ' ', null, 123]) assert.match(campaignBlockedReason({email}), /Missing/);
   for (const email of ['bad','a@b','a b@example.com','a@example.com,b@example.com']) {
     assert.match(campaignBlockedReason({email}), /Invalid/);
@@ -21,7 +22,7 @@ test('blocked recipients get actionable reasons without permitting unsubscribed 
 
 test('selected failures include names, addresses, and missing records only', () => {
   const blocked = getBlockedCampaignContacts(['1','2','3'], [
-    {_id:'1',firstName:'Valid',email:'valid@example.com'},
+    {_id:'1',firstName:'Valid',email:'valid@example.com',emailStatus:'unknown'},
     {_id:'2',firstName:'Blocked',lastName:'Person',email:'blocked@example.com',emailStatus:'unsubscribed'},
     {_id:'4',email:'unselected@example.com',emailStatus:'unsubscribed'},
   ]);
