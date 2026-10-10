@@ -1,3 +1,4 @@
+import { normalizeContactTags } from "@/lib/contactImport.mjs";
 "use client";
 
 import Image from "next/image";
@@ -411,6 +412,7 @@ export default function Home() {
         country: formData.propertyCountry,
       },
       rank: formData.rank,
+      tags: normalizeContactTags(formData.tags),
       relationshipType: "",
       facebook: "",
       linkedin: formData.linkedin,
@@ -957,6 +959,10 @@ export default function Home() {
               </select>
             </label>
 
+            <label className={styles.customerPanelFull}>
+              <span>Tags (comma-separated)</span>
+              <input name="tags" value={formData.tags || ""} onChange={handleChange} placeholder="Video Editing Outreach, Creative Agency" />
+            </label>
             <label className={styles.customerPanelFull}>
               <span>Notes</span>
               <textarea
