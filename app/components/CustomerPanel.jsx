@@ -378,8 +378,8 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
               </label>
 
               <label className={styles.customerPanelField}>
-                <span>Tags (comma-separated)</span>
-                <input type="text" key={String(customerSelected._id) + "-tags"} defaultValue={(customerSelected.tags || []).join(", ")} onBlur={(e) => updateContact({ tags: normalizeContactTags(e.target.value) })} placeholder="Video Editing Outreach, Creative Agency" />
+                <span>Tags (comma-separated groups)</span>
+                <input type="text" key={String(customerSelected._id) + "-tags"} defaultValue={(customerSelected.tags || []).join(", ")} onBlur={(e) => updateContact({ tags: normalizeContactTags(e.target.value) })} placeholder="Video Outreach October, Follow Up" />
               </label>
               <label className={styles.customerPanelField}>
                 <span>Relationship Type</span>
@@ -835,7 +835,7 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
               <label
                 className={`${styles.customerPanelField} ${styles.customerPanelFull}`}
               >
-                <span>Service Interest</span>
+                <span>Service Interest (comma-separated)</span>
                 <input
                   type="text"
                   value={(customerSelected.serviceInterest || []).join(", ")}
@@ -847,8 +847,9 @@ function CustomerPanel({ customerSelected, setContacts, setCustomerToggle }) {
                         .filter(Boolean),
                     })
                   }
-                  placeholder="Comma separated"
+                  placeholder="Video Editing, Web Development, SEO"
                 />
+                <small>Services this contact has expressed interest in. Use Tags for outreach groups.</small>
               </label>
             </div>
           </section>

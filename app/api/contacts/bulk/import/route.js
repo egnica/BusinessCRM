@@ -5,7 +5,6 @@ import {
   addContactToDuplicateIndex,
   applyAdditionalImportFields,
   normalizeContactTags,
-  applyAdditionalImportFields,
   buildImportUpdateSet,
   createDuplicateIndex,
   findDuplicateContact,
