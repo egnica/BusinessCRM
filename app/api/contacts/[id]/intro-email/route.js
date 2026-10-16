@@ -8,6 +8,7 @@ import {
   getNewsletterConfigStatus,
 } from "@/lib/newsletterConfig";
 import { createUnsubscribeToken } from "@/lib/unsubscribe";
+import { normalizeTrackingId } from "@/lib/emailTemplates/_trackingLinks.mjs";
 import { getEmailBaseUrl } from "@/lib/emailBaseUrl.mjs";
 import {
   createEmailActivityRecord,
@@ -227,6 +228,13 @@ export async function POST(req, { params }) {
       return Response.json(
         { error: "Introduction email template is not available" },
         { status: 500 },
+      );
+    }
+
+    if (!normalizeTrackingId(contact.trackingId)) {
+      return Response.json(
+        { error: "This contact is missing a valid CRM tracking ID. Refresh contacts before sending." },
+        { status: 400 },
       );
     }
 

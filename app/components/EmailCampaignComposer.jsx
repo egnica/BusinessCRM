@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { campaignBlockedReason } from "@/lib/campaignEligibility.mjs";
+import { normalizeTrackingId } from "@/lib/emailTemplates/_trackingLinks.mjs";
 import styles from "./EmailHub.module.css";
 
 const CAMPAIGN_DRAFT_KEY = "businessCrmCampaignDraftV1";
@@ -157,10 +158,20 @@ export default function EmailCampaignComposer({
     setStatus("");
 
     try {
+      // Preview the first selected recipient's actual tracked URL.
+      const exampleContact = contacts.find((contact) =>
+        selectedIds.includes(String(contact._id)),
+      );
+      if (exampleContact && !normalizeTrackingId(exampleContact.trackingId)) {
+        throw new Error("The selected contact has no valid tracking ID.");
+      }
       const res = await fetch("/api/newsletters/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId }),
+        body: JSON.stringify({
+          templateId,
+          trackingId: exampleContact?.trackingId || "",
+        }),
       });
       const data = await res.json();
 

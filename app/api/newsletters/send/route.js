@@ -10,6 +10,7 @@ import {
   resolveNewsletterSender,
 } from "@/lib/newsletterConfig";
 import { createUnsubscribeToken } from "@/lib/unsubscribe";
+import { normalizeTrackingId, renderTrackedCampaignTemplate } from "@/lib/emailTemplates/_trackingLinks.mjs";
 import {
   createEmailActivityRecord,
   ensureEmailActivityIndexes,
@@ -133,6 +134,21 @@ export async function POST(req) {
       );
     }
 
+    // Never send a live campaign without contact-specific attribution.
+    // Validate the entire batch before creating a send or sending any messages.
+    const withoutTrackingId = uniqueContacts.filter(
+      (contact) => !normalizeTrackingId(contact.trackingId),
+    );
+    if (withoutTrackingId.length > 0) {
+      return Response.json(
+        {
+          code: "MISSING_TRACKING_IDS",
+          error: `${withoutTrackingId.length} contact${withoutTrackingId.length === 1 ? "" : "s"} missing a valid tracking ID. No emails were sent. Refresh the CRM contacts to backfill tracking IDs, then try again.`,
+        },
+        { status: 400 },
+      );
+    }
+
     const finalSubject = subject?.trim() || template.subject;
     const finalCampaignName = String(campaignName || "").trim().slice(0, 200);
     const now = new Date();
@@ -178,7 +194,7 @@ export async function POST(req) {
         const oneClickUnsubscribeUrl =
           `${baseUrl}/api/newsletters/unsubscribe?token=${encodeURIComponent(token)}`;
         const recipientName = contactName(contact);
-        const renderedHtml = template.render({
+        const renderedHtml = renderTrackedCampaignTemplate(template, contact, {
           recipientName,
           unsubscribeUrl,
         });
