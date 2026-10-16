@@ -32,7 +32,9 @@ function eventLabel(value) {
 function eventTone(value) {
   const eventType = String(value || "").toLowerCase();
 
-  if (/delivered|opened|clicked/.test(eventType)) return "success";
+  if (/(?:^|[._-])(opened|read)(?:$|[._-])/.test(eventType)) return "opened";
+  if (/(?:^|[._-])clicked(?:$|[._-])/.test(eventType)) return "success";
+  if (/(?:^|[._-])delivered(?:$|[._-])/.test(eventType)) return "neutral";
   if (/failed|rejected|returned|bounced|complained|suppressed/.test(eventType)) {
     return "danger";
   }
