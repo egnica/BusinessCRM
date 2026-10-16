@@ -1,6 +1,10 @@
 import { ObjectId } from "mongodb";
 import getMongoClient from "@/lib/mongodb";
-import { campaignRecipientStatus } from "@/lib/campaignHistory.mjs";
+import {
+  campaignRecipientActivityAt,
+  campaignRecipientStatus,
+  sortCampaignRecipients,
+} from "@/lib/campaignHistory.mjs";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +47,7 @@ export async function GET(_req, { params }) {
       .find({ $or: conditions })
       .project({
         campaignId: 1, contactId: 1, recipientEmail: 1, resendEmailId: 1,
-        status: 1, eventTimestamps: 1,
+        status: 1, eventTimestamps: 1, lastEventAt: 1, updatedAt: 1, sentAt: 1,
       })
       .toArray();
 
@@ -62,16 +66,18 @@ export async function GET(_req, { params }) {
         byResendId.get(recipient.resendEmailId) ||
         byCampaignEmail.get(String(recipient.email || "").toLowerCase());
 
+      const status = campaignRecipientStatus(recipient, activity);
       return {
         ...recipient,
         contactId: recipient.contactId || activity?.contactId || null,
-        status: campaignRecipientStatus(recipient, activity),
+        status,
+        lastActivityAt: campaignRecipientActivityAt(recipient, activity, status),
         openedAt: activity?.eventTimestamps?.openedAt || null,
         clickedAt: activity?.eventTimestamps?.clickedAt || null,
       };
     });
 
-    return Response.json({ send, recipients: currentRecipients });
+    return Response.json({ send, recipients: sortCampaignRecipients(currentRecipients) });
   } catch (error) {
     console.error("Newsletter detail error:", error);
     return Response.json(
