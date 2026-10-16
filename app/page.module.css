@@ -1499,10 +1499,10 @@
 
 .emailHistoryHeader,
 .emailHistoryRow {
-  min-width: 900px;
+  min-width: 1060px;
   display: grid;
-  grid-template-columns: 1.25fr 1.7fr 1.35fr 0.55fr 0.65fr 0.8fr;
-  gap: 14px;
+  grid-template-columns: 1.25fr 1.65fr 1.3fr 0.46fr 0.54fr 0.54fr 0.65fr 0.85fr;
+  gap: 12px;
   align-items: center;
 }
 
@@ -1538,7 +1538,7 @@
 }
 
 .emailHistoryChildren {
-  min-width: 900px;
+  min-width: 1060px;
   padding: 18px 24px 22px;
   border-top: 1px solid #eaecf0;
   background: #f8fafc;
@@ -1597,11 +1597,33 @@
   width: fit-content;
   padding: 0.22rem 0.45rem;
   border-radius: 999px;
-  background: #ecfdf3;
-  color: #027a48;
+  background: #f2f4f7;
+  color: #475467;
   font-size: 0.68rem;
   font-weight: 800;
   text-transform: capitalize;
+}
+
+.delivery_opened {
+  background: #eff8ff;
+  color: #175cd3;
+}
+
+.delivery_clicked {
+  background: #ecfdf3;
+  color: #027a48;
+}
+
+.delivery_delayed {
+  background: #fffaeb;
+  color: #b54708;
+}
+
+.delivery_bounced,
+.delivery_complained,
+.delivery_suppressed {
+  background: #fef3f2;
+  color: #b42318;
 }
 
 .delivery_failed {
@@ -2574,4 +2596,54 @@
   .propertyMetroSummary {
     grid-template-columns: 1fr;
   }
+}
+
+
+.emailDashboardActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.emailHistoryRefreshButton {
+  min-height: 34px;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  background: #fff;
+  color: #344054;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.emailHistoryRefreshButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.emailHistoryOpened {
+  color: #175cd3;
+  font-weight: 800;
+}
+
+.emailHistoryClicked {
+  color: #027a48;
+  font-weight: 800;
+}
+
+.emailRecipientContact {
+  color: #175cd3;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.emailRecipientContact:hover {
+  text-decoration: underline;
+}
+
+.emailHistoryError {
+  color: #b42318;
+  font-size: 0.85rem;
 }

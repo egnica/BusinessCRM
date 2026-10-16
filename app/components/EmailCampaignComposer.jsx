@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { campaignBlockedReason } from "@/lib/campaignEligibility.mjs";
 import styles from "./EmailHub.module.css";
 
+const CAMPAIGN_DRAFT_KEY = "businessCrmCampaignDraftV1";
+
 function contactName(contact) {
   const personName = [contact.firstName, contact.lastName]
     .filter(Boolean)
@@ -41,7 +43,6 @@ export default function EmailCampaignComposer({
   fromEmail,
   onFromEmailChange,
   loading,
-  onOpenTester,
   onSent,
 }) {
   const [search, setSearch] = useState("");
@@ -54,6 +55,39 @@ export default function EmailCampaignComposer({
   const [blockedContacts, setBlockedContacts] = useState([]);
   const [status, setStatus] = useState("");
   const [working, setWorking] = useState(false);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(window.sessionStorage.getItem(CAMPAIGN_DRAFT_KEY) || "null");
+      if (saved && typeof saved === "object") {
+        if (Array.isArray(saved.selectedIds)) {
+          setSelectedIds(saved.selectedIds.filter((id) => typeof id === "string"));
+        }
+        if (typeof saved.search === "string") setSearch(saved.search);
+        if (Array.isArray(saved.tagFilter)) {
+          setTagFilter(saved.tagFilter.filter((tag) => typeof tag === "string"));
+        }
+        if (typeof saved.templateId === "string") setTemplateId(saved.templateId);
+        if (typeof saved.subject === "string") setSubject(saved.subject);
+        if (typeof saved.campaignName === "string") setCampaignName(saved.campaignName);
+      }
+    } catch {
+      // Continue with an empty draft if session storage is unavailable.
+    }
+    setDraftLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!draftLoaded) return;
+    try {
+      window.sessionStorage.setItem(CAMPAIGN_DRAFT_KEY, JSON.stringify({
+        selectedIds, search, tagFilter, templateId, subject, campaignName,
+      }));
+    } catch {
+      // Campaign sending is still available when storage is disabled.
+    }
+  }, [draftLoaded, selectedIds, search, tagFilter, templateId, subject, campaignName]);
 
   useEffect(() => {
     if (!templateId && templates[0]) {
@@ -275,14 +309,6 @@ export default function EmailCampaignComposer({
             disabled={working || !templateId}
           >
             Preview Template
-          </button>
-          <button
-            type="button"
-            className={styles.secondaryButton}
-            onClick={onOpenTester}
-            disabled={working}
-          >
-            Test Template First
           </button>
           <button
             type="button"

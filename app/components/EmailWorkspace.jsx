@@ -210,7 +210,6 @@ export default function EmailWorkspace() {
             fromEmail={selectedFromEmail || config.defaultFromEmail || "nick@nicholasegner.com"}
             onFromEmailChange={setSelectedFromEmail}
             loading={loading}
-            onOpenTester={() => setActiveTool("test")}
             onSent={() =>
               setCampaignHistoryRefresh((value) => value + 1)
             }
