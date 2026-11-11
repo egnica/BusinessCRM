@@ -9,6 +9,28 @@ export default function IntroEmailModal({ contact, onClose, onSent }) {
   const [working, setWorking] = useState(false);
 
   useEffect(() => {
+    const root = document.documentElement;
+    const body = document.body;
+    const previousRootOverflow = root.style.overflow;
+    const previousBodyOverflow = body.style.overflow;
+    const previousPadding = body.style.paddingRight;
+    const scrollbarWidth = window.innerWidth - root.clientWidth;
+
+    // Preserve the contact list's position and width while the dialog is open.
+    if (scrollbarWidth > 0) {
+      body.style.paddingRight = `${parseFloat(getComputedStyle(body).paddingRight) + scrollbarWidth}px`;
+    }
+    root.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+
+    return () => {
+      root.style.overflow = previousRootOverflow;
+      body.style.overflow = previousBodyOverflow;
+      body.style.paddingRight = previousPadding;
+    };
+  }, []);
+
+  useEffect(() => {
     let active = true;
 
     async function loadPreview() {
@@ -100,7 +122,7 @@ export default function IntroEmailModal({ contact, onClose, onSent }) {
           </button>
         </div>
 
-        <div className={styles.newsletterModalBody}>
+        <div className={styles.introEmailBody}>
           <div className={styles.introEmailMeta}>
             <div>
               <span>To</span>
@@ -119,7 +141,7 @@ export default function IntroEmailModal({ contact, onClose, onSent }) {
           )}
 
           {preview?.html && (
-            <div className={styles.newsletterPreview}>
+            <div className={`${styles.newsletterPreview} ${styles.introEmailPreview}`}>
               <div className={styles.newsletterPreviewHeader}>
                 <strong>Preview</strong>
                 <span>Personalized for {preview.recipientName}</span>
@@ -132,29 +154,30 @@ export default function IntroEmailModal({ contact, onClose, onSent }) {
             </div>
           )}
 
-          <div className={styles.newsletterActions}>
-            <button
-              type="button"
-              className={styles.secondaryButton}
-              onClick={onClose}
-              disabled={working}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className={styles.primaryButton}
-              onClick={handleSend}
-              disabled={
-                working ||
-                !preview ||
-                !contact.email ||
-                contact.emailStatus === "unsubscribed"
-              }
-            >
-              {working ? "Sending…" : "Send Intro"}
-            </button>
-          </div>
+        </div>
+
+        <div className={`${styles.newsletterActions} ${styles.introEmailActions}`}>
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            onClick={onClose}
+            disabled={working}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className={styles.primaryButton}
+            onClick={handleSend}
+            disabled={
+              working ||
+              !preview ||
+              !contact.email ||
+              contact.emailStatus === "unsubscribed"
+            }
+          >
+            {working ? "Sending…" : "Send Intro"}
+          </button>
         </div>
       </section>
     </>
