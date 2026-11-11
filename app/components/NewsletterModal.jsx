@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import useModalScrollLock from "./useModalScrollLock";
 import styles from "../page.module.css";
 
 export default function NewsletterModal({
@@ -12,6 +13,9 @@ export default function NewsletterModal({
   const [templateId, setTemplateId] = useState("");
   const [subject, setSubject] = useState("");
   const [testEmail, setTestEmail] = useState("");
+  const [activeView, setActiveView] = useState("details");
+  useModalScrollLock();
+
   const [previewHtml, setPreviewHtml] = useState("");
   const [status, setStatus] = useState("");
   const [working, setWorking] = useState(false);
@@ -99,6 +103,7 @@ export default function NewsletterModal({
       }
 
       setPreviewHtml(data.html || "");
+      setActiveView("preview");
     } catch {
       setStatus("Preview failed.");
     } finally {
@@ -227,7 +232,16 @@ export default function NewsletterModal({
           </button>
         </div>
 
-        <div className={styles.newsletterModalBody}>
+        <nav className={styles.newsletterViewTabs} aria-label="Newsletter view">
+          <button type="button" aria-pressed={activeView === "details"} onClick={() => setActiveView("details")}>
+            Details
+          </button>
+          <button type="button" aria-pressed={activeView === "preview"} onClick={() => previewHtml ? setActiveView("preview") : handlePreview()} disabled={working || !templateId}>
+            Preview
+          </button>
+        </nav>
+
+        <div className={styles.newsletterModalBody} hidden={activeView !== "details"}>
           <label className={styles.newsletterField}>
             <span>Template</span>
             <select
@@ -301,6 +315,18 @@ export default function NewsletterModal({
             </button>
           </div>
 
+        </div>
+
+        {activeView === "preview" && (
+          <div className={styles.newsletterPreviewPane}>
+            {previewHtml ? (
+              <iframe title="Newsletter preview" srcDoc={previewHtml} className={styles.newsletterPreviewFrame} sandbox="" />
+            ) : <p className={styles.newsletterStatus}>Preview is not available yet. Try refreshing the preview.</p>}
+          </div>
+        )}
+
+        <footer className={styles.newsletterFooter}>
+          {status && <p className={styles.newsletterStatus} role="status">{status}</p>}
           <div className={styles.newsletterActions}>
             <button
               type="button"
@@ -308,7 +334,7 @@ export default function NewsletterModal({
               onClick={handlePreview}
               disabled={working || !templateId}
             >
-              Preview
+              {activeView === "preview" ? "Refresh Preview" : "Preview"}
             </button>
             <button
               type="button"
@@ -327,28 +353,7 @@ export default function NewsletterModal({
             </button>
           </div>
 
-          {status && <p className={styles.newsletterStatus}>{status}</p>}
-
-          {previewHtml && (
-            <div className={styles.newsletterPreview}>
-              <div className={styles.newsletterPreviewHeader}>
-                <strong>Preview</strong>
-                <button
-                  type="button"
-                  onClick={() => setPreviewHtml("")}
-                  className={styles.previewClose}
-                >
-                  Hide
-                </button>
-              </div>
-              <iframe
-                title="Newsletter preview"
-                srcDoc={previewHtml}
-                className={styles.newsletterPreviewFrame}
-              />
-            </div>
-          )}
-        </div>
+        </footer>
       </section>
     </>
   );

@@ -47,6 +47,7 @@ export default function HtmlCodeEditor({
   onChange,
   placeholder = "",
   disabled = false,
+  fillHeight = false,
 }) {
   const textareaRef = useRef(null);
   const gutterRef = useRef(null);
@@ -176,7 +177,7 @@ export default function HtmlCodeEditor({
   }
 
   return (
-    <div className={styles.editorShell}>
+    <div className={`${styles.editorShell} ${fillHeight ? styles.fillHeight : ""}`}>
       <div className={styles.toolbar} aria-hidden="true">
         <span>HTML</span>
         <span>Soft wrap · Tab = indent · tags close automatically</span>

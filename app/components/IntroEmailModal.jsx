@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import useModalScrollLock from "./useModalScrollLock";
 import styles from "../page.module.css";
 
 export default function IntroEmailModal({ contact, onClose, onSent }) {
@@ -8,27 +9,7 @@ export default function IntroEmailModal({ contact, onClose, onSent }) {
   const [status, setStatus] = useState("");
   const [working, setWorking] = useState(false);
 
-  useEffect(() => {
-    const root = document.documentElement;
-    const body = document.body;
-    const previousRootOverflow = root.style.overflow;
-    const previousBodyOverflow = body.style.overflow;
-    const previousPadding = body.style.paddingRight;
-    const scrollbarWidth = window.innerWidth - root.clientWidth;
-
-    // Preserve the contact list's position and width while the dialog is open.
-    if (scrollbarWidth > 0) {
-      body.style.paddingRight = `${parseFloat(getComputedStyle(body).paddingRight) + scrollbarWidth}px`;
-    }
-    root.style.overflow = "hidden";
-    body.style.overflow = "hidden";
-
-    return () => {
-      root.style.overflow = previousRootOverflow;
-      body.style.overflow = previousBodyOverflow;
-      body.style.paddingRight = previousPadding;
-    };
-  }, []);
+  useModalScrollLock();
 
   useEffect(() => {
     let active = true;

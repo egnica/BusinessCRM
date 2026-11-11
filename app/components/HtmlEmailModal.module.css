@@ -24,6 +24,7 @@
   top: 3vh;
   left: 50%;
   height: min(940px, 94vh);
+  height: min(940px, 94dvh);
   transform: translateX(-50%);
 }
 
@@ -31,11 +32,9 @@
   position: relative;
   width: 100%;
   margin-bottom: 28px;
+  height: min(940px, 94vh);
+  height: min(940px, 94dvh);
   box-shadow: 0 8px 28px rgba(17, 24, 39, 0.05);
-}
-
-.pageComposer .body {
-  overflow: visible;
 }
 
 .header {
@@ -72,8 +71,37 @@
 
 .body {
   flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+  padding: 0 24px 16px;
+}
+
+.detailsPane {
+  flex: 1;
+  min-width: 0;
   overflow-y: auto;
-  padding: 20px 24px 24px;
+}
+
+.detailsPane[hidden],
+.editorArea[hidden] {
+  display: none;
+}
+
+.contextBar {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 16px;
+  padding: 12px 24px;
+  color: #475467;
+  font-size: 0.8rem;
+}
+
+.contextBar span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .metaGrid,
@@ -171,11 +199,13 @@
 }
 
 .tabRow {
+  flex-shrink: 0;
+  padding: 0 24px 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 0;
 }
 
 .tabs {
@@ -220,20 +250,25 @@
 }
 
 .editorArea {
-  min-height: 520px;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
 }
 
 .previewFrame {
   box-sizing: border-box;
   width: 100%;
-  min-height: 560px;
+  min-height: 0;
+  height: 100%;
   border: 1px solid #d0d5dd;
   border-radius: 10px;
   background: #ffffff;
 }
 
 .previewEmpty {
-  min-height: 520px;
+  flex: 1;
+  min-height: 0;
   display: grid;
   place-items: center;
   border: 1px dashed #d0d5dd;
@@ -243,7 +278,8 @@
 }
 
 .status {
-  margin: 12px 0 0;
+  margin: 0;
+  overflow-wrap: anywhere;
   border: 1px solid #d0d5dd;
   border-radius: 8px;
   background: #f9fafb;
@@ -265,11 +301,17 @@
 .footer {
   flex-shrink: 0;
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
   gap: 8px;
   border-top: 1px solid #eaecf0;
   background: #ffffff;
   padding: 14px 24px;
+}
+
+.footerActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .primaryButton,
@@ -316,16 +358,20 @@
     top: 1vh;
     width: 98vw;
     height: 98vh;
+    height: 98dvh;
     border-radius: 12px;
   }
 
   .header,
   .body,
+  .contextBar,
+  .tabRow,
   .footer {
     padding-left: 14px;
     padding-right: 14px;
   }
 
+  .contextBar,
   .metaGrid,
   .fieldsGrid,
   .testBar {
@@ -349,7 +395,31 @@
     flex: 1;
   }
 
-  .previewFrame {
-    min-height: 440px;
+}
+
+@media (max-height: 560px) {
+  .header {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .subhead {
+    display: none;
+  }
+
+  .contextBar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .tabRow {
+    flex-direction: row;
+    padding-bottom: 8px;
+  }
+
+  .footer {
+    padding-top: 10px;
+    padding-bottom: 10px;
   }
 }

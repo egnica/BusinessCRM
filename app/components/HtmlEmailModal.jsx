@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import useModalScrollLock from "./useModalScrollLock";
 import HtmlCodeEditor from "./HtmlCodeEditor";
 import styles from "./HtmlEmailModal.module.css";
 
@@ -43,7 +44,7 @@ export default function HtmlEmailModal({
   const [preheader, setPreheader] = useState("");
   const [bodyHtml, setBodyHtml] = useState(() => initialBody(contact));
   const [previewHtml, setPreviewHtml] = useState("");
-  const [activeTab, setActiveTab] = useState("html");
+  const [activeTab, setActiveTab] = useState("details");
   const [previewDirty, setPreviewDirty] = useState(true);
   const [testEmail, setTestEmail] = useState("");
   const [status, setStatus] = useState("");
@@ -57,6 +58,8 @@ export default function HtmlEmailModal({
     configured: false,
     webhookConfigured: false,
   });
+
+  useModalScrollLock(!standalone);
 
   const displayName = useMemo(() => {
     if (standalone) {
@@ -331,47 +334,101 @@ export default function HtmlEmailModal({
           )}
         </header>
 
+        <div className={styles.contextBar}>
+          <span title={standalone ? recipientEmail : contact?.email}>To: {standalone ? recipientEmail || "Add a recipient in Details" : contact?.email || displayName}</span>
+          <span title={subject}>Subject: {subject || "Add a subject in Details"}</span>
+        </div>
+        <div className={styles.tabRow}>
+          <nav className={styles.tabs} aria-label="Email editor view">
+            <button type="button" aria-pressed={activeTab === "details"} className={activeTab === "details" ? styles.activeTab : ""} onClick={() => handleTabChange("details")} disabled={working}>
+              Details
+            </button>
+            <button
+              type="button"
+              aria-pressed={activeTab === "html"}
+              className={activeTab === "html" ? styles.activeTab : ""}
+              onClick={() => handleTabChange("html")}
+              disabled={working}
+            >
+              HTML
+            </button>
+            <button
+              type="button"
+              aria-pressed={activeTab === "preview"}
+              className={activeTab === "preview" ? styles.activeTab : ""}
+              onClick={() => handleTabChange("preview")}
+              disabled={working}
+            >
+              Preview
+            </button>
+          </nav>
+
+          {activeTab === "preview" && previewDirty && (
+            <button
+              type="button"
+              className={styles.refreshButton}
+              onClick={renderPreview}
+              disabled={working}
+            >
+              Refresh Preview
+            </button>
+          )}
+        </div>
         <div className={styles.body}>
-          {standalone ? (
-            <div className={styles.fieldsGrid}>
-              <label className={styles.field}>
-                <span>Recipient name <small>optional</small></span>
-                <input
-                  value={recipientName}
-                  onChange={(event) => {
-                    setRecipientName(event.target.value);
-                    markStandaloneDraftChanged();
-                  }}
-                  placeholder="Recipient name"
-                  maxLength={250}
-                  disabled={working}
-                />
-              </label>
+          <div className={styles.detailsPane} hidden={activeTab !== "details"}>
+            {standalone ? (
+              <div className={styles.fieldsGrid}>
+                <label className={styles.field}>
+                  <span>Recipient name <small>optional</small></span>
+                  <input
+                    value={recipientName}
+                    onChange={(event) => {
+                      setRecipientName(event.target.value);
+                      markStandaloneDraftChanged();
+                    }}
+                    placeholder="Recipient name"
+                    maxLength={250}
+                    disabled={working}
+                  />
+                </label>
 
-              <label className={styles.field}>
-                <span>Recipient email</span>
-                <input
-                  type="email"
-                  value={recipientEmail}
-                  onChange={(event) => {
-                    setRecipientEmail(event.target.value);
-                    markStandaloneDraftChanged();
-                  }}
-                  placeholder="recipient@example.com"
-                  maxLength={320}
-                  disabled={working}
-                />
-              </label>
-            </div>
-          ) : (
-            <div className={styles.metaGrid}>
-              <div className={styles.metaCard}>
-                <span>To</span>
-                <strong>{displayName}</strong>
-                <small>{contact.email || "No email"}</small>
+                <label className={styles.field}>
+                  <span>Recipient email</span>
+                  <input
+                    type="email"
+                    value={recipientEmail}
+                    onChange={(event) => {
+                      setRecipientEmail(event.target.value);
+                      markStandaloneDraftChanged();
+                    }}
+                    placeholder="recipient@example.com"
+                    maxLength={320}
+                    disabled={working}
+                  />
+                </label>
               </div>
+            ) : (
+              <div className={styles.metaGrid}>
+                <div className={styles.metaCard}>
+                  <span>To</span>
+                  <strong>{displayName}</strong>
+                  <small>{contact.email || "No email"}</small>
+                </div>
 
-              <div className={styles.metaCard}>
+                <div className={styles.metaCard}>
+                  <span>From</span>
+                  <strong>{config.from || "Loading sender…"}</strong>
+                  <small>
+                    {config.webhookConfigured
+                      ? "Delivery tracking configured"
+                      : "Tracking needs webhook setup"}
+                  </small>
+                </div>
+              </div>
+            )}
+
+            {standalone && (
+              <div className={styles.senderCard}>
                 <span>From</span>
                 <strong>{config.from || "Loading sender…"}</strong>
                 <small>
@@ -380,92 +437,65 @@ export default function HtmlEmailModal({
                     : "Tracking needs webhook setup"}
                 </small>
               </div>
-            </div>
-          )}
-
-          {standalone && (
-            <div className={styles.senderCard}>
-              <span>From</span>
-              <strong>{config.from || "Loading sender…"}</strong>
-              <small>
-                {config.webhookConfigured
-                  ? "Delivery tracking configured"
-                  : "Tracking needs webhook setup"}
-              </small>
-            </div>
-          )}
-
-          <div className={styles.fieldsGrid}>
-            <label className={styles.field}>
-              <span>Subject</span>
-              <input
-                value={subject}
-                onChange={(event) => {
-                  setSubject(event.target.value);
-                  setPreviewDirty(true);
-                  markStandaloneDraftChanged();
-                }}
-                placeholder="Email subject"
-                maxLength={250}
-                disabled={working}
-              />
-            </label>
-
-            <label className={styles.field}>
-              <span>Preheader <small>optional</small></span>
-              <input
-                value={preheader}
-                onChange={(event) => {
-                  setPreheader(event.target.value);
-                  setPreviewDirty(true);
-                  markStandaloneDraftChanged();
-                }}
-                placeholder="Short inbox preview text"
-                maxLength={300}
-                disabled={working}
-              />
-            </label>
-          </div>
-
-          <div className={styles.tabRow}>
-            <div className={styles.tabs} role="tablist" aria-label="Email editor view">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === "html"}
-                className={activeTab === "html" ? styles.activeTab : ""}
-                onClick={() => handleTabChange("html")}
-                disabled={working}
-              >
-                HTML
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === "preview"}
-                className={activeTab === "preview" ? styles.activeTab : ""}
-                onClick={() => handleTabChange("preview")}
-                disabled={working}
-              >
-                Preview
-              </button>
-            </div>
-
-            {activeTab === "preview" && previewDirty && (
-              <button
-                type="button"
-                className={styles.refreshButton}
-                onClick={renderPreview}
-                disabled={working}
-              >
-                Refresh Preview
-              </button>
             )}
-          </div>
 
-          <div className={styles.editorArea}>
+            <div className={styles.fieldsGrid}>
+              <label className={styles.field}>
+                <span>Subject</span>
+                <input
+                  value={subject}
+                  onChange={(event) => {
+                    setSubject(event.target.value);
+                    setPreviewDirty(true);
+                    markStandaloneDraftChanged();
+                  }}
+                  placeholder="Email subject"
+                  maxLength={250}
+                  disabled={working}
+                />
+              </label>
+
+              <label className={styles.field}>
+                <span>Preheader <small>optional</small></span>
+                <input
+                  value={preheader}
+                  onChange={(event) => {
+                    setPreheader(event.target.value);
+                    setPreviewDirty(true);
+                    markStandaloneDraftChanged();
+                  }}
+                  placeholder="Short inbox preview text"
+                  maxLength={300}
+                  disabled={working}
+                />
+              </label>
+            </div>
+
+            <div className={styles.testBar}>
+              <label className={styles.testField}>
+                <span>Test recipient (you)</span>
+                <input
+                  type="email"
+                  value={testEmail}
+                  onChange={(event) => setTestEmail(event.target.value)}
+                  placeholder="your@email.com"
+                  disabled={working}
+                />
+              </label>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={handleTestSend}
+                disabled={working || config.loading}
+              >
+                {working ? "Working…" : "Send Test to Myself"}
+              </button>
+            </div>
+          </div>
+          <div className={styles.editorArea} hidden={activeTab === "details"}>
             {activeTab === "html" ? (
               <HtmlCodeEditor
+                fillHeight
                 value={bodyHtml}
                 onChange={markPreviewDirty(setBodyHtml)}
                 placeholder="Write the body HTML for this contact..."
@@ -485,61 +515,42 @@ export default function HtmlEmailModal({
             )}
           </div>
 
-          {status && <p className={styles.status}>{status}</p>}
-
-          <div className={styles.testBar}>
-            <label className={styles.testField}>
-              <span>Test recipient (you)</span>
-              <input
-                type="email"
-                value={testEmail}
-                onChange={(event) => setTestEmail(event.target.value)}
-                placeholder="your@email.com"
-                disabled={working}
-              />
-            </label>
-            <button
-              type="button"
-              className={styles.secondaryButton}
-              onClick={handleTestSend}
-              disabled={working || config.loading}
-            >
-              {working ? "Working…" : "Send Test to Myself"}
-            </button>
-          </div>
         </div>
 
         <footer className={styles.footer}>
-          {!standalone && (
+          {status && <p className={styles.status} role="status">{status}</p>}
+          <div className={styles.footerActions}>
+            {!standalone && (
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={onClose}
+                disabled={working}
+              >
+                Cancel
+              </button>
+            )}
             <button
               type="button"
-              className={styles.secondaryButton}
-              onClick={onClose}
-              disabled={working}
+              className={styles.primaryButton}
+              onClick={handleSend}
+              disabled={
+                working ||
+                config.loading ||
+                (standalone
+                  ? !recipientEmail.trim() || standaloneSent
+                  : !contact.email || contact.emailStatus === "unsubscribed")
+              }
             >
-              Cancel
+              {working
+                ? "Sending…"
+                : standaloneSent
+                  ? "Sent"
+                  : standalone
+                    ? "Send Email"
+                    : "Send to Contact"}
             </button>
-          )}
-          <button
-            type="button"
-            className={styles.primaryButton}
-            onClick={handleSend}
-            disabled={
-              working ||
-              config.loading ||
-              (standalone
-                ? !recipientEmail.trim() || standaloneSent
-                : !contact.email || contact.emailStatus === "unsubscribed")
-            }
-          >
-            {working
-              ? "Sending…"
-              : standaloneSent
-                ? "Sent"
-                : standalone
-                  ? "Send Email"
-                  : "Send to Contact"}
-          </button>
+          </div>
         </footer>
       </section>
     </>
