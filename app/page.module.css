@@ -2819,3 +2819,72 @@
   color: #b42318;
   font-size: 0.85rem;
 }
+
+.newsletterFormGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+}
+.newsletterHint {
+  margin: 0;
+  color: #667085;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+.newsletterReviewToolbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.newsletterReviewToolbar > label { flex: 1; min-width: 180px; }
+.newsletterTextButton {
+  border: 0;
+  padding: 4px 0;
+  background: none;
+  color: #175cd3;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.newsletterTextButton:disabled { opacity: 0.5; cursor: not-allowed; }
+.newsletterRecipientSummary { flex-wrap: wrap; }
+.newsletterRecipientSummary button { margin-left: auto; }
+.newsletterRecipientRow {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) minmax(100px, 0.7fr);
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #eaecf0;
+  font-size: 0.8rem;
+}
+.newsletterRecipientRow > span { display: grid; gap: 4px; overflow-wrap: anywhere; }
+.newsletterRecipientRow small { color: #667085; }
+.newsletterProgress { display: grid; gap: 6px; margin-bottom: 10px; font-size: 0.78rem; color: #475467; }
+.newsletterProgress progress { width: 100%; accent-color: #175cd3; }
+.newsletterProgress p { margin: 0; overflow-wrap: anywhere; }
+.newsletterFooter .newsletterActions { flex-wrap: wrap; }
+@media (max-width: 650px) {
+  .newsletterFormGrid { grid-template-columns: minmax(0, 1fr); }
+  .newsletterViewTabs { flex-wrap: wrap; }
+  .newsletterRecipientRow { grid-template-columns: 20px minmax(0, 1fr); }
+  .newsletterRecipientRow > small { grid-column: 2; }
+}
+.delivery_scheduled,
+.delivery_queued {
+  background: #eff8ff;
+  color: #175cd3;
+}
+.delivery_uncertain,
+.delivery_needs-review {
+  background: #fffaeb;
+  color: #b54708;
+}
+.delivery_cancelled,
+.delivery_skipped {
+  background: #f2f4f7;
+  color: #475467;
+}

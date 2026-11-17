@@ -1,3 +1,4 @@
+import { cancelScheduledNewsletters } from "@/lib/cancelScheduledNewsletters";
 import { ObjectId } from "mongodb";
 import getMongoClient from "@/lib/mongodb";
 import { verifyUnsubscribeToken } from "@/lib/unsubscribe";
@@ -79,6 +80,8 @@ export async function POST(req) {
         },
       );
     }
+
+    await cancelScheduledNewsletters(db, contactId);
 
     return Response.json({
       success: true,

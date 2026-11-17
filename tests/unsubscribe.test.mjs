@@ -7,6 +7,7 @@ import { ObjectId } from "mongodb";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import * as unsubscribe from "../lib/unsubscribe.js";
+import * as cancellation from "../lib/cancelScheduledNewsletters.js";
 
 const require = createRequire(import.meta.url);
 const { transformSync } = require("next/dist/build/swc");
@@ -29,6 +30,7 @@ function loadModule(path, getMongoClient) {
   const overrides = {
     "@/lib/mongodb": getMongoClient,
     "@/lib/unsubscribe": unsubscribe,
+    "@/lib/cancelScheduledNewsletters": cancellation,
     "./unsubscribe.module.css": {},
     "./UnsubscribeForm": () => createElement("button", null, "Unsubscribe"),
   };

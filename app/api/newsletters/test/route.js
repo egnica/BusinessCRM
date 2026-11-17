@@ -1,3 +1,4 @@
+import { getEmailBaseUrl } from "@/lib/emailBaseUrl.mjs";
 import { EMAIL_REPLY_TO } from "@/lib/newsletterConfig";
 import { randomUUID } from "node:crypto";
 import { Resend } from "resend";
@@ -31,7 +32,7 @@ async function getTrackedRecipientName(trackingId, fallbackName) {
   const db = client.db("crm");
   const contact = await db.collection("contacts").findOne(
     { trackingId: normalizedTrackingId },
-    { projection: { firstName: 1, trackingId: 1 } },
+    { projection: { firstName: 1, lastName: 1, trackingId: 1 } },
   );
 
   if (!contact) {
@@ -39,7 +40,7 @@ async function getTrackedRecipientName(trackingId, fallbackName) {
   }
 
   return {
-    recipientName: String(contact.firstName || "").trim() || fallbackName,
+    recipientName: [contact.firstName, contact.lastName].filter(Boolean).join(" ").trim() || fallbackName,
     trackingId: normalizedTrackingId,
     contactId: contact._id,
   };
@@ -49,7 +50,7 @@ export async function POST(req) {
   try {
     const { templateId, subject, email, trackingId, fromEmail } = await req.json();
 
-    if (!email) {
+    if (typeof email !== "string" || !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email.trim())) {
       return Response.json(
         { error: "A test recipient email is required" },
         { status: 400 },
@@ -96,7 +97,7 @@ export async function POST(req) {
     const renderedHtml = template.render({
       recipientName: testRecipient.recipientName,
       trackingId: testRecipient.trackingId,
-      unsubscribeUrl: "#",
+      unsubscribeUrl: `${getEmailBaseUrl()}/newsletter-test`,
     });
     const activity = createEmailActivityRecord({
       source: "template-test",

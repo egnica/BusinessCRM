@@ -1,3 +1,7 @@
+## Newsletter sending
+
+See [Reviewed newsletter sends](docs/newsletter-workflow.md) for sender setup, recipient review, drafts, scheduling, personalized tests, and safe send recovery.
+
 ## Public email links
 
 - Intro emails and campaigns use `lib/emailBaseUrl.mjs` for both footer and one-click unsubscribe links. They never derive recipient links from the server's internal request URL.

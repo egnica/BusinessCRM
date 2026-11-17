@@ -1,3 +1,4 @@
+import { cancelScheduledNewsletters } from "@/lib/cancelScheduledNewsletters";
 import { normalizeContactTags } from "@/lib/contactImport.mjs";
 import getMongoClient from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
@@ -46,6 +47,8 @@ export async function PUT(req, { params }) {
       );
     }
 
+    if (body.emailStatus && body.emailStatus !== "subscribed") await cancelScheduledNewsletters(db, new ObjectId(id));
+
     return Response.json({
       message: "Contact updated successfully",
       matchedCount: result.matchedCount,
@@ -80,6 +83,8 @@ export async function DELETE(req, { params }) {
 
     const client = await getMongoClient();
     const db = client.db("crm");
+
+    await cancelScheduledNewsletters(db, new ObjectId(id));
 
     const result = await db.collection("contacts").deleteOne({
       _id: new ObjectId(id),

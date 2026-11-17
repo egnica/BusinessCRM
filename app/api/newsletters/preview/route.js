@@ -1,3 +1,4 @@
+import { getEmailBaseUrl } from "@/lib/emailBaseUrl.mjs";
 import { getEmailTemplate } from "@/lib/emailTemplates";
 import getMongoClient from "@/lib/mongodb";
 
@@ -18,7 +19,7 @@ async function getTrackedRecipientName(trackingId, fallbackName) {
   const db = client.db("crm");
   const contact = await db.collection("contacts").findOne(
     { trackingId: normalizedTrackingId },
-    { projection: { firstName: 1, trackingId: 1 } },
+    { projection: { firstName: 1, lastName: 1, trackingId: 1 } },
   );
 
   if (!contact) {
@@ -26,14 +27,14 @@ async function getTrackedRecipientName(trackingId, fallbackName) {
   }
 
   return {
-    recipientName: String(contact.firstName || "").trim() || fallbackName,
+    recipientName: [contact.firstName, contact.lastName].filter(Boolean).join(" ").trim() || fallbackName,
     trackingId: normalizedTrackingId,
   };
 }
 
 export async function POST(req) {
   try {
-    const { templateId, trackingId } = await req.json();
+    const { templateId, trackingId, subject } = await req.json();
     const template = getEmailTemplate(templateId);
 
     if (!template) {
@@ -47,12 +48,12 @@ export async function POST(req) {
     const html = template.render({
       recipientName: testRecipient.recipientName,
       trackingId: testRecipient.trackingId,
-      unsubscribeUrl: "#",
+      unsubscribeUrl: `${getEmailBaseUrl()}/newsletter-test`,
     });
 
     return Response.json({
       html,
-      subject: template.subject,
+      subject: typeof subject === "string" && subject.trim() ? subject.trim() : template.subject,
       recipientName: testRecipient.recipientName,
       trackingId: testRecipient.trackingId,
     });

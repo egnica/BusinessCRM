@@ -6,6 +6,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const EVENT_STATUS = {
+  "email.scheduled": "scheduled",
+  "email.canceled": "cancelled",
   "email.sent": "sent",
   "email.delivered": "delivered",
   "email.delivery_delayed": "delayed",
@@ -18,6 +20,9 @@ const EVENT_STATUS = {
 };
 
 const STATUS_PRIORITY = {
+  queued: 0,
+  scheduled: 5,
+  cancelled: 100,
   sending: 0,
   sent: 10,
   delayed: 15,
@@ -31,6 +36,8 @@ const STATUS_PRIORITY = {
 };
 
 const TIMESTAMP_FIELD = {
+  "email.scheduled": "scheduledAt",
+  "email.canceled": "cancelledAt",
   "email.sent": "sentAt",
   "email.delivered": "deliveredAt",
   "email.delivery_delayed": "delayedAt",

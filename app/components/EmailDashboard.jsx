@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import styles from "../page.module.css";
+import NewsletterModal from "./NewsletterModal";
 
 const formatDateTime = (value) => {
   if (!value) return "—";
@@ -17,6 +18,7 @@ const formatDateTime = (value) => {
 };
 
 export default function EmailDashboard({ refreshKey = 0 }) {
+  const [recoveryId, setRecoveryId] = useState("");
   const [sends, setSends] = useState([]);
   const [expandedId, setExpandedId] = useState("");
   const [details, setDetails] = useState({});
@@ -83,6 +85,7 @@ export default function EmailDashboard({ refreshKey = 0 }) {
   }
 
   return (
+    <>
     <section className={styles.emailDashboard}>
       <div className={styles.emailDashboardHeader}>
         <div>
@@ -135,10 +138,10 @@ export default function EmailDashboard({ refreshKey = 0 }) {
                   onClick={() => toggleSend(id)}
                   aria-expanded={isOpen}
                 >
-                  <span>{formatDateTime(send.sentAt)}</span>
+                  <span>{send.scheduledAt ? <>Scheduled<br />{formatDateTime(send.scheduledAt)}</> : formatDateTime(send.sentAt || send.createdAt)}</span>
                   <strong>{send.subject || "—"}</strong>
                   <span>{send.templateName || send.templateId || "—"}</span>
-                  <span>{send.sentCount ?? 0}</span>
+                  <span>{send.sentCount ?? 0}{send.scheduledCount > 0 && <small> · {send.scheduledCount} queued</small>}</span>
                   <span className={styles.emailHistoryOpened}>{send.openedCount ?? 0}</span>
                   <span className={styles.emailHistoryClicked}>{send.clickedCount ?? 0}</span>
                   <span>{send.failedCount ?? 0}</span>
@@ -156,7 +159,10 @@ export default function EmailDashboard({ refreshKey = 0 }) {
                         <div className={styles.emailHistoryMeta}>
                           <span><strong>Template:</strong> {detail.send?.templateName || "—"}</span>
                           <span><strong>Subject:</strong> {detail.send?.subject || "—"}</span>
-                          <span><strong>Sent:</strong> {formatDateTime(detail.send?.sentAt)}</span>
+                          <span><strong>Status:</strong> {detail.send?.status || "—"}</span>
+                          <span><strong>From:</strong> {detail.send?.fromEmail || "—"}</span>
+                          <span><strong>{detail.send?.scheduledAt ? "Scheduled:" : "Sent:"}</strong> {formatDateTime(detail.send?.scheduledAt || detail.send?.sentAt)}</span>
+                          {detail.send?.deliveryVersion === 2 && <button type="button" className={styles.emailHistoryRefreshButton} onClick={() => setRecoveryId(id)}>View progress / resume</button>}
                         </div>
 
                         <div className={styles.emailRecipientTable}>
@@ -207,5 +213,7 @@ export default function EmailDashboard({ refreshKey = 0 }) {
         </div>
       ) : null}
     </section>
+    {recoveryId && <NewsletterModal resumeId={recoveryId} onClose={() => setRecoveryId("")} onSent={() => { void loadHistory(); if (expandedId) void loadDetails(expandedId); }} />}
+    </>
   );
 }

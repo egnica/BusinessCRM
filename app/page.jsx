@@ -1362,7 +1362,6 @@ export default function Home() {
 
       {newsletterOpen && (
         <NewsletterModal
-          recipientCount={subscribedEmailCount}
           onClose={() => setNewsletterOpen(false)}
           onSent={() => {
             setEmailHistoryRefresh((prev) => prev + 1);

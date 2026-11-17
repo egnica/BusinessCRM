@@ -1,9 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { createHash, randomUUID } from "node:crypto";
+import { createHash, randomUUID, randomBytes } from "node:crypto";
 import { ObjectId } from "mongodb";
 import { createConnectionManager } from "../lib/mongoConnection.mjs";
+import { normalizeContactTags } from "../lib/contactImport.mjs";
 import { CONTACT_DRAFT_KEY, EMPTY_CONTACT, readContactDraft, writeContactDraft } from "../lib/contactDraft.mjs";
 
 test("failed initial connection is released and the next concurrent requests recover using one pool", async () => {
@@ -64,9 +65,9 @@ test("contact details and retry identity survive a browser refresh and clear onl
 const routeSource = (await readFile(new URL("../app/api/contacts/route.js", import.meta.url), "utf8"))
   .replace(/^import .*;\n/gm, "")
   .replace(/export async function/g, "async function");
-const handlers = (collection) => new Function("getMongoClient", "ObjectId", "createHash",
+const handlers = (collection) => new Function("getMongoClient", "ObjectId", "createHash", "randomBytes", "normalizeContactTags",
   `${routeSource}\nreturn { GET, POST };`)(
-    async () => ({ db: () => ({ collection: () => collection }) }), ObjectId, createHash,
+    async () => ({ db: () => ({ collection: () => ({ createIndex: async () => {}, ...collection }) }) }), ObjectId, createHash, randomBytes, normalizeContactTags,
   );
 const contactBody = { firstName: "Test", lastName: "Contact", ownerType: "individual", email: "test@example.com", createdAt: "2026-10-02T20:00:00Z", updatedAt: "2026-10-02T20:00:00Z" };
 const request = (key, body = contactBody) => new Request("https://example.com/api/contacts", {
@@ -98,7 +99,7 @@ test("retrying a committed contact with a lost response creates only one record"
 
 test("concurrent save duplicate-key race returns the already saved contact", async () => {
   const key = randomUUID();
-  const { createdAt: _createdAt, updatedAt: _updatedAt, ...content } = { ...contactBody, emailStatus: "subscribed" };
+  const { createdAt: _createdAt, updatedAt: _updatedAt, ...content } = { ...contactBody, emailStatus: "subscribed", tags: [] };
   const saved = { ...contactBody, _id: new ObjectId(createHash("sha256").update(key).digest("hex").slice(0, 24)), createRequestHash: createHash("sha256").update(JSON.stringify(content)).digest("hex") };
   const { POST } = handlers({
     async updateOne() { throw Object.assign(new Error("duplicate key"), { code: 11000 }); },
@@ -111,7 +112,7 @@ test("concurrent save duplicate-key race returns the already saved contact", asy
 
 test("loading legacy contacts applies defaults without writing to the database", async () => {
   const { GET } = handlers({
-    find: () => ({ sort: () => ({ toArray: async () => [{ _id: "old", emailStatus: "" }, { _id: "opted-out", emailStatus: "unsubscribed" }] }) }),
+    find: (filter) => filter?.$or ? ({ toArray: async () => [] }) : ({ sort: () => ({ toArray: async () => [{ _id: "old", emailStatus: "" }, { _id: "opted-out", emailStatus: "unsubscribed" }] }) }),
     updateMany() { assert.fail("contact reads must not write"); },
   });
   const response = await GET();

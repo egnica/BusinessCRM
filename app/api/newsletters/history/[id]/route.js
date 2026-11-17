@@ -20,7 +20,7 @@ export async function GET(_req, { params }) {
     const sendId = new ObjectId(id);
 
     const [send, recipients] = await Promise.all([
-      db.collection("newsletterSends").findOne({ _id: sendId }),
+      db.collection("newsletterSends").findOne({ _id: sendId }, { projection: { deliveryPlan: 0, requestHash: 0, lockToken: 0 } }),
       db.collection("newsletterRecipients")
         .find({ sendId })
         .sort({ email: 1 })
