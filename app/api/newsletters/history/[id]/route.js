@@ -47,7 +47,7 @@ export async function GET(_req, { params }) {
       .find({ $or: conditions })
       .project({
         campaignId: 1, contactId: 1, recipientEmail: 1, resendEmailId: 1,
-        status: 1, eventTimestamps: 1, lastEventAt: 1, updatedAt: 1, sentAt: 1,
+        status: 1, eventTimestamps: 1, events: 1, lastEventAt: 1, updatedAt: 1, sentAt: 1,
       })
       .toArray();
 
@@ -67,6 +67,9 @@ export async function GET(_req, { params }) {
         byCampaignEmail.get(String(recipient.email || "").toLowerCase());
 
       const status = campaignRecipientStatus(recipient, activity);
+      const clicks = (activity?.events || [])
+        .filter((event) => event.type === "email.clicked")
+        .map((event) => ({ link: event.link || null, at: event.at || null }));
       return {
         ...recipient,
         contactId: recipient.contactId || activity?.contactId || null,
@@ -74,6 +77,7 @@ export async function GET(_req, { params }) {
         lastActivityAt: campaignRecipientActivityAt(recipient, activity, status),
         openedAt: activity?.eventTimestamps?.openedAt || null,
         clickedAt: activity?.eventTimestamps?.clickedAt || null,
+        clicks,
       };
     });
 

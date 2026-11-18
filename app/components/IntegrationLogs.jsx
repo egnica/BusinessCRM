@@ -42,6 +42,15 @@ function eventTone(value) {
   return "progress";
 }
 
+function safeHttpLink(value) {
+  try {
+    const url = new URL(value);
+    return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
 export default function IntegrationLogs() {
   const [activeProvider, setActiveProvider] = useState("lob");
   const [logs, setLogs] = useState({ lob: [], resend: [] });
@@ -200,6 +209,15 @@ export default function IntegrationLogs() {
 
               <div className={styles.logMeta}>
                 <span>{formatDateTime(event.occurredAt)}</span>
+                {activeProvider === "resend" && event.engagement && (
+                  <span
+                    className={styles.engagementBadge}
+                    data-suspected={event.engagement.suspected}
+                    title={event.engagement.explanation}
+                  >
+                    {event.engagement.label}
+                  </span>
+                )}
                 {activeProvider === "lob" && event.liveLetterId && (
                   <a
                     href={`https://dashboard.lob.com/letters/${encodeURIComponent(event.liveLetterId)}`}
@@ -212,12 +230,17 @@ export default function IntegrationLogs() {
                 {activeProvider === "resend" && event.resendEmailId && (
                   <code>{event.resendEmailId}</code>
                 )}
-                {activeProvider === "resend" && event.link && (
-                  <a href={event.link} target="_blank" rel="noreferrer">
-                    Open clicked link
-                  </a>
-                )}
               </div>
+              {activeProvider === "resend" && event.eventType === "email.clicked" && (
+                <div className={styles.clickedLink}>
+                  <strong>Clicked link</strong>
+                  {safeHttpLink(event.link) ? (
+                    <a href={safeHttpLink(event.link)} target="_blank" rel="noopener noreferrer">
+                      {event.link}
+                    </a>
+                  ) : <span>{event.link || "URL unavailable from tracking event"}</span>}
+                </div>
+              )}
             </article>
           ))}
         </div>

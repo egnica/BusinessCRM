@@ -1764,6 +1764,61 @@
   font-size: 0.82rem;
 }
 
+.emailRecipientStatus {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.emailRecipientStatusStack {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+}
+
+.emailRecipientTimes {
+  display: grid;
+  gap: 2px;
+  color: #667085;
+  font-size: 0.72rem;
+}
+
+.emailRecipientLinksButton {
+  border: 0;
+  padding: 4px 0;
+  background: transparent;
+  color: #175cd3;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.emailRecipientLinksButton:hover { text-decoration: underline; }
+
+.emailRecipientLinks {
+  padding: 4px 12px 12px;
+  background: #f8fafc;
+  color: #475467;
+  font-size: 0.78rem;
+}
+
+.emailRecipientLinks > strong { display: block; margin-bottom: 6px; }
+.emailRecipientLinks p { margin: 0; }
+
+.emailRecipientClick {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 12px;
+  padding: 5px 0;
+}
+
+.emailRecipientClick a,
+.emailRecipientClick span { overflow-wrap: anywhere; }
+.emailRecipientClick a { color: #175cd3; }
+.emailRecipientClick time { color: #667085; }
+
 .deliveryBadge {
   display: inline-flex;
   width: fit-content;

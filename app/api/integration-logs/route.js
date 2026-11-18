@@ -1,4 +1,6 @@
 import getMongoClient from "@/lib/mongodb";
+import { classifyEmailClickEngagement } from "@/lib/emailClickEngagement.mjs";
+import { ObjectId } from "mongodb";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,10 +71,24 @@ export async function GET(request) {
           .toArray(),
       ]);
 
+    const emailIds = [...new Set(resendEvents.map((event) => event.emailRecordId))]
+      .map((id) => new ObjectId(id));
+    const emailActivity = emailIds.length
+      ? await emailCollection.find({ _id: { $in: emailIds } })
+          .project({ events: 1, eventTimestamps: 1, sentAt: 1, createdAt: 1 })
+          .toArray()
+      : [];
+    const engagementByEmail = new Map(emailActivity.map((email) => [
+      String(email._id), classifyEmailClickEngagement(email),
+    ]));
+
     return Response.json({
       lob: lobEvents.map(serializeLobEvent),
       resend: resendEvents.map((event) => ({
         ...event,
+        engagement: event.eventType === "email.clicked"
+          ? engagementByEmail.get(event.emailRecordId) || null
+          : null,
         id:
           event.eventId ||
           `${event.emailRecordId}-${event.eventType}-${event.occurredAt || ""}`,

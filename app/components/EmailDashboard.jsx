@@ -21,6 +21,7 @@ export default function EmailDashboard({ refreshKey = 0 }) {
   const [recoveryId, setRecoveryId] = useState("");
   const [sends, setSends] = useState([]);
   const [expandedId, setExpandedId] = useState("");
+  const [expandedRecipientId, setExpandedRecipientId] = useState("");
   const [details, setDetails] = useState({});
   const [detailLoadingId, setDetailLoadingId] = useState("");
   const [detailErrors, setDetailErrors] = useState({});
@@ -73,9 +74,11 @@ export default function EmailDashboard({ refreshKey = 0 }) {
   function toggleSend(id) {
     if (expandedId === id) {
       setExpandedId("");
+      setExpandedRecipientId("");
       return;
     }
     setExpandedId(id);
+    setExpandedRecipientId("");
     void loadDetails(id);
   }
 
@@ -172,36 +175,78 @@ export default function EmailDashboard({ refreshKey = 0 }) {
                             <span>Status</span>
                           </div>
 
-                          {(detail.recipients || []).map((recipient) => (
-                            <div className={styles.emailRecipientRow} key={String(recipient._id)}>
-                              {recipient.contactId ? (
-                                <a
-                                  className={styles.emailRecipientContact}
-                                  href={"/?contactId=" + encodeURIComponent(String(recipient.contactId))}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  title="Open CRM contact in a new tab"
-                                >
-                                  {recipient.recipientName || recipient.email || "View contact"} ↗
-                                </a>
-                              ) : (
-                                <span>{recipient.recipientName || "—"}</span>
-                              )}
-                              <span>{recipient.email}</span>
-                              <span
-                                className={[
-                                  styles.deliveryBadge,
-                                  styles["delivery_" + (recipient.status || "sent")] || "",
-                                ].join(" ")}
-                                title={[
-                                  recipient.openedAt ? "Opened: " + formatDateTime(recipient.openedAt) : "",
-                                  recipient.clickedAt ? "Clicked: " + formatDateTime(recipient.clickedAt) : "",
-                                ].filter(Boolean).join(" | ") || undefined}
-                              >
-                                {recipient.status || "sent"}
-                              </span>
-                            </div>
-                          ))}
+                          {(detail.recipients || []).map((recipient) => {
+                            const recipientKey = id + ":" + String(recipient._id);
+                            const clicks = recipient.clicks || [];
+                            const hasClicks = clicks.length > 0 || Boolean(recipient.clickedAt);
+                            const linksOpen = expandedRecipientId === recipientKey;
+                            return (
+                              <div className={styles.emailRecipientGroup} key={recipientKey}>
+                                <div className={styles.emailRecipientRow}>
+                                  {recipient.contactId ? (
+                                    <a
+                                      className={styles.emailRecipientContact}
+                                      href={"/?contactId=" + encodeURIComponent(String(recipient.contactId))}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      title="Open CRM contact in a new tab"
+                                    >
+                                      {recipient.recipientName || recipient.email || "View contact"} ↗
+                                    </a>
+                                  ) : (
+                                    <span>{recipient.recipientName || "—"}</span>
+                                  )}
+                                  <span>{recipient.email}</span>
+                                  <div className={styles.emailRecipientStatus}>
+                                    <div className={styles.emailRecipientStatusStack}>
+                                      <span
+                                        className={[
+                                          styles.deliveryBadge,
+                                          styles["delivery_" + (recipient.status || "sent")] || "",
+                                        ].join(" ")}
+                                      >
+                                        {recipient.status || "sent"}
+                                      </span>
+                                      {(recipient.openedAt || recipient.clickedAt) && (
+                                        <span className={styles.emailRecipientTimes}>
+                                          {recipient.openedAt && <small>Opened: {formatDateTime(recipient.openedAt)}</small>}
+                                          {recipient.clickedAt && <small>Clicked: {formatDateTime(recipient.clickedAt)}</small>}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {hasClicks && (
+                                      <button
+                                        type="button"
+                                        className={styles.emailRecipientLinksButton}
+                                        aria-expanded={linksOpen}
+                                        onClick={() => setExpandedRecipientId(linksOpen ? "" : recipientKey)}
+                                      >
+                                        {linksOpen ? "Hide links" : `View links${clicks.length ? ` (${clicks.length})` : ""}`}
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                                {linksOpen && (
+                                  <div className={styles.emailRecipientLinks}>
+                                    <strong>Clicked links</strong>
+                                    {clicks.length ? clicks.map((click, index) => {
+                                      let safeLink = "";
+                                      try {
+                                        const parsed = new URL(click.link);
+                                        if (["http:", "https:"].includes(parsed.protocol)) safeLink = parsed.href;
+                                      } catch { /* Older click events may have no usable URL. */ }
+                                      return (
+                                        <div className={styles.emailRecipientClick} key={index}>
+                                          <time dateTime={click.at || undefined}>{formatDateTime(click.at)}</time>
+                                          {safeLink ? <a href={safeLink} target="_blank" rel="noopener noreferrer">{click.link}</a> : <span>{click.link || "Link unavailable from tracking event"}</span>}
+                                        </div>
+                                      );
+                                    }) : <p>A click was recorded, but its link was not provided.</p>}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </>
                     )}

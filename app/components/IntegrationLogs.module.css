@@ -228,6 +228,36 @@
   white-space: nowrap;
 }
 
+.engagementBadge {
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: #eff8ff;
+  color: #175cd3;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.engagementBadge[data-suspected="true"] {
+  background: #fffaeb;
+  color: #b54708;
+}
+
+.clickedLink {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  border-top: 1px solid #eaecf0;
+  padding-top: 10px;
+  color: #475467;
+  font-size: 0.78rem;
+}
+
+.clickedLink strong { flex-shrink: 0; }
+.clickedLink a,
+.clickedLink span { overflow-wrap: anywhere; }
+.clickedLink a { color: #175cd3; }
+
 .error,
 .empty {
   border-radius: 10px;
