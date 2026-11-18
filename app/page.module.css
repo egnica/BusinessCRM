@@ -1784,6 +1784,20 @@
   font-size: 0.72rem;
 }
 
+.emailRecipientEngagement {
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: #eff8ff;
+  color: #175cd3;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.emailRecipientEngagement[data-suspected="true"] {
+  background: #fffaeb;
+  color: #b54708;
+}
+
 .emailRecipientLinksButton {
   border: 0;
   padding: 4px 0;

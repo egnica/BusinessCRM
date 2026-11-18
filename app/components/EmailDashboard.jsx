@@ -213,6 +213,15 @@ export default function EmailDashboard({ refreshKey = 0 }) {
                                           {recipient.clickedAt && <small>Clicked: {formatDateTime(recipient.clickedAt)}</small>}
                                         </span>
                                       )}
+                                      {recipient.engagement && (
+                                        <span
+                                          className={styles.emailRecipientEngagement}
+                                          data-suspected={recipient.engagement.suspected}
+                                          title={recipient.engagement.explanation}
+                                        >
+                                          {recipient.engagement.label}
+                                        </span>
+                                      )}
                                     </div>
                                     {hasClicks && (
                                       <button

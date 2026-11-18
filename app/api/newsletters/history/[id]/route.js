@@ -5,6 +5,7 @@ import {
   campaignRecipientStatus,
   sortCampaignRecipients,
 } from "@/lib/campaignHistory.mjs";
+import { classifyEmailClickEngagement } from "@/lib/emailClickEngagement.mjs";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +48,7 @@ export async function GET(_req, { params }) {
       .find({ $or: conditions })
       .project({
         campaignId: 1, contactId: 1, recipientEmail: 1, resendEmailId: 1,
-        status: 1, eventTimestamps: 1, events: 1, lastEventAt: 1, updatedAt: 1, sentAt: 1,
+        status: 1, eventTimestamps: 1, events: 1, lastEventAt: 1, updatedAt: 1, sentAt: 1, createdAt: 1,
       })
       .toArray();
 
@@ -77,6 +78,7 @@ export async function GET(_req, { params }) {
         lastActivityAt: campaignRecipientActivityAt(recipient, activity, status),
         openedAt: activity?.eventTimestamps?.openedAt || null,
         clickedAt: activity?.eventTimestamps?.clickedAt || null,
+        engagement: activity ? classifyEmailClickEngagement(activity) : null,
         clicks,
       };
     });

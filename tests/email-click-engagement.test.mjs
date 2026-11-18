@@ -27,7 +27,17 @@ test("later clicks change the label without claiming a verified human", () => {
   assert.match(result?.explanation, /not verified/);
 });
 
-test("ordinary clicks and repeated links are not marked bot likely", () => {
+test("three immediate requests for the same link are bot likely", () => {
+  const events = [10, 11, 12].map((second) => ({
+    type: "email.clicked", link: "https://example.com/unsubscribe",
+    at: `2026-11-17T17:00:${second}Z`,
+  }));
+  const result = classifyEmailClickEngagement({ eventTimestamps: { deliveredAt: delivery }, events });
+  assert.equal(result?.label, "Bot Likely");
+  assert.match(result?.explanation, /same link/);
+});
+
+test("ordinary clicks and slower repeated links are not marked bot likely", () => {
   assert.equal(classifyEmailClickEngagement({ eventTimestamps: { deliveredAt: delivery }, events: burst.slice(0, 1) }), null);
   assert.equal(classifyEmailClickEngagement({
     eventTimestamps: { deliveredAt: delivery },
