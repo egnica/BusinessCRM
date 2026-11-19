@@ -37,10 +37,36 @@ test("three immediate requests for the same link are bot likely", () => {
   assert.match(result?.explanation, /same link/);
 });
 
+test("a delayed many-link burst is flagged even without a delivery timestamp", () => {
+  const events = Array.from({ length: 12 }, (_, i) => ({
+    type: "email.clicked",
+    link: `https://example.com/${i % 8}`,
+    at: new Date(Date.parse(delivery) + 20 * 60000 + i * 4000).toISOString(),
+  }));
+  const result = classifyEmailClickEngagement({ events });
+  assert.equal(result?.label, "Bot Likely");
+  assert.match(result?.explanation, /distinct links were requested within one minute/);
+  assert.equal(classifyEmailClickEngagement({ eventTimestamps: { deliveredAt: delivery }, events })?.label, "Bot Likely");
+});
+
+test("a separate click after a delayed scan becomes Later Engagement", () => {
+  const events = Array.from({ length: 5 }, (_, i) => ({
+    type: "email.clicked", link: `https://example.com/${i}`,
+    at: new Date(Date.parse(delivery) + 20 * 60000 + i * 8000).toISOString(),
+  }));
+  events.push({ type: "email.clicked", link: "https://example.com/0", at: "2026-11-17T17:30:00Z" });
+  assert.equal(classifyEmailClickEngagement({ eventTimestamps: { deliveredAt: delivery }, events })?.label, "Later Engagement");
+});
+
 test("ordinary clicks and slower repeated links are not marked bot likely", () => {
   assert.equal(classifyEmailClickEngagement({ eventTimestamps: { deliveredAt: delivery }, events: burst.slice(0, 1) }), null);
   assert.equal(classifyEmailClickEngagement({
     eventTimestamps: { deliveredAt: delivery },
     events: burst.map((event) => ({ ...event, link: "https://example.com/a" })),
   }), null);
+  const lateClicks = Array.from({ length: 4 }, (_, i) => ({
+    type: "email.clicked", link: `https://example.com/${i}`,
+    at: new Date(Date.parse(delivery) + 20 * 60000 + i * 8000).toISOString(),
+  }));
+  assert.equal(classifyEmailClickEngagement({ eventTimestamps: { deliveredAt: delivery }, events: lateClicks }), null);
 });
